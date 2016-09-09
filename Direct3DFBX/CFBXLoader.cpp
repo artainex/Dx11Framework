@@ -98,11 +98,20 @@ namespace ursine
 		// Initialize the importer by providing a filename.
 		mImporter = FbxImporter::Create(mSdkManager, "HJImporter");
 		if (!mImporter)
+		{
+			MessageBox(NULL, "Creating Importer Failed", "Error", MB_OK);
 			return false;
+		}
 		if (false == mImporter->Initialize(filename.c_str(), lFileFormat, mSdkManager->GetIOSettings()))
+		{
+			MessageBox(NULL, "Importer Initailization Failed", "Error", MB_OK);
 			return false;
+		}
 		if (false == mImporter->Import(mScene))
+		{
+			MessageBox(NULL, "Importing Scene Failed", "Error", MB_OK);
 			return false;
+		}
 
 		// this will do conversion for me
 		FbxGeometryConverter lGConverter(mSdkManager);

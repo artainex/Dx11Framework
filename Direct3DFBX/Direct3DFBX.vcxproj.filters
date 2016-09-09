@@ -257,9 +257,6 @@
     <ClInclude Include="include\Utilities\File System\FileSystem.h">
       <Filter>Utilities\Include\File System</Filter>
     </ClInclude>
-    <ClInclude Include="include\Utilities\WholeInformation.h">
-      <Filter>Utilities\src</Filter>
-    </ClInclude>
     <ClInclude Include="include\UrsinePrecompiled.h">
       <Filter>Utilities</Filter>
     </ClInclude>
@@ -268,6 +265,9 @@
     </ClInclude>
     <ClInclude Include="include\Color.h">
       <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Utilities\WholeInformation.h">
+      <Filter>Utilities</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

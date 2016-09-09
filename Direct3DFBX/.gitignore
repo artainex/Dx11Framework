@@ -20,14 +20,8 @@ $RECYCLE.BIN/
 # =========================
 # Visual Studio Files
 # =========================
-*.sdf
-*.suo
-*.opendb
-*.opensdf
-*.obj
-x64/
-Debug/
-Release/
+*.vcxproj
+*.filters
 
 # =========================
 # fbx Files

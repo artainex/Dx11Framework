@@ -1,9 +1,17 @@
-cbuffer cbGlobal : register( b0 )
+cbuffer cbMatrices : register( b0 )
 {
 	matrix	World;
     matrix	View;
 	matrix	Projection;
 	matrix	WVP;
+};
+
+cbuffer cLights : register(b1)
+{
+	float4	ambient;
+	float4	diffuse;
+	float4	specular;
+	float4	emissive;
 };
 
 struct VS_INPUT

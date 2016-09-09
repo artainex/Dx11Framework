@@ -68,11 +68,11 @@ namespace ursine
 		const ModelInfo& modelInfo = m_pFBX->GetModelInfo();
 
 		// if there is no mesh, doesn't mean it failed to loading FBX
-		size_t meshCnt = modelInfo.mmeshCount;
+		UINT meshCnt = modelInfo.mmeshCount;
 		if (0 == meshCnt) 
 			return E_FAIL;
 		
-		for (size_t i = 0; i<meshCnt; ++i)
+		for (UINT i = 0; i < meshCnt; ++i)
 		{
 			const MeshInfo& currMI = modelInfo.mMeshInfoVec[i];
 			
