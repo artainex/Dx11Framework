@@ -1,0 +1,287 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns:atg="http://atg.xbox.com" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{8e114980-c1a3-4ada-ad7c-83caadf5daeb}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{2c3d4c8c-5d1a-459a-a05a-a4e4b608a44e}</UniqueIdentifier>
+      <Extensions>fx;fxh;hlsl</Extensions>
+    </Filter>
+    <Filter Include="FBXLoader">
+      <UniqueIdentifier>{d5c8f372-bebe-4957-9aee-0c2453cbe0bb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets">
+      <UniqueIdentifier>{f7ec465c-9911-430d-8f86-04f99205efff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities">
+      <UniqueIdentifier>{286d3215-573b-402e-b477-21982dc80479}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities\Include">
+      <UniqueIdentifier>{50afc4d9-3503-4556-9b13-d24f040217f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities\src">
+      <UniqueIdentifier>{b20a45ab-9c50-49ad-9ab2-9619baac8067}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Math">
+      <UniqueIdentifier>{901fedc3-5fcf-43be-aac4-e47781990e1b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Math\src">
+      <UniqueIdentifier>{c69f832a-c543-4bc4-86a1-5d12e3d2b472}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Math\Include">
+      <UniqueIdentifier>{f7a16d79-5e42-4ad2-9100-87721b9ed3eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Math\Include\SIMD">
+      <UniqueIdentifier>{b9fead56-0418-4cdb-9116-394b2ffa5404}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Math\src\SIMD">
+      <UniqueIdentifier>{44d29e5e-5ca3-4429-bd93-3f9bb73d196b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities\Include\File System">
+      <UniqueIdentifier>{1d071b6b-6c7f-47fa-8dc8-1fac73f86d3d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities\src\File System">
+      <UniqueIdentifier>{1183429a-f64d-4944-a564-c01682a24369}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics">
+      <UniqueIdentifier>{11b58d0a-ad64-403b-8a3e-ff586c653cfe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Light">
+      <UniqueIdentifier>{c7d1a307-58ac-43fd-bbbd-3772294e6d1f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="CFBXRendererDX11.cpp">
+      <Filter>FBXLoader</Filter>
+    </ClCompile>
+    <ClCompile Include="CFBXLoader.cpp">
+      <Filter>FBXLoader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Utilities\AnimationInfo.cpp">
+      <Filter>Utilities\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Utilities\BoneInfo.cpp">
+      <Filter>Utilities\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Utilities\Conversion.cpp">
+      <Filter>Utilities\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Utilities\ISerialize.cpp">
+      <Filter>Utilities\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Utilities\MaterialInfo.cpp">
+      <Filter>Utilities\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Utilities\MeshInfo.cpp">
+      <Filter>Utilities\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Utilities\ModelInfo.cpp">
+      <Filter>Utilities\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Utilities\Utilities.cpp">
+      <Filter>Utilities\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Math\Mat3.cpp">
+      <Filter>Math\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Math\Mat4.cpp">
+      <Filter>Math\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Math\UrsineMath.cpp">
+      <Filter>Math\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Math\Vec2.cpp">
+      <Filter>Math\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Math\Vec3.cpp">
+      <Filter>Math\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Math\Vec4.cpp">
+      <Filter>Math\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Math\SIMD\SMat3.cpp">
+      <Filter>Math\src\SIMD</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Math\SIMD\SMat4.cpp">
+      <Filter>Math\src\SIMD</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Math\SIMD\SQuat.cpp">
+      <Filter>Math\src\SIMD</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Math\SIMD\SVec3.cpp">
+      <Filter>Math\src\SIMD</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Math\SIMD\SVec4.cpp">
+      <Filter>Math\src\SIMD</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Utilities\File System\FileSystem.cpp">
+      <Filter>Utilities\src\File System</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11Framework.cpp" />
+    <ClCompile Include="src\Graphics\Light\LightClass.cpp">
+      <Filter>Graphics\Light</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Color.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CFBXRendererDX11.h">
+      <Filter>FBXLoader</Filter>
+    </ClInclude>
+    <ClInclude Include="CFBXLoader.h">
+      <Filter>FBXLoader</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Utilities\AnimationDef.h">
+      <Filter>Utilities\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Utilities\AnimationInfo.h">
+      <Filter>Utilities\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Utilities\BoneInfo.h">
+      <Filter>Utilities\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Utilities\Conversion.h">
+      <Filter>Utilities\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Utilities\CGDefinitions.h">
+      <Filter>Utilities\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Utilities\ISerialize.h">
+      <Filter>Utilities\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Utilities\MaterialInfo.h">
+      <Filter>Utilities\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Utilities\MeshInfo.h">
+      <Filter>Utilities\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Utilities\ModelInfo.h">
+      <Filter>Utilities\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Utilities\Utilities.h">
+      <Filter>Utilities\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Utilities\LvlHierarchy.h">
+      <Filter>Utilities\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\Mat3.h">
+      <Filter>Math\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\Mat3.hpp">
+      <Filter>Math\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\Mat4.h">
+      <Filter>Math\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\Mat4.hpp">
+      <Filter>Math\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\Plane.h">
+      <Filter>Math\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\Plane.hpp">
+      <Filter>Math\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\Ray.h">
+      <Filter>Math\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\Ray.hpp">
+      <Filter>Math\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\UrsineMath.h">
+      <Filter>Math\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\UrsineMath.hpp">
+      <Filter>Math\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\Vec2.h">
+      <Filter>Math\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\Vec2.hpp">
+      <Filter>Math\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\Vec3.h">
+      <Filter>Math\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\Vec3.hpp">
+      <Filter>Math\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\Vec4.h">
+      <Filter>Math\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\Vec4.hpp">
+      <Filter>Math\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\SIMD\Curves.h">
+      <Filter>Math\Include\SIMD</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\SIMD\Curves.hpp">
+      <Filter>Math\Include\SIMD</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\SIMD\SIMD.h">
+      <Filter>Math\Include\SIMD</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\SIMD\SMat3.h">
+      <Filter>Math\Include\SIMD</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\SIMD\SMat3.hpp">
+      <Filter>Math\Include\SIMD</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\SIMD\SMat4.h">
+      <Filter>Math\Include\SIMD</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\SIMD\SMat4.hpp">
+      <Filter>Math\Include\SIMD</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\SIMD\SQuat.h">
+      <Filter>Math\Include\SIMD</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\SIMD\SVec3.h">
+      <Filter>Math\Include\SIMD</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\SIMD\SVec3.hpp">
+      <Filter>Math\Include\SIMD</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\SIMD\SVec4.h">
+      <Filter>Math\Include\SIMD</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Math\SIMD\SVec4.hpp">
+      <Filter>Math\Include\SIMD</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Utilities\UrsineTypes.h">
+      <Filter>Utilities\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Utilities\File System\FileSystem.h">
+      <Filter>Utilities\Include\File System</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Utilities\WholeInformation.h">
+      <Filter>Utilities\src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\UrsinePrecompiled.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\Light\LightClass.h">
+      <Filter>Graphics\Light</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Color.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="simpleRenderPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="simpleRenderVSSkinned.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="simpleRenderVSStatic.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="simpleRenderInstancingVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+  </ItemGroup>
+</Project>

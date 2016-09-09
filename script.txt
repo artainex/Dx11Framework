@@ -1,0 +1,10 @@
+In animation, we finished implementing basic animation, and building custom 
+file format. So, we are in the middle of integrating this with the editor, 
+and once it's done, these resources will be managed by our library system.
+Currently, we set up two major goals for the graphics.
+One is automatic loading resources into the editor. This will make artists 
+can modify their assets fast and convenient. 
+The other goal is procedural animation. Through this method, we are 
+expecting to harmonize our models' movement with the physics. It will 
+improve our models' animation much more realistic without setting tons of 
+keyframes for every single movement. 

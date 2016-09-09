@@ -18,6 +18,16 @@ $RECYCLE.BIN/
 *.lnk
 
 # =========================
+# Visual Studio Files
+# =========================
+*.sdf
+*.suo
+*.opendb
+*.obj
+Debug/
+Release/
+
+# =========================
 # Operating System Files
 # =========================
 
