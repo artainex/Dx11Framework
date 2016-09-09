@@ -11,14 +11,6 @@ cbuffer cbMtxPalette : register(b1)
 	matrix matPal[96];
 };
 
-cbuffer cLights : register(b2)
-{
-	float4	ambient;
-	float4	diffuse;
-	float4	specular;
-	float4	emissive;
-};
-
 struct VS_INPUT
 {
     float3	Pos		: POSITION;
@@ -31,8 +23,8 @@ struct VS_INPUT
 struct VS_OUTPUT
 {
     float4	Pos		: SV_POSITION;
+	float4  Nor		: SV_NORMAL;
 	float2	Tex		: TEXCOORD;
-	float4  Norm	: NORMAL;
 };
 
 VS_OUTPUT vs_main(VS_INPUT input, uint instanceID : SV_InstanceID)
@@ -64,9 +56,10 @@ VS_OUTPUT vs_main(VS_INPUT input, uint instanceID : SV_InstanceID)
 	pos = mul(float4(vertPos, 1.0f), boneTransform).xyz;
 	norm = mul(float4(input.Nor.xyz, 0.0f), boneTransform).xyz;
 
-	output.Pos = mul(float4(pos.xyz, 1.f), WVP);
-	output.Norm = mul(float4(norm, 0), World);
-	output.Norm = mul(output.Norm, View);
+	output.Pos = mul(float4(pos, 1.f), WVP);
+	output.Nor = mul(float4(norm, 0), WVP);
+	//output.Norm = mul(output.Norm, World);
+	//output.Norm = mul(output.Norm, View);
 	output.Tex = input.Tex;
 
 	return output;

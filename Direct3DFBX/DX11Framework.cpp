@@ -87,7 +87,6 @@ struct MatrixBufferType
 	XMMATRIX mView;
 	XMMATRIX mProj;
 	XMMATRIX mWVP;
-	XMMATRIX matPal[96];
 };
 
 struct PaletteBufferType
@@ -99,11 +98,11 @@ struct LightBufferType
 {
 	// For now, try use phong model, use ursine LightClass if I understand HDR or more (this class doesn't have HDR)
 	urColor diffuseColor;
-	//urColor ambientColor;
-	//urColor specularColor;
-	//urColor emissiveColor;
-	//urColor lightDirection;
-	//float padding;  // Added extra padding so structure is a multiple of 16 for CreateBuffer function requirements.
+	urColor ambientColor;
+	urColor specularColor;
+	urColor emissiveColor;
+	ursine::SVec3 lightDirection;
+	float padding;  // Added extra padding so structure is a multiple of 16 for CreateBuffer function requirements.
 };
 
 ID3D11BlendState*				g_pBlendState = nullptr;
@@ -774,15 +773,9 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 	// Vertex Shader Parameters
 	//--------------------------------------------------------------------------------------
 	g_pImmediateContext->VSSetConstantBuffers(0, 1, &g_pmtxBuffer);				// setting matrices
+	
 	if ((*currentModel)->IsSkinned())
-	{
 		g_pImmediateContext->VSSetConstantBuffers(1, 1, &g_pmtxPaletteBuffer);	// setting matrix palettes
-		g_pImmediateContext->VSSetConstantBuffers(2, 1, &g_plightBuffer);		// setting lights
-	}
-	else
-	{
-		g_pImmediateContext->VSSetConstantBuffers(1, 1, &g_plightBuffer);		// setting lights
-	}
 
 	// world, view, projection, WVP Matrices & material
 	{
@@ -819,28 +812,16 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 		g_pImmediateContext->Unmap(g_pmtxPaletteBuffer, 0);
 	}
 
-	// light
-	{
-		hr = g_pImmediateContext->Map(g_plightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
-		LightBufferType* lightBuffer = (LightBufferType*)MappedResource.pData;
-		FAIL_CHECK_BOOLEAN(hr);
-
-		//lightBuffer->ambientColor;
-		lightBuffer->diffuseColor = ursine::Color::Red;
-		//lightBuffer->specularColor;
-		//lightBuffer->emissiveColor;
-		//lightBuffer->lightDirection;
-
-		g_pImmediateContext->Unmap(g_plightBuffer, 0);
-	}
-
 	if (g_pTransformSRV)	g_pImmediateContext->VSSetShaderResources(0, 1, &g_pTransformSRV);
 
 
 	//--------------------------------------------------------------------------------------
-	// Pixel Shader Parameters & material
+	// Pixel Shader Parameters : materials & lights
 	//--------------------------------------------------------------------------------------
 	{
+		//--------------------------------------------------------------------------------------
+		// materials
+		//--------------------------------------------------------------------------------------
 		// should be changed to get specific materials according to specific material id 
 		// to make this possible, we need to build up the structure of subsets
 		Material_Data material = (*currentModel)->GetNodeFbxMaterial(mesh_index);
@@ -850,11 +831,30 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 		if (material.pMaterialCb)
 		{
 			g_pImmediateContext->UpdateSubresource(material.pMaterialCb, 0, NULL, &material.materialConst, 0, 0);
-			g_pImmediateContext->PSSetConstantBuffers(0, 1, &material.pMaterialCb);
+			g_pImmediateContext->PSSetConstantBuffers(0, 1, &material.pMaterialCb);	// setting materials
 		}
 
 		// set sampler
 		if (material.pSampler)	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler);
+
+		//--------------------------------------------------------------------------------------
+		// light
+		//--------------------------------------------------------------------------------------
+		{
+			g_pImmediateContext->PSSetConstantBuffers(1, 1, &g_plightBuffer);		// setting lights
+			
+			hr = g_pImmediateContext->Map(g_plightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+			LightBufferType* lightBuffer = (LightBufferType*)MappedResource.pData;
+			FAIL_CHECK_BOOLEAN(hr);
+			
+			lightBuffer->ambientColor	= urColor::Red;
+			lightBuffer->diffuseColor	= urColor::Red;
+			lightBuffer->specularColor	= urColor::Red;
+			lightBuffer->emissiveColor	= urColor::Red;
+			lightBuffer->lightDirection = ursine::SVec3(0.f, 0.f, -1.f);			
+
+			g_pImmediateContext->Unmap(g_plightBuffer, 0);
+		}
 	}
 
 	return true;

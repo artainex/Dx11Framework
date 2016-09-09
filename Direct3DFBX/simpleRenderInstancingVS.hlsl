@@ -18,14 +18,6 @@ cbuffer cbMtxPalette : register(b1)
 	matrix matPal[96];
 };
 
-cbuffer cLights : register(b2)
-{
-	float4	ambient;
-	float4	diffuse;
-	float4	specular;
-	float4	emissive;
-};
-
 struct VS_INPUT
 {
 	float4 Pos : POSITION;
@@ -36,6 +28,7 @@ struct VS_INPUT
 struct VS_OUTPUT
 {
 	float4 Pos : SV_POSITION;
+	float4 Nor : NORMAL;
 	float2 Tex : TEXCOORD;
 };
 
@@ -49,6 +42,7 @@ VS_OUTPUT vs_main(VS_INPUT input, uint instanceID : SV_InstanceID)
 	instanceWVP = transpose(instanceWVP);
 
 	output.Pos = mul(input.Pos, instanceWVP);
+	//output.Nor = mul(float4(input.Nor, 0), instanceWVP);
 	output.Tex = input.Tex;
 	return output;
 }
