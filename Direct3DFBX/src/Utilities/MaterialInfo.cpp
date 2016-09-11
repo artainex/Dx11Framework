@@ -21,14 +21,15 @@ namespace ursine
 		, difftype(FBX_DATA::Material_Eles::Fac_None)
 		, emistype(FBX_DATA::Material_Eles::Fac_None)
 		, spectype(FBX_DATA::Material_Eles::Fac_None)
-		, ambi_mcolor(0, 0, 0, 1), diff_mcolor(0, 0, 0, 1)
-		, emis_mcolor(0, 0, 0, 1), spec_mcolor(0, 0, 0, 1)
+		, ambi_mcolor(0, 0, 0), diff_mcolor(0, 0, 0)
+		, emis_mcolor(0, 0, 0), spec_mcolor(0, 0, 0)
 		, ambi_mapCount(0)
 		, diff_mapCount(0)
 		, emis_mapCount(0)
 		, spec_mapCount(0)
-		, shineness(0)
-		, TransparencyFactor(0) { }
+		, shineness(0.1f)
+		, transparency(1.0f) 
+	{ }
 
 	MaterialInfo::~MaterialInfo(void)
 	{
@@ -50,8 +51,8 @@ namespace ursine
 		emis_texNames.clear();
 		spec_texNames.clear();
 
-		shineness = 0.f;
-		TransparencyFactor = 0.f;
+		shineness = 0.1f;
+		transparency = 1.f;
 	}
 
 	bool MaterialInfo::SerializeIn(HANDLE hFile)
@@ -105,7 +106,7 @@ namespace ursine
 			}
 
 			ReadFile(hFile, &shineness, sizeof(float), &nBytesRead, nullptr);
-			ReadFile(hFile, &TransparencyFactor, sizeof(float), &nBytesRead, nullptr);
+			ReadFile(hFile, &transparency, sizeof(float), &nBytesRead, nullptr);
 		}
 		return true;
 	}
@@ -174,7 +175,7 @@ namespace ursine
 			}
 
 			WriteFile(hFile, &shineness, sizeof(float), &nBytesWrite, nullptr);
-			WriteFile(hFile, &TransparencyFactor, sizeof(float), &nBytesWrite, nullptr);
+			WriteFile(hFile, &transparency, sizeof(float), &nBytesWrite, nullptr);
 		}
 		return true;
 	}

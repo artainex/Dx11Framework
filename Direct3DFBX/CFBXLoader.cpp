@@ -1073,22 +1073,22 @@ namespace ursine
 				// Emis
 				const FbxDouble3 lEmissive = GetMaterialProperty(material,
 					FbxSurfaceMaterial::sEmissive, FbxSurfaceMaterial::sEmissiveFactor, &destMat.emissive);
-				destMat.emissive.color = FBXDouble3ToXMFLOAT4(lEmissive);
+				destMat.emissive.color = FBXDouble3ToXMFLOAT3(lEmissive);
 
 				// Ambi
 				const FbxDouble3 lAmbient = GetMaterialProperty(material,
 					FbxSurfaceMaterial::sAmbient, FbxSurfaceMaterial::sAmbientFactor, &destMat.ambient);
-				destMat.ambient.color = FBXDouble3ToXMFLOAT4(lAmbient);
+				destMat.ambient.color = FBXDouble3ToXMFLOAT3(lAmbient);
 
 				// Diff
 				const FbxDouble3 lDiffuse = GetMaterialProperty(material,
 					FbxSurfaceMaterial::sDiffuse, FbxSurfaceMaterial::sDiffuseFactor, &destMat.diffuse);
-				destMat.diffuse.color = FBXDouble3ToXMFLOAT4(lDiffuse);
+				destMat.diffuse.color = FBXDouble3ToXMFLOAT3(lDiffuse);
 
 				// Spec
 				const FbxDouble3 lSpecular = GetMaterialProperty(material,
 					FbxSurfaceMaterial::sSpecular, FbxSurfaceMaterial::sSpecularFactor, &destMat.specular);
-				destMat.specular.color = FBXDouble3ToXMFLOAT4(lSpecular);
+				destMat.specular.color = FBXDouble3ToXMFLOAT3(lSpecular);
 
 				// Transparency
 				FbxProperty lTransparencyFactorProperty = material->FindProperty(FbxSurfaceMaterial::sTransparencyFactor);

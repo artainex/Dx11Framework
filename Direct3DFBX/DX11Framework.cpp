@@ -75,8 +75,8 @@ ursine::CFBXRenderDX11*	g_pFbxDX11[NUMBER_OF_MODELS];
 // FBX file
 char g_files[NUMBER_OF_MODELS][256] =
 {
-	//"Assets/Models/stanford_bunny.fbx"
-	"Assets/Animations/Player/Player_Idle.fbx"
+	"Assets/Models/stanford_bunny.fbx"
+	//"Assets/Animations/Player/Player_Idle.fbx"
 };
 
 std::vector<XMMATRIX> skin_mat;
@@ -139,6 +139,7 @@ HRESULT SetupTransformSRV();
 // 2. 노멀 맵핑이랑 퐁 라이팅 적용해두기
 // 3. G-buffer란 무엇인가? 셰도우 맵핑 적용할 준비를 할 것.
 // 4. 여러 오브젝트를 로딩할 수 있는가? 인스턴싱이 아니라.
+// 5. 카메라 클래스 만들기
 //--------------------------------------------------------------------------------------
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
@@ -772,11 +773,11 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 	//--------------------------------------------------------------------------------------
 	// Vertex Shader Parameters
 	//--------------------------------------------------------------------------------------
-	g_pImmediateContext->VSSetConstantBuffers(0, 1, &g_pmtxBuffer);				// setting matrices
-	
-	if ((*currentModel)->IsSkinned())
-		g_pImmediateContext->VSSetConstantBuffers(1, 1, &g_pmtxPaletteBuffer);	// setting matrix palettes
 
+	//--------------------------------------------------------------------------------------
+	// setting matrices
+	//--------------------------------------------------------------------------------------
+	g_pImmediateContext->VSSetConstantBuffers(0, 1, &g_pmtxBuffer);
 	// world, view, projection, WVP Matrices & material
 	{
 		// 이게 여기에 있어야만 하는지, 라이팅 셰이더를 이 이후에 그릴 때에 다시 이걸 세이더에 전달해줘야 하는지 궁금하군
@@ -800,20 +801,26 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 		g_pImmediateContext->Unmap(g_pmtxBuffer, 0);
 	}
 
+	//--------------------------------------------------------------------------------------
 	// matrix palette
-	if (eLayout::SKINNED == layoutType)
+	//--------------------------------------------------------------------------------------
 	{
-		hr = g_pImmediateContext->Map(g_pmtxPaletteBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
-		PaletteBufferType* palBuffer = (PaletteBufferType*)MappedResource.pData;
-		FAIL_CHECK_BOOLEAN(hr);
+		if ((*currentModel)->IsSkinned())
+			g_pImmediateContext->VSSetConstantBuffers(1, 1, &g_pmtxPaletteBuffer);	// setting matrix palettes
 
-		(*currentModel)->UpdateMatPal(&palBuffer->matPal[0]);
+		if (eLayout::SKINNED == layoutType)
+		{
+			hr = g_pImmediateContext->Map(g_pmtxPaletteBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+			PaletteBufferType* palBuffer = (PaletteBufferType*)MappedResource.pData;
+			FAIL_CHECK_BOOLEAN(hr);
 
-		g_pImmediateContext->Unmap(g_pmtxPaletteBuffer, 0);
+			(*currentModel)->UpdateMatPal(&palBuffer->matPal[0]);
+
+			g_pImmediateContext->Unmap(g_pmtxPaletteBuffer, 0);
+		}
 	}
 
 	if (g_pTransformSRV)	g_pImmediateContext->VSSetShaderResources(0, 1, &g_pTransformSRV);
-
 
 	//--------------------------------------------------------------------------------------
 	// Pixel Shader Parameters : materials & lights
@@ -824,18 +831,34 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 		//--------------------------------------------------------------------------------------
 		// should be changed to get specific materials according to specific material id 
 		// to make this possible, we need to build up the structure of subsets
-		Material_Data material = (*currentModel)->GetNodeFbxMaterial(mesh_index);
-		if (material.pSRV)		g_pImmediateContext->PSSetShaderResources(0, 1, &material.pSRV);
-
-		// set constant buffer for material
-		if (material.pMaterialCb)
 		{
-			g_pImmediateContext->UpdateSubresource(material.pMaterialCb, 0, NULL, &material.materialConst, 0, 0);
-			g_pImmediateContext->PSSetConstantBuffers(0, 1, &material.pMaterialCb);	// setting materials
-		}
+			Material_Data material = (*currentModel)->GetNodeFbxMaterial(mesh_index);
 
-		// set sampler
-		if (material.pSampler)	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler);
+			// 셰이더 리소스 뷰랑 샘플러의 차이가 뭐야?
+			// set sampler
+			if (material.pSampler)	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler);
+			// set shader resource view - for texture
+			if (material.pSRV)		g_pImmediateContext->PSSetShaderResources(0, 1, &material.pSRV);
+			// set constant buffer for material
+			if (material.pMaterialCb)
+			{
+				//g_pImmediateContext->UpdateSubresource(material.pMaterialCb, 0, NULL, &material.mtrlConst, 0, 0);
+				g_pImmediateContext->PSSetConstantBuffers(0, 1, &material.pMaterialCb);	// setting materials constant buffer
+
+				hr = g_pImmediateContext->Map(material.pMaterialCb, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+				MaterialBufferType* mtrlBuffer = (MaterialBufferType*)MappedResource.pData;
+				FAIL_CHECK_BOOLEAN(hr);
+
+				mtrlBuffer->ambient			= material.mtrlConst.ambient;
+				mtrlBuffer->diffuse			= material.mtrlConst.diffuse;
+				mtrlBuffer->specular		= material.mtrlConst.specular;
+				mtrlBuffer->emissive		= material.mtrlConst.emissive;
+				mtrlBuffer->shineness = 1.0f;// material.mtrlConst.shineness;
+				mtrlBuffer->transparency = 1.0f;// material.mtrlConst.transparency;
+
+				g_pImmediateContext->Unmap(material.pMaterialCb, 0);
+			}
+		}
 
 		//--------------------------------------------------------------------------------------
 		// light
@@ -847,11 +870,11 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 			LightBufferType* lightBuffer = (LightBufferType*)MappedResource.pData;
 			FAIL_CHECK_BOOLEAN(hr);
 			
-			lightBuffer->ambientColor	= urColor::Red;
-			lightBuffer->diffuseColor	= urColor::Red;
-			lightBuffer->specularColor	= urColor::Red;
-			lightBuffer->emissiveColor	= urColor::Red;
-			lightBuffer->lightDirection = ursine::SVec3(0.f, 0.f, -1.f);			
+			lightBuffer->ambientColor	= urColor::White;
+			lightBuffer->diffuseColor	= urColor::White;
+			lightBuffer->specularColor	= urColor::White;
+			lightBuffer->emissiveColor	= urColor::White;
+			lightBuffer->lightDirection = ursine::SVec3(0.f, 0.f, 1.f);			
 
 			g_pImmediateContext->Unmap(g_plightBuffer, 0);
 		}

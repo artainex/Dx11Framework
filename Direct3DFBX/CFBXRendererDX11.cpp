@@ -238,30 +238,88 @@ namespace ursine
 		if (!pd3dDevice || 0 == modelInfo.mmaterialCount)
 			return E_FAIL;
 
+		//--------------------------------------------------------
+		// Will this work for multi-material?
+		//--------------------------------------------------------
 		HRESULT hr = S_OK;
+		
 		// Pass Data to Material_Data structure
-		meshNode.fbxmaterialData.resize(modelInfo.mmaterialCount);
-		for (unsigned i = 0; i < modelInfo.mmaterialCount; ++i)
+		if (0 != modelInfo.mmaterialCount)
 		{
-			if (currMI.diff_mapCount > 0)
+			meshNode.fbxmaterialData.resize(modelInfo.mmaterialCount);
+			for (unsigned i = 0; i < modelInfo.mmaterialCount; ++i)
 			{
-				for (unsigned j = 0; j < currMI.diff_mapCount; ++j)
+				auto &currFbxMtrl = meshNode.fbxmaterialData[i];
+
+				// samplerstate
+				D3D11_SAMPLER_DESC sampDesc;
+				ZeroMemory(&sampDesc, sizeof(sampDesc));
+				sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+				sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+				sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+				sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+				sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+				sampDesc.MinLOD = 0;
+				sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+				// material Constant Buffer
+				D3D11_BUFFER_DESC mtrlBufferDesc;
+				ZeroMemory(&mtrlBufferDesc, sizeof(mtrlBufferDesc));
+				mtrlBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+				mtrlBufferDesc.ByteWidth = sizeof(FBX_DATA::MaterialBufferType);
+				mtrlBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+				mtrlBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+				// Create Shader Resource View from default texture and material
+				if (currMI.diff_mapCount > 0)
 				{
-					if (currMI.diff_texNames[j] != "")
+					for (unsigned j = 0; j < currMI.diff_mapCount; ++j)
 					{
-						std::string path = "Assets/";
-						std::string folder = currMI.diff_texNames[j];
-						path += folder;
-						D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path.c_str(), NULL, NULL, &meshNode.fbxmaterialData[i].pSRV, NULL);
+						if (currMI.diff_texNames[j] != "")
+						{
+							std::string path = "Assets/";
+							std::string folder = currMI.diff_texNames[j];
+							path += folder;
+							D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path.c_str(), NULL, NULL, &currFbxMtrl.pSRV, NULL);
+						}
 					}
 				}
+				// if there's no texture, just use default texture
+				else {
+					std::string path = "Assets\\uv.png";
+					D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path.c_str(), NULL, NULL, &currFbxMtrl.pSRV, NULL);
+				}
+
+				// Setting sampler as default texture
+				hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler);
+				if (FAILED(hr))
+				{
+					MessageBox(NULL, "Creating Sampler State Failed", "Error", MB_OK);
+					return hr;
+				}
+
+				// currently, constant buffer creation always failed because constant buffer size should be multiple of 16
+				hr = pd3dDevice->CreateBuffer(&mtrlBufferDesc, NULL, &currFbxMtrl.pMaterialCb);
+				if (FAILED(hr))
+				{
+					MessageBox(NULL, "Constant buffer is not size of multiple of 16", "Error", MB_OK);
+					return hr;
+				}
+
+				currFbxMtrl.mtrlConst.ambient = currMI.ambi_mcolor;
+				currFbxMtrl.mtrlConst.diffuse = currMI.diff_mcolor;
+				currFbxMtrl.mtrlConst.specular = currMI.spec_mcolor;
+				currFbxMtrl.mtrlConst.emissive = currMI.emis_mcolor;
+				currFbxMtrl.mtrlConst.shineness = currMI.shineness;
+				currFbxMtrl.mtrlConst.transparency = currMI.transparency;
 			}
-			// if there's no texture, just use default texture
-			else {
-				std::string path = "Assets\\uv.png";
-				D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path.c_str(), NULL, NULL, &meshNode.fbxmaterialData[i].pSRV, NULL);
-			}
-			
+		}
+		else
+		{
+			meshNode.fbxmaterialData.resize(1);
+
+			auto &currFbxMtrl = meshNode.fbxmaterialData[0];
+
 			// samplerstate
 			D3D11_SAMPLER_DESC sampDesc;
 			ZeroMemory(&sampDesc, sizeof(sampDesc));
@@ -272,26 +330,42 @@ namespace ursine
 			sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 			sampDesc.MinLOD = 0;
 			sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-			hr = pd3dDevice->CreateSamplerState(&sampDesc, &meshNode.fbxmaterialData[i].pSampler);
 
 			// material Constant Buffer
-			D3D11_BUFFER_DESC bufDesc;
-			ZeroMemory(&bufDesc, sizeof(bufDesc));
-			const uint32_t stride = static_cast<uint32_t>(sizeof(FBX_DATA::Material_Consts));
-			bufDesc.ByteWidth = stride;
-			bufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-			bufDesc.CPUAccessFlags = 0;
+			D3D11_BUFFER_DESC mtrlBufferDesc;
+			ZeroMemory(&mtrlBufferDesc, sizeof(mtrlBufferDesc));
+			mtrlBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+			mtrlBufferDesc.ByteWidth = sizeof(FBX_DATA::MaterialBufferType);
+			mtrlBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+			mtrlBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+			// Create Shader Resource View from default texture and material
+			std::string path = "Assets\\uv.png";
+			D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path.c_str(), NULL, NULL, &currFbxMtrl.pSRV, NULL);
+
+			hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler);
+			if (FAILED(hr))
+			{
+				MessageBox(NULL, "Creating Sampler State Failed", "Error", MB_OK);
+				return hr;
+			}
 
 			// currently, constant buffer creation always failed because constant buffer size should be multiple of 16
-			hr = pd3dDevice->CreateBuffer(&bufDesc, nullptr, &meshNode.fbxmaterialData[i].pMaterialCb);
+			hr = pd3dDevice->CreateBuffer(&mtrlBufferDesc, NULL, &currFbxMtrl.pMaterialCb);
+			if (FAILED(hr))
+			{
+				MessageBox(NULL, "Constant buffer is not size of multiple of 16", "Error", MB_OK);
+				return hr;
+			}
 
-			meshNode.fbxmaterialData[i].materialConst.ambient	= currMI.ambi_mcolor;
-			meshNode.fbxmaterialData[i].materialConst.diffuse	= currMI.diff_mcolor;
-			meshNode.fbxmaterialData[i].materialConst.specular	= currMI.spec_mcolor;
-			meshNode.fbxmaterialData[i].materialConst.emissive	= currMI.emis_mcolor;
-			meshNode.fbxmaterialData[i].materialConst.shineness = currMI.shineness;
-			meshNode.fbxmaterialData[i].materialConst.TransparencyFactor = currMI.TransparencyFactor;
+			currFbxMtrl.mtrlConst.ambient	= pseudodx::XMFLOAT3(0.01f, 0.01f, 0.01f);
+			currFbxMtrl.mtrlConst.diffuse	= pseudodx::XMFLOAT3(0.69f, 0.69f, 0.69f);
+			currFbxMtrl.mtrlConst.specular	= pseudodx::XMFLOAT3(0.2f, 0.2f, 0.2f);
+			currFbxMtrl.mtrlConst.emissive	= pseudodx::XMFLOAT3(0.0f, 0.0f, 0.0f);
+			currFbxMtrl.mtrlConst.shineness = 0.1f;
+			currFbxMtrl.mtrlConst.transparency = 1.0f;
 		}
+
 		return S_OK;
 	}
 
@@ -306,7 +380,7 @@ namespace ursine
 
 		HRESULT hr = S_OK;
 		size_t nodeCount = m_meshNodeArray.size();
-		for (size_t i = 0; i<nodeCount; ++i)
+		for (size_t i = 0; i < nodeCount; ++i)
 		{
 			pd3dDevice->CreateInputLayout(pLayout,
 				layoutSize,

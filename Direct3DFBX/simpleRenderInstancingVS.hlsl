@@ -20,16 +20,16 @@ cbuffer cbMtxPalette : register(b1)
 
 struct VS_INPUT
 {
-	float4 Pos : POSITION;
-	float3 Nor : NORMAL;
-	float2 Tex : TEXCOORD;
+	float4	Pos : POSITION;
+	float3	Nor : NORMAL;
+	float2	Tex : TEXCOORD;
 };
 
 struct VS_OUTPUT
 {
-	float4 Pos : SV_POSITION;
-	float4 Nor : NORMAL;
-	float2 Tex : TEXCOORD;
+	float4	Pos : SV_POSITION;
+	float3	Nor : NORMAL;
+	float2	Tex : TEXCOORD;
 };
 
 VS_OUTPUT vs_main(VS_INPUT input, uint instanceID : SV_InstanceID)
@@ -42,7 +42,8 @@ VS_OUTPUT vs_main(VS_INPUT input, uint instanceID : SV_InstanceID)
 	instanceWVP = transpose(instanceWVP);
 
 	output.Pos = mul(input.Pos, instanceWVP);
-	//output.Nor = mul(float4(input.Nor, 0), instanceWVP);
+	output.Nor = mul(input.Nor, instanceWVP).xyz;
 	output.Tex = input.Tex;
+
 	return output;
 }

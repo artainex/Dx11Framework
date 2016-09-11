@@ -120,6 +120,14 @@ namespace Utilities
     *  @return converted FbxVector4 result
     */
     FbxVector4 XMFloat3ToFBXVector4(const pseudodx::XMFLOAT3& src);
+	/** @brief convert FbxDouble3 to FbxVector3 function
+	*
+	*  this will convert FbxDouble3 format to FbxVector3
+	*
+	*  @param src FbxDouble3
+	*  @return converted FbxVector3 result
+	*/
+	pseudodx::XMFLOAT3 FBXDouble3ToXMFLOAT3(const FbxDouble3& src);
     /** @brief convert FbxDouble3 to FbxVector4 function
     *
     *  this will convert FbxDouble3 format to FbxVector4

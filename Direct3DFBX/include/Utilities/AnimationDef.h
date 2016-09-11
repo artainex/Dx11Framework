@@ -146,14 +146,17 @@ namespace ursine
 			BYTE		vBIdx[4];
 		};
 
-		struct Material_Consts
+		struct MaterialBufferType
 		{
-			pseudodx::XMFLOAT4	ambient;
-			pseudodx::XMFLOAT4	diffuse;
-			pseudodx::XMFLOAT4	specular;
-			pseudodx::XMFLOAT4	emissive;
 			float		shineness;
-			float		TransparencyFactor;
+			float		transparency;
+			pseudodx::XMFLOAT2	padding;
+			pseudodx::XMFLOAT3	ambient;
+			pseudodx::XMFLOAT3	diffuse;
+			pseudodx::XMFLOAT3	specular;
+			pseudodx::XMFLOAT3	emissive;
+
+			MaterialBufferType() : transparency(1.0f) {}
 		};
 
 		struct Material_Eles
@@ -170,11 +173,11 @@ namespace ursine
 			};
 
 			eMaterial_Fac type;
-			pseudodx::XMFLOAT4 color;
+			pseudodx::XMFLOAT3 color;
 			TextureSet textureSetArray;
 
 			Material_Eles()
-				:type(Fac_None), color(0, 0, 0, 1)
+				:type(Fac_None), color(0, 0, 0)
 			{
 				textureSetArray.clear();
 			}
@@ -213,16 +216,16 @@ namespace ursine
 		// this will replace MATERIAL_DATA
 		struct Material_Data
 		{
-			Material_Consts				materialConst;
+			MaterialBufferType			mtrlConst;
 			ID3D11ShaderResourceView*	pSRV;
 			ID3D11SamplerState*         pSampler;
 			ID3D11Buffer*				pMaterialCb;
 
 			Material_Data()
+				: pSRV(nullptr), 
+				pSampler(nullptr), 
+				pMaterialCb(nullptr)
 			{
-				pSRV = nullptr;
-				pSampler = nullptr;
-				pMaterialCb = nullptr;
 			}
 			void Release()
 			{
@@ -268,7 +271,6 @@ namespace ursine
 			Material_Eles specular;
 			float shineness;
 			float TransparencyFactor;
-			Material_Consts mtrl_consts;
 
 			FbxMaterial()
 				:name(""), type(Type_None),
@@ -285,6 +287,9 @@ namespace ursine
 
 			FbxMaterial& operator=(const FbxMaterial& rhs)
 			{
+				if (this == &rhs)
+					return *this;
+
 				name = rhs.name;
 				type = rhs.type;
 				ambient = rhs.ambient;
@@ -293,13 +298,6 @@ namespace ursine
 				specular = rhs.specular;
 				shineness = rhs.shineness;
 				TransparencyFactor = rhs.TransparencyFactor;
-
-				mtrl_consts.ambient = rhs.ambient.color;
-				mtrl_consts.diffuse = rhs.diffuse.color;
-				mtrl_consts.emissive = rhs.emissive.color;
-				mtrl_consts.specular = rhs.specular.color;
-				mtrl_consts.shineness = rhs.shineness;
-				mtrl_consts.TransparencyFactor = rhs.TransparencyFactor;
 				return *this;
 			}
 		};
@@ -312,10 +310,8 @@ namespace ursine
 			pseudodx::XMFLOAT3 scl;
 
 			KeyFrame() :
-				time(0.f),
-				trans(0.f, 0.f, 0.f),
-				rot(0.f, 0.f, 0.f, 1.f),
-				scl(1.f, 1.f, 1.f)
+			time(0.f), 
+			trans(0.f, 0.f, 0.f), rot(0.f, 0.f, 0.f, 1.f), scl(1.f, 1.f, 1.f)
 			{
 			}
 		};
@@ -395,14 +391,15 @@ namespace ursine
 			pseudodx::XMFLOAT4 boneSpaceRotation;
 
 			Joint()
+				:
+			mParentIndex(-1),
+			bindPosition(pseudodx::XMFLOAT3(0, 0, 0)),
+			bindRotation(pseudodx::XMFLOAT4(0, 0, 0, 1)),
+			bindScaling(pseudodx::XMFLOAT3(1, 1, 1)),
+			boneSpacePosition(pseudodx::XMFLOAT3(0, 0, 0)),
+			boneSpaceRotation(pseudodx::XMFLOAT4(0, 0, 0, 1)),
+			boneSpaceScaling(pseudodx::XMFLOAT3(1, 1, 1))
 			{
-				mParentIndex = -1;
-				bindPosition = pseudodx::XMFLOAT3(0, 0, 0);
-				bindRotation = pseudodx::XMFLOAT4(0, 0, 0, 1);
-				bindScaling = pseudodx::XMFLOAT3(1, 1, 1);
-				boneSpacePosition = pseudodx::XMFLOAT3(0, 0, 0);
-				boneSpaceRotation = pseudodx::XMFLOAT4(0, 0, 0, 1);
-				boneSpaceScaling = pseudodx::XMFLOAT3(1, 1, 1);
 				mToRoot.SetIdentity();
 				mToParent.SetIdentity();
 			}
@@ -413,10 +410,12 @@ namespace ursine
 			std::vector<Joint>		mbonehierarchy;
 			std::vector<FbxNode*>	mboneNodes;
 			std::vector<SMat4>		mboneLocalTM;
+
 			~FbxBoneData()
 			{
 				Release();
 			}
+
 			void Release()
 			{
 				mbonehierarchy.clear();
@@ -506,14 +505,11 @@ namespace ursine
 			INDEX_BIT	m_indexBit;
 
 			MESH_NODE()
+				:
+			m_pVB(nullptr), m_pIB(nullptr), m_pInputLayout(nullptr),
+			m_indexBit(INDEX_NOINDEX), vertexCount(0), indexCount(0),
+			m_meshTM( DirectX::XMMatrixIdentity() )
 			{
-				m_pVB = nullptr;
-				m_pIB = nullptr;
-				m_pInputLayout = nullptr;
-				m_indexBit = INDEX_NOINDEX;
-				vertexCount = 0;
-				indexCount = 0;
-				m_meshTM = DirectX::XMMatrixIdentity();
 			}
 
 			void Release()

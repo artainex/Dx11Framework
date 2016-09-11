@@ -29,10 +29,10 @@ namespace ursine
 		FBX_DATA::Material_Eles::eMaterial_Fac emistype;
 		FBX_DATA::Material_Eles::eMaterial_Fac spectype;
 
-		pseudodx::XMFLOAT4 ambi_mcolor;
-		pseudodx::XMFLOAT4 diff_mcolor;
-		pseudodx::XMFLOAT4 emis_mcolor;
-		pseudodx::XMFLOAT4 spec_mcolor;
+		pseudodx::XMFLOAT3 ambi_mcolor;
+		pseudodx::XMFLOAT3 diff_mcolor;
+		pseudodx::XMFLOAT3 emis_mcolor;
+		pseudodx::XMFLOAT3 spec_mcolor;
 
 		UINT ambi_mapCount;
 		UINT diff_mapCount;
@@ -45,7 +45,7 @@ namespace ursine
 		std::vector< std::string > spec_texNames;
 
 		float shineness;
-		float TransparencyFactor;
+		float transparency;
 
 		/** @brief material information constructor
 		*
