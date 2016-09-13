@@ -13,7 +13,6 @@
 
 #include <Utilities.h>
 
-
 namespace Utilities
 {
     /*===============================
@@ -156,18 +155,18 @@ namespace Utilities
             static_cast<float>(src.mData[3]));
     }
 
-	XMVECTOR ConvertPseudoXMFloat3ToXMVEC(const pseudodx::XMFLOAT3& src)
+	DirectX::XMVECTOR ConvertPseudoXMFloat3ToXMVEC(const pseudodx::XMFLOAT3& src)
 	{
-		XMVECTOR ret;
+		DirectX::XMVECTOR ret;
 		ret.m128_f32[0] = src.x; 
 		ret.m128_f32[1] = src.y;
 		ret.m128_f32[2] = src.z;
 		return ret;
 	}
 
-	XMVECTOR ConvertPseudoXMFloat4ToXMVEC(const pseudodx::XMFLOAT4& src)
+	DirectX::XMVECTOR ConvertPseudoXMFloat4ToXMVEC(const pseudodx::XMFLOAT4& src)
 	{
-		XMVECTOR ret;
+		DirectX::XMVECTOR ret;
 		ret.m128_f32[0] = src.x;
 		ret.m128_f32[1] = src.y;
 		ret.m128_f32[2] = src.z;

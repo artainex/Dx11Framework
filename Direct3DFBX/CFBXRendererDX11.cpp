@@ -246,10 +246,10 @@ namespace ursine
 		// Pass Data to Material_Data structure
 		if (0 != modelInfo.mmaterialCount)
 		{
-			meshNode.fbxmaterialData.resize(modelInfo.mmaterialCount);
+			meshNode.fbxmtrlData.resize(modelInfo.mmaterialCount);
 			for (unsigned i = 0; i < modelInfo.mmaterialCount; ++i)
 			{
-				auto &currFbxMtrl = meshNode.fbxmaterialData[i];
+				auto &currFbxMtrl = meshNode.fbxmtrlData[i];
 
 				// samplerstate
 				D3D11_SAMPLER_DESC sampDesc;
@@ -266,7 +266,7 @@ namespace ursine
 				D3D11_BUFFER_DESC mtrlBufferDesc;
 				ZeroMemory(&mtrlBufferDesc, sizeof(mtrlBufferDesc));
 				mtrlBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-				mtrlBufferDesc.ByteWidth = sizeof(FBX_DATA::MaterialBufferType);
+				mtrlBufferDesc.ByteWidth = sizeof(MaterialBufferType);
 				mtrlBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 				mtrlBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
@@ -316,9 +316,9 @@ namespace ursine
 		}
 		else
 		{
-			meshNode.fbxmaterialData.resize(1);
+			meshNode.fbxmtrlData.resize(1);
 
-			auto &currFbxMtrl = meshNode.fbxmaterialData[0];
+			auto &currFbxMtrl = meshNode.fbxmtrlData[0];
 
 			// samplerstate
 			D3D11_SAMPLER_DESC sampDesc;
@@ -335,7 +335,7 @@ namespace ursine
 			D3D11_BUFFER_DESC mtrlBufferDesc;
 			ZeroMemory(&mtrlBufferDesc, sizeof(mtrlBufferDesc));
 			mtrlBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-			mtrlBufferDesc.ByteWidth = sizeof(FBX_DATA::MaterialBufferType);
+			mtrlBufferDesc.ByteWidth = sizeof(MaterialBufferType);
 			mtrlBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 			mtrlBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 

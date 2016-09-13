@@ -11,29 +11,10 @@
 
 #include <WholeInformation.h>
 #include <ctime>
-#include <LightClass.h>
 #include "CFBXRendererDX11.h"
 
 using namespace DirectX;
 using namespace ursine::FBX_DATA;
-typedef ursine::Color urColor;
-
-//--------------------------------------------------------------------------------------
-// MACROS
-//--------------------------------------------------------------------------------------
-#define FAIL_CHECK(expression) if( FAILED(expression) )	{ return expression; }
-#define FAIL_CHECK_BOOLEAN(expression) if( FAILED(expression) )	{ return false; }
-#define FAIL_CHECK_WITH_MSG(expression, msg) if( FAILED(expression) )	\
-{																		\
-	MessageBox(NULL, msg, "Error", MB_OK);								\
-	return expression;													\
-}
-
-#define SAFE_RELEASE(pt) if( nullptr != pt )\
-{ pt->Release(); pt = nullptr; }			\
-
-#define SAFE_DELETE(pt) if( nullptr != pt )	\
-{ delete pt; pt = nullptr; }				\
 
 //--------------------------------------------------------------------------------------
 // Global Variables
@@ -80,30 +61,6 @@ char g_files[NUMBER_OF_MODELS][256] =
 };
 
 std::vector<XMMATRIX> skin_mat;
-
-struct MatrixBufferType
-{
-	XMMATRIX mWorld;
-	XMMATRIX mView;
-	XMMATRIX mProj;
-	XMMATRIX mWVP;
-};
-
-struct PaletteBufferType
-{
-	XMMATRIX matPal[96];
-};
-
-struct LightBufferType
-{
-	// For now, try use phong model, use ursine LightClass if I understand HDR or more (this class doesn't have HDR)
-	urColor diffuseColor;
-	urColor ambientColor;
-	urColor specularColor;
-	urColor emissiveColor;
-	ursine::SVec3 lightDirection;
-	float padding;  // Added extra padding so structure is a multiple of 16 for CreateBuffer function requirements.
-};
 
 ID3D11BlendState*				g_pBlendState = nullptr;
 ID3D11RasterizerState*			g_pRS = nullptr;
@@ -853,8 +810,8 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 				mtrlBuffer->diffuse			= material.mtrlConst.diffuse;
 				mtrlBuffer->specular		= material.mtrlConst.specular;
 				mtrlBuffer->emissive		= material.mtrlConst.emissive;
-				mtrlBuffer->shineness = 1.0f;// material.mtrlConst.shineness;
-				mtrlBuffer->transparency = 1.0f;// material.mtrlConst.transparency;
+				mtrlBuffer->shineness		= 1.0f;// = material.mtrlConst.shineness;
+				mtrlBuffer->transparency	= 1.0f;// = material.mtrlConst.transparency;
 
 				g_pImmediateContext->Unmap(material.pMaterialCb, 0);
 			}

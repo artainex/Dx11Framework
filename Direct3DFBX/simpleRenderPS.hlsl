@@ -54,7 +54,7 @@ float4 PS( PS_INPUT input) : SV_Target
 
 	float3 fv_ambi = float4(m_ambient, 1) * l_ambient;
 	float3 fv_diff = float4(m_diffuse, 1) * l_diffuse * fNdotL;
-	float3 fv_spec = float4(m_specular, 1) * l_specular * pow( fRdotV, m_shineness);
+	float3 fv_spec = float4(m_specular, 1) * l_specular * pow(fRdotV, m_shineness);
 	float3 fv_emit = float4(m_emissive, 1) * l_emissive;
 
 	// Determine the final diffuse color based on the diffuse color and the amount of light intensity.
@@ -65,7 +65,7 @@ float4 PS( PS_INPUT input) : SV_Target
 	//if ( !IsZeroColor(texColor) )
 	//	final_Color *= texColor;
 	
-	//final_Color = saturate( final_Color + fv_spec );
+	final_Color = saturate( final_Color + fv_spec );
 
 	return float4(final_Color, m_transparency);
 }

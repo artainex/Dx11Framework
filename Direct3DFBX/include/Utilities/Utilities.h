@@ -12,10 +12,90 @@
 ** -------------------------------------------------------------------------*/
 #pragma once
 
-#include <AnimationDef.h>
+#include <directxmath.h>
+#include <d3d11.h>
+#include <d3dcompiler.h>
+#include <d3dcommon.h>
+#include <D3DX11async.h>
+#include <fbxsdk.h>
+#include <SVec3.h>
 #include <SVec4.h>
+#include <SMat4.h>
 
 #pragma warning(disable : 4458)
+
+//--------------------------------------------------------------------------------------
+// MACROS
+//--------------------------------------------------------------------------------------
+#define FAIL_CHECK(expression) if( FAILED(expression) )	{ return expression; }
+#define FAIL_CHECK_BOOLEAN(expression) if( FAILED(expression) )	{ return false; }
+#define FAIL_CHECK_WITH_MSG(expression, msg) if( FAILED(expression) )	\
+{																		\
+	MessageBox(NULL, msg, "Error", MB_OK);								\
+	return expression;													\
+}
+
+#define SAFE_RELEASE(pt) if( nullptr != pt )\
+{ pt->Release(); pt = nullptr; }			\
+
+#define SAFE_DELETE(pt) if( nullptr != pt )	\
+{ delete pt; pt = nullptr; }				\
+
+namespace pseudodx
+{
+	struct XMUINT4
+	{
+		uint32_t x;
+		uint32_t y;
+		uint32_t z;
+		uint32_t w;
+		XMUINT4() {}
+		XMUINT4(uint32_t _x, uint32_t _y, uint32_t _z, uint32_t _w) : x(_x), y(_y), z(_z), w(_w) {}
+		XMUINT4& operator= (const XMUINT4& Uint4) { x = Uint4.x; y = Uint4.y; z = Uint4.z; w = Uint4.w; return *this; }
+		bool operator== (const XMUINT4& Uint4) { return ((x == Uint4.x) && (y == Uint4.y) && (z == Uint4.z) && (w == Uint4.w)) ? true : false; }
+		bool operator!= (const XMUINT4& Uint4) { return (!(*this == Uint4)); }
+	};
+
+	struct XMFLOAT4
+	{
+		float x;
+		float y;
+		float z;
+		float w;
+		XMFLOAT4() {}
+		XMFLOAT4(float _x, float _y, float _z, float _w) : x(_x), y(_y), z(_z), w(_w) {}
+		XMFLOAT4& operator= (const XMFLOAT4& Float4) { x = Float4.x; y = Float4.y; z = Float4.z; w = Float4.w; return *this; }
+		bool operator== (const XMFLOAT4& Float4) { return ((x == Float4.x) && (y == Float4.y) && (z == Float4.z) && (w == Float4.w)) ? true : false; }
+		bool operator!= (const XMFLOAT4& Float4) { return (!(*this == Float4)); }
+	};
+
+	struct XMFLOAT3
+	{
+		float x;
+		float y;
+		float z;
+
+		XMFLOAT3() {}
+		XMFLOAT3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
+		XMFLOAT3& operator+ (const XMFLOAT3& Float3) { x += Float3.x; y += Float3.y; z += Float3.z; return *this; }
+		XMFLOAT3& operator/ (const float& floatval) { x /= floatval; y /= floatval; z /= floatval; return *this; }
+		XMFLOAT3& operator= (const XMFLOAT3& Float3) { x = Float3.x; y = Float3.y; z = Float3.z; return *this; }
+		bool operator== (const XMFLOAT3& Float3) { return ((x == Float3.x) && (y == Float3.y) && (z == Float3.z)) ? true : false; }
+		bool operator!= (const XMFLOAT3& Float3) { return (!(*this == Float3)); }
+	};
+
+	struct XMFLOAT2
+	{
+		float x;
+		float y;
+
+		XMFLOAT2() {}
+		XMFLOAT2(float _x, float _y) : x(_x), y(_y) {}
+		XMFLOAT2& operator= (const XMFLOAT2& Float2) { x = Float2.x; y = Float2.y; return *this; }
+		bool operator== (const XMFLOAT2& Float2) { return ((x == Float2.x) && (y == Float2.y)) ? true : false; }
+		bool operator!= (const XMFLOAT2& Float2) { return (!(*this == Float2)); }
+	};
+}
 
 namespace Utilities
 {

@@ -461,6 +461,7 @@
     <ClInclude Include="CFBXLoader.h" />
     <ClInclude Include="CFBXRendererDX11.h" />
     <ClInclude Include="include\Color.h" />
+    <ClInclude Include="include\Graphics\ConstantBuffers.h" />
     <ClInclude Include="include\Graphics\Light\LightClass.h" />
     <ClInclude Include="include\Math\Mat3.h" />
     <ClInclude Include="include\Math\Mat3.hpp" />

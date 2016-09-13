@@ -15,6 +15,7 @@
 
 #include "UrsineTypes.h"
 #include "SIMD.h"
+#include <string>
 
 #pragma warning (disable : 4003)
 #pragma warning (disable : 4201)
