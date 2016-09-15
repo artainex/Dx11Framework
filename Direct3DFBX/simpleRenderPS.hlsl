@@ -1,5 +1,7 @@
-Texture2D txDiffuse : register( t0 );
-SamplerState samLinear : register( s0 );
+Texture2D txDiffuse : register( t0 ); 
+Texture2D txNormal : register( t01 );
+SamplerState diffSampler : register( s0 ); 
+SamplerState normSampler : register( s1 );
 
 cbuffer cbMaterial : register( b0 )
 {
@@ -23,24 +25,18 @@ cbuffer cLights : register( b1 )
 
 struct PS_INPUT
 {
-    float4	Pos	: POSITION;
-	float3	Nor	: NORMAL;
-	float2	Tex	: TEXCOORD0;
+    float4	Pos			: POSITION;
+	float3	Nor			: NORMAL;
+	float2	Tex			: TEXCOORD0;
 	float4	ViewDir 	: TEXCOORD1;
 };
-
-bool IsZeroColor(float4 num)
-{
-	if (num.x == 0.0f && num.y == 0.0f && num.z == 0.0f && num.w == 0.0f)
-		return true;
-	return false;
-}
 
 float4 PS( PS_INPUT input) : SV_Target
 {	
 	// texture map
 	float2 uv = float2(input.Tex.x, input.Tex.y);
-	float4 texColor = txDiffuse.Sample(samLinear, uv);
+	float4 diffMap = txDiffuse.Sample(diffSampler, uv);
+	float4 normMap = txNormal.Sample(normSampler, uv);
 
 	// phong shading 
 	// invert light direction for calculation
@@ -52,18 +48,27 @@ float4 PS( PS_INPUT input) : SV_Target
 	float3 fvViewDir	= normalize( input.ViewDir );
 	float  fRdotV		= saturate( dot(fvReflect, fvViewDir) );
 
-	float3 fv_ambi = float4(m_ambient, 1) * l_ambient;
-	float3 fv_diff = float4(m_diffuse, 1) * l_diffuse * fNdotL;
-	float3 fv_spec = float4(m_specular, 1) * l_specular * pow(fRdotV, m_shineness);
-	float3 fv_emit = float4(m_emissive, 1) * l_emissive;
+	//--------------------------------------------------------------------------------------
+	// With Material
+	//--------------------------------------------------------------------------------------
+	float3 fv_ambi = float4(m_ambient, 1)	* l_ambient;
+	float3 fv_diff = float4(m_diffuse, 1)	* l_diffuse * fNdotL;
+	float3 fv_spec = float4(m_specular, 1)	* l_specular * pow(fRdotV, m_shineness);
+	float3 fv_emit = float4(m_emissive, 1)	* l_emissive;
+
+	//--------------------------------------------------------------------------------------
+	// Without Material
+	//--------------------------------------------------------------------------------------
+	//float3 fv_ambi = l_ambient;
+	//float3 fv_diff = l_diffuse * fNdotL;
+	//float3 fv_spec = l_specular * pow(fRdotV, m_shineness);
+	//float3 fv_emit = l_emissive;
 
 	// Determine the final diffuse color based on the diffuse color and the amount of light intensity.
 	float3 final_Color = saturate(fv_ambi + fv_diff);
 
-	// 첫째로, 디폴트 텍스쳐가 안먹혀. 이건 uv좌표가 셋팅이 안돼서 그런 것도 있음.
-	// 둘째로 트랜스 패런시가 안나와
-	//if ( !IsZeroColor(texColor) )
-	//	final_Color *= texColor;
+	final_Color *= diffMap;
+	// to implement normal map-need TBN matrix
 	
 	final_Color = saturate( final_Color + fv_spec );
 

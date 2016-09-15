@@ -143,21 +143,28 @@ namespace ursine
 		struct Material_Data
 		{
 			MaterialBufferType			mtrlConst;
-			ID3D11ShaderResourceView*	pSRV;
-			ID3D11SamplerState*         pSampler;
+			ID3D11ShaderResourceView*	pSRV[2]; // for diffuse and normalmap. do I need multiple of this?
+			ID3D11SamplerState*         pSampler[2];
 			ID3D11Buffer*				pMaterialCb;
 
 			Material_Data()
-				: pSRV(nullptr), 
-				pSampler(nullptr), 
-				pMaterialCb(nullptr)
+				: pMaterialCb(nullptr)
 			{
+				pSRV[0] = nullptr;
+				pSRV[1] = nullptr;
+
+				pSampler[0] = nullptr;
+				pSampler[1] = nullptr;
 			}
+
 			void Release()
 			{
 				SAFE_RELEASE(pMaterialCb);
-				SAFE_RELEASE(pSRV);
-				SAFE_RELEASE(pSampler);
+				for (UINT i = 0; i < 2; ++i)
+				{
+					SAFE_RELEASE(pSRV[i]);
+					SAFE_RELEASE(pSampler[i]);
+				}
 			}
 		};
 

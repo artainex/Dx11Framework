@@ -13,6 +13,42 @@
 #include "CFBXLoader.h"
 #include "CFBXRendererDX11.h"
 
+void SamplerInitialize(D3D11_SAMPLER_DESC &sampler,
+	D3D11_FILTER Filter,
+	D3D11_TEXTURE_ADDRESS_MODE AddressU,
+	D3D11_TEXTURE_ADDRESS_MODE AddressV,
+	D3D11_TEXTURE_ADDRESS_MODE AddressW,
+	D3D11_COMPARISON_FUNC ComparisonFunc,
+	FLOAT MinLOD,
+	FLOAT MaxLOD)
+{
+	ZeroMemory(&sampler, sizeof(sampler));
+	sampler.Filter = Filter;
+	sampler.AddressU = AddressU;
+	sampler.AddressV = AddressV;
+	sampler.AddressW = AddressW;
+	sampler.ComparisonFunc = ComparisonFunc;
+	sampler.MinLOD = MinLOD;
+	sampler.MaxLOD = MaxLOD;
+}
+
+void BufferInitialize(D3D11_BUFFER_DESC& buffer,
+	UINT byteWidth = 0,
+	D3D11_USAGE usage = D3D11_USAGE_DEFAULT,
+	UINT bindFlags = 0,
+	UINT cpuAccFlags = 0,
+	UINT miscFlags = 0,
+	UINT stride = 0)
+{
+	ZeroMemory(&buffer, sizeof(buffer));
+	buffer.ByteWidth = byteWidth;
+	buffer.Usage = usage;
+	buffer.BindFlags = bindFlags;
+	buffer.CPUAccessFlags = cpuAccFlags;
+	buffer.MiscFlags = miscFlags;
+	buffer.StructureByteStride = stride;
+}
+
 namespace ursine
 {
 	CFBXRenderDX11::CFBXRenderDX11() :
@@ -27,17 +63,11 @@ namespace ursine
 
 	void CFBXRenderDX11::Release()
 	{
-		for (size_t i = 0; i<m_meshNodeArray.size(); i++)
-		{
-			m_meshNodeArray[i].Release();
-		}
+		for (auto &meshNode : m_meshNodeArray)
+			meshNode.Release();
 		m_meshNodeArray.clear();
 
-		if (m_pFBX)
-		{
-			delete m_pFBX;
-			m_pFBX = nullptr;
-		}
+		SAFE_DELETE(m_pFBX);
 	}
 
 	HRESULT CFBXRenderDX11::LoadFBX(const char* filename, ID3D11Device*	pd3dDevice)
@@ -49,12 +79,10 @@ namespace ursine
 
 		m_pFBX = new CFBXLoader;
 		hr = m_pFBX->LoadFBX(filename);
-		if (FAILED(hr))
-			return hr;
+		FAIL_CHECK(hr);
 
 		hr = CreateNodes(pd3dDevice);
-		if (FAILED(hr))
-			return hr;
+		FAIL_CHECK(hr);
 
 		return hr;
 	}
@@ -128,8 +156,7 @@ namespace ursine
 
 		InitData.pSysMem = pVertices;
 		hr = pd3dDevice->CreateBuffer(&bd, &InitData, pBuffer);
-		if (FAILED(hr))
-			return hr;
+		FAIL_CHECK(hr);
 
 		return hr;
 	}
@@ -154,8 +181,7 @@ namespace ursine
 		InitData.pSysMem = pIndices;
 
 		hr = pd3dDevice->CreateBuffer(&bd, &InitData, pBuffer);
-		if (FAILED(hr))
-			return hr;
+		FAIL_CHECK(hr);
 
 		return hr;
 	}
@@ -253,23 +279,23 @@ namespace ursine
 
 				// samplerstate
 				D3D11_SAMPLER_DESC sampDesc;
-				ZeroMemory(&sampDesc, sizeof(sampDesc));
-				sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-				sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-				sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-				sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-				sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-				sampDesc.MinLOD = 0;
-				sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+				SamplerInitialize(sampDesc,
+					D3D11_FILTER_MIN_MAG_MIP_LINEAR,
+					D3D11_TEXTURE_ADDRESS_WRAP,
+					D3D11_TEXTURE_ADDRESS_WRAP,
+					D3D11_TEXTURE_ADDRESS_WRAP,
+					D3D11_COMPARISON_NEVER,
+					0, D3D11_FLOAT32_MAX);
 
 				// material Constant Buffer
 				D3D11_BUFFER_DESC mtrlBufferDesc;
-				ZeroMemory(&mtrlBufferDesc, sizeof(mtrlBufferDesc));
-				mtrlBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-				mtrlBufferDesc.ByteWidth = sizeof(MaterialBufferType);
-				mtrlBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-				mtrlBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+				BufferInitialize(mtrlBufferDesc, 
+					sizeof(MaterialBufferType), 
+					D3D11_USAGE_DYNAMIC, 
+					D3D11_BIND_CONSTANT_BUFFER, 
+					D3D11_CPU_ACCESS_WRITE);
 
+				// Just handle diffuse for now. handle others later
 				// Create Shader Resource View from default texture and material
 				if (currMI.diff_mapCount > 0)
 				{
@@ -277,41 +303,39 @@ namespace ursine
 					{
 						if (currMI.diff_texNames[j] != "")
 						{
-							std::string path = "Assets/";
+							std::string path1 = "Assets/";
 							std::string folder = currMI.diff_texNames[j];
-							path += folder;
-							D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path.c_str(), NULL, NULL, &currFbxMtrl.pSRV, NULL);
+							path1 += folder;
+							D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path1.c_str(), NULL, NULL, &currFbxMtrl.pSRV[0], NULL);
 						}
 					}
 				}
 				// if there's no texture, just use default texture
 				else {
-					std::string path = "Assets\\uv.png";
-					D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path.c_str(), NULL, NULL, &currFbxMtrl.pSRV, NULL);
+					std::string path1 = "Assets/uv.png";
+					D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path1.c_str(), NULL, NULL, &currFbxMtrl.pSRV[0], NULL);
 				}
 
+				// for default normal map
+				std::string path2 = "Assets/norm.png";
+				D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path2.c_str(), NULL, NULL, &currFbxMtrl.pSRV[1], NULL);
+
 				// Setting sampler as default texture
-				hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler);
-				if (FAILED(hr))
-				{
-					MessageBox(NULL, "Creating Sampler State Failed", "Error", MB_OK);
-					return hr;
-				}
+				hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler[0]);
+				FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
+				hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler[1]);
+				FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
 
 				// currently, constant buffer creation always failed because constant buffer size should be multiple of 16
 				hr = pd3dDevice->CreateBuffer(&mtrlBufferDesc, NULL, &currFbxMtrl.pMaterialCb);
-				if (FAILED(hr))
-				{
-					MessageBox(NULL, "Constant buffer is not size of multiple of 16", "Error", MB_OK);
-					return hr;
-				}
+				FAIL_CHECK_WITH_MSG(hr, "Constant buffer is not size of multiple of 16");
 
-				currFbxMtrl.mtrlConst.ambient = currMI.ambi_mcolor;
-				currFbxMtrl.mtrlConst.diffuse = currMI.diff_mcolor;
-				currFbxMtrl.mtrlConst.specular = currMI.spec_mcolor;
-				currFbxMtrl.mtrlConst.emissive = currMI.emis_mcolor;
-				currFbxMtrl.mtrlConst.shineness = currMI.shineness;
-				currFbxMtrl.mtrlConst.transparency = currMI.transparency;
+				currFbxMtrl.mtrlConst.ambient		= currMI.ambi_mcolor;
+				currFbxMtrl.mtrlConst.diffuse		= currMI.diff_mcolor;
+				currFbxMtrl.mtrlConst.specular		= currMI.spec_mcolor;
+				currFbxMtrl.mtrlConst.emissive		= currMI.emis_mcolor;
+				currFbxMtrl.mtrlConst.shineness		= currMI.shineness;
+				currFbxMtrl.mtrlConst.transparency	= currMI.transparency;
 			}
 		}
 		else
@@ -322,49 +346,45 @@ namespace ursine
 
 			// samplerstate
 			D3D11_SAMPLER_DESC sampDesc;
-			ZeroMemory(&sampDesc, sizeof(sampDesc));
-			sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-			sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-			sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-			sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-			sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-			sampDesc.MinLOD = 0;
-			sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+			SamplerInitialize(sampDesc, 
+				D3D11_FILTER_MIN_MAG_MIP_LINEAR, 
+				D3D11_TEXTURE_ADDRESS_WRAP, 
+				D3D11_TEXTURE_ADDRESS_WRAP, 
+				D3D11_TEXTURE_ADDRESS_WRAP,
+				D3D11_COMPARISON_NEVER,
+				0, D3D11_FLOAT32_MAX);
 
 			// material Constant Buffer
 			D3D11_BUFFER_DESC mtrlBufferDesc;
-			ZeroMemory(&mtrlBufferDesc, sizeof(mtrlBufferDesc));
-			mtrlBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-			mtrlBufferDesc.ByteWidth = sizeof(MaterialBufferType);
-			mtrlBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-			mtrlBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			BufferInitialize(mtrlBufferDesc, sizeof(MaterialBufferType), D3D11_USAGE_DYNAMIC, D3D11_BIND_CONSTANT_BUFFER, D3D11_CPU_ACCESS_WRITE);
 
 			// Create Shader Resource View from default texture and material
-			std::string path = "Assets\\uv.png";
-			D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path.c_str(), NULL, NULL, &currFbxMtrl.pSRV, NULL);
+			std::string path1 = "Assets/uv.png";
+			D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path1.c_str(), NULL, NULL, &currFbxMtrl.pSRV[0], NULL);
 
-			hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler);
-			if (FAILED(hr))
-			{
-				MessageBox(NULL, "Creating Sampler State Failed", "Error", MB_OK);
-				return hr;
-			}
+			// for default normal map
+			std::string path2 = "Assets/norm.png";
+			D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path2.c_str(), NULL, NULL, &currFbxMtrl.pSRV[1], NULL);
+
+			// Setting sampler as default texture
+			hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler[0]);
+			FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
+			hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler[1]);
+			FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
 
 			// currently, constant buffer creation always failed because constant buffer size should be multiple of 16
 			hr = pd3dDevice->CreateBuffer(&mtrlBufferDesc, NULL, &currFbxMtrl.pMaterialCb);
-			if (FAILED(hr))
-			{
-				MessageBox(NULL, "Constant buffer is not size of multiple of 16", "Error", MB_OK);
-				return hr;
-			}
+			FAIL_CHECK_WITH_MSG(hr, "Constant buffer is not size of multiple of 16");
 
-			currFbxMtrl.mtrlConst.ambient	= pseudodx::XMFLOAT3(0.01f, 0.01f, 0.01f);
-			currFbxMtrl.mtrlConst.diffuse	= pseudodx::XMFLOAT3(0.69f, 0.69f, 0.69f);
-			currFbxMtrl.mtrlConst.specular	= pseudodx::XMFLOAT3(0.2f, 0.2f, 0.2f);
-			currFbxMtrl.mtrlConst.emissive	= pseudodx::XMFLOAT3(0.0f, 0.0f, 0.0f);
-			currFbxMtrl.mtrlConst.shineness = 0.1f;
-			currFbxMtrl.mtrlConst.transparency = 1.0f;
+			currFbxMtrl.mtrlConst.ambient		= pseudodx::XMFLOAT3(0.1f, 0.1f, 0.1f);
+			currFbxMtrl.mtrlConst.diffuse		= pseudodx::XMFLOAT3(1.0f, 1.0f, 1.0f);
+			currFbxMtrl.mtrlConst.specular		= pseudodx::XMFLOAT3(1.0f, 1.0f, 1.0f);
+			currFbxMtrl.mtrlConst.emissive		= pseudodx::XMFLOAT3(0.0f, 0.0f, 0.0f);
+			currFbxMtrl.mtrlConst.shineness		= 0.1f;
+			currFbxMtrl.mtrlConst.transparency	= 1.0f;
 		}
+
+		// where should I add code for default normalmap?
 
 		return S_OK;
 	}
@@ -427,7 +447,6 @@ namespace ursine
 		return hr;
 	}
 
-	// export
 	HRESULT CFBXRenderDX11::RenderNode(ID3D11DeviceContext* pImmediateContext, const size_t nodeId)
 	{
 		size_t nodeCount = m_meshNodeArray.size();

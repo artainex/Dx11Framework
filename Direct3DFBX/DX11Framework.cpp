@@ -17,6 +17,21 @@ using namespace DirectX;
 using namespace ursine::FBX_DATA;
 
 //--------------------------------------------------------------------------------------
+// TODO list
+// 1. Multiple Model/Animation Loading
+// 2. FBX Data-> Output -> Output load instead FBX(don't need to do right now. 
+// cauz I've already done this before, we need to show FBX parsing actually works
+// 3. Normal mapping, Shadow Mapping, Deferred Shading
+// understand how to use G-Buffer first
+// 4. Camera 
+// Not priority 
+// - create boolean structure to check if diff/ambi/spec maps exist
+// struct ~{bool amap, bool dmap, bool smap}
+// -if there is no texture -> cylinderical or spherical mapping
+// -draw grid
+//--------------------------------------------------------------------------------------
+
+//--------------------------------------------------------------------------------------
 // Global Variables
 //--------------------------------------------------------------------------------------
 HINSTANCE                           g_hInst = NULL;
@@ -56,8 +71,8 @@ ursine::CFBXRenderDX11*	g_pFbxDX11[NUMBER_OF_MODELS];
 // FBX file
 char g_files[NUMBER_OF_MODELS][256] =
 {
-	"Assets/Models/stanford_bunny.fbx"
-	//"Assets/Animations/Player/Player_Idle.fbx"
+	//"Assets/Models/stanford_bunny.fbx"
+	"Assets/Animations/Player/Player_Idle.fbx"
 };
 
 std::vector<XMMATRIX> skin_mat;
@@ -88,15 +103,6 @@ HRESULT SetupTransformSRV();
 //--------------------------------------------------------------------------------------
 // Entry point to the program. Initializes everything and goes into a message processing 
 // loop. Idle time is used to render the scene.
-//--------------------------------------------------------------------------------------
-
-//--------------------------------------------------------------------------------------
-// task list
-// 1. Deferred Rendering Pipeline
-// 2. 노멀 맵핑이랑 퐁 라이팅 적용해두기
-// 3. G-buffer란 무엇인가? 셰도우 맵핑 적용할 준비를 할 것.
-// 4. 여러 오브젝트를 로딩할 수 있는가? 인스턴싱이 아니라.
-// 5. 카메라 클래스 만들기
 //--------------------------------------------------------------------------------------
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
@@ -662,7 +668,7 @@ void Render()
 	}
 
 	// Clear the back buffer
-	float ClearColor[4] = { 0.5f, 0.5f, 0.5f, 1.0f }; // red, green, blue, alpha
+	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; // red, green, blue, alpha
 	g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
 
 	// Clear the depth buffer to 1.0 (max depth)
@@ -793,9 +799,11 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 
 			// 셰이더 리소스 뷰랑 샘플러의 차이가 뭐야?
 			// set sampler
-			if (material.pSampler)	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler);
+			if (material.pSampler[0])	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler[0]);
+			if (material.pSampler[1])	g_pImmediateContext->PSSetSamplers(1, 1, &material.pSampler[1]);
 			// set shader resource view - for texture
-			if (material.pSRV)		g_pImmediateContext->PSSetShaderResources(0, 1, &material.pSRV);
+			if (material.pSRV[0])		g_pImmediateContext->PSSetShaderResources(0, 1, &material.pSRV[0]);
+			if (material.pSRV[1])		g_pImmediateContext->PSSetShaderResources(1, 1, &material.pSRV[1]);
 			// set constant buffer for material
 			if (material.pMaterialCb)
 			{
