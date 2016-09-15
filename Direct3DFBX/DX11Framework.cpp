@@ -655,9 +655,7 @@ void Render()
 	// Update our time
 	static float t = 0.0f;
 	if (g_driverType == D3D_DRIVER_TYPE_REFERENCE)
-	{
 		t += (float)XM_PI * 0.0125f;
-	}
 	else
 	{
 		static DWORD dwTimeStart = 0;
