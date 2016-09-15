@@ -242,7 +242,7 @@
       <ExceptionHandling>Sync</ExceptionHandling>
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0600;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)include\Utilities;$(ProjectDir)include\Utilities\File System;$(ProjectDir)include\Math;$(ProjectDir)include\Math\SIMD;$(ProjectDir)dep\FBX\include;$(ProjectDir)dep\DirectX\include;$(ProjectDir)dep\Boost\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)include\Utilities;$(ProjectDir)include\Utilities\File System;$(ProjectDir)include\Math;$(ProjectDir)include\Math\SIMD;$(ProjectDir)include\Graphics;$(ProjectDir)include\Graphics\Light;$(ProjectDir)include\Graphics\Camera;$(ProjectDir)dep\FBX\include;$(ProjectDir)dep\DirectX\include;$(ProjectDir)dep\Boost\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalUsingDirectories>
       </AdditionalUsingDirectories>
     </ClCompile>
@@ -435,6 +435,7 @@
     <ClCompile Include="CFBXRendererDX11.cpp" />
     <ClCompile Include="DX11Framework.cpp" />
     <ClCompile Include="src\Color.cpp" />
+    <ClCompile Include="src\Graphics\Camera\Camera.cpp" />
     <ClCompile Include="src\Graphics\Light\LightClass.cpp" />
     <ClCompile Include="src\Math\Mat3.cpp" />
     <ClCompile Include="src\Math\Mat4.cpp" />
@@ -461,6 +462,7 @@
     <ClInclude Include="CFBXLoader.h" />
     <ClInclude Include="CFBXRendererDX11.h" />
     <ClInclude Include="include\Color.h" />
+    <ClInclude Include="include\Graphics\Camera\Camera.h" />
     <ClInclude Include="include\Graphics\ConstantBuffers.h" />
     <ClInclude Include="include\Graphics\Light\LightClass.h" />
     <ClInclude Include="include\Math\Mat3.h" />

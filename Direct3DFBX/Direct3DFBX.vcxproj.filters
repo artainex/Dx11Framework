@@ -51,6 +51,9 @@
     <Filter Include="Graphics\Light">
       <UniqueIdentifier>{c7d1a307-58ac-43fd-bbbd-3772294e6d1f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graphics\Camera">
+      <UniqueIdentifier>{bebb5beb-9c55-42bc-a48e-ccb05c286641}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CFBXRendererDX11.cpp">
@@ -125,6 +128,9 @@
     </ClCompile>
     <ClCompile Include="src\Color.cpp">
       <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Camera\Camera.cpp">
+      <Filter>Graphics\Camera</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -271,6 +277,9 @@
     </ClInclude>
     <ClInclude Include="include\Graphics\ConstantBuffers.h">
       <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\Camera\Camera.h">
+      <Filter>Graphics\Camera</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
