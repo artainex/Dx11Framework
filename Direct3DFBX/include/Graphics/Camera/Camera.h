@@ -17,14 +17,17 @@ public:
 	Camera(const Camera&);
 	~Camera();
 
-	void SetPosition(XMVECTOR pos);
-	void SetRotation(XMVECTOR rot);
+	void Update();
 
-	XMVECTOR GetPosition();
-	XMVECTOR GetRotation();
+	void SetPosition(const XMVECTOR& pos) { mPos = pos; }
+	void SetRotation(const XMVECTOR& rot) { mRot = rot; }
 
-	void Render();
-	void GetViewMatrix(XMMATRIX&);
+	const XMVECTOR& GetPosition() const { return mPos; }
+	const XMVECTOR& GetRotation() const { return mRot; }
+
+	void SetViewMatrix();
+	void SetViewMatrix(const XMMATRIX& viewMtx) { mViewMtx = viewMtx; }
+	const XMMATRIX& GetViewMatrix() const { return mViewMtx; }
 
 private:
 	XMVECTOR mPos;

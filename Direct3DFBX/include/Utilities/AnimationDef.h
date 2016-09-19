@@ -50,6 +50,10 @@ namespace ursine
 			SKINNED = 2,
 		};
 
+		// 노말 맵 만들려면 binormal이랑 tangent를 써야 하는데,
+		// 이걸 갖고 있는 놈도 있고 안갖고 나오는 놈도 있어.
+		// 동적으로 이걸 만들어내면 수맣은 레이아웃과 VERTEX_DATA~를 만들어내야하는데
+		// 이건 상당히 멍청한 짓이야. 맷이 한 거처럼 .Add()를 써서 여럿 붙일 수 있으면 좋을텐데.
 		struct LAYOUT
 		{
 			D3D11_INPUT_ELEMENT_DESC STATIC_LAYOUT[3];

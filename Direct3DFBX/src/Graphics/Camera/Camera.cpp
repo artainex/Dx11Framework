@@ -4,45 +4,38 @@
 #include <Camera.h>
 
 Camera::Camera()
-	:
-	mPos(0, 0, 0), mRot(0, 0, 0)
 {
+	mPos.m128_f32[0] = 0.f;
+	mPos.m128_f32[1] = 0.f;
+	mPos.m128_f32[2] = 0.f;
+	mPos.m128_f32[3] = 1.f;
+
+	mRot.m128_f32[0] = 0.f;
+	mRot.m128_f32[1] = 0.f;
+	mRot.m128_f32[2] = 0.f;
+	mRot.m128_f32[3] = 1.f;
 }
 
 Camera::Camera(const Camera& other)
 {
+	if ( this != &other )
+	{
+		mPos = other.mPos;
+		mRot = other.mRot;
+		mViewMtx = other.mViewMtx;
+	}
 }
-
 
 Camera::~Camera()
 {
 }
 
-void Camera::SetPosition(XMVECTOR pos)
+void Camera::Update()
 {
-	mPos = pos;
-	return;
+	SetViewMatrix();
 }
 
-
-void Camera::SetRotation(XMVECTOR rot)
-{
-	mRot = rot;
-	return;
-}
-
-XMVECTOR Camera::GetPosition()
-{
-	return mPos;
-}
-
-
-XMVECTOR Camera::GetRotation()
-{
-	return mRot;
-}
-
-void Camera::Render()
+void Camera::SetViewMatrix()
 {
 	XMVECTOR up, eyePos, lookAt;
 	float yaw, pitch, roll;
@@ -74,16 +67,10 @@ void Camera::Render()
 	up		= XMVector3TransformCoord(up, rotMtx);
 
 	// Translate the rotated camera position to the location of the viewer.
-	lookAt = eyePos + lookAt;
+	//lookAt = eyePos + lookAt;
 
 	// Finally create the view matrix from the three updated vectors.
 	mViewMtx = XMMatrixLookAtLH(eyePos, lookAt, up);
 
-	return;
-}
-
-void Camera::GetViewMatrix(XMMATRIX& viewMatrix)
-{
-	viewMatrix = mViewMtx;
 	return;
 }

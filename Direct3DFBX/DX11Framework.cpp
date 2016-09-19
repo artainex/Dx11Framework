@@ -10,6 +10,7 @@
 
 
 #include <WholeInformation.h>
+#include <Camera.h>
 #include <ctime>
 #include "CFBXRendererDX11.h"
 
@@ -23,12 +24,12 @@ using namespace ursine::FBX_DATA;
 // cauz I've already done this before, we need to show FBX parsing actually works
 // 3. Normal mapping, Shadow Mapping, Deferred Shading
 // understand how to use G-Buffer first
-// 4. Camera 
 // Not priority 
 // - create boolean structure to check if diff/ambi/spec maps exist
 // struct ~{bool amap, bool dmap, bool smap}
-// -if there is no texture -> cylinderical or spherical mapping
-// -draw grid
+// - if there is no texture -> cylinderical or spherical mapping
+// - draw grid
+// - UI add
 //--------------------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------------------
@@ -49,12 +50,14 @@ ID3D11DepthStencilState*			g_pDepthStencilState = NULL;
 XMMATRIX                            g_World;
 XMMATRIX                            g_View;
 XMMATRIX                            g_Projection;
+Camera								g_Camera;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations
 //--------------------------------------------------------------------------------------
 HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow);
 HRESULT InitDevice();
+HRESULT InitCamera();
 void CleanupDevice();
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 void Update(double deltaTime);
@@ -109,15 +112,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	if (FAILED(InitWindow(hInstance, nCmdShow)))
-		return 0;
+	FAIL_CHECK( InitWindow(hInstance, nCmdShow) );
 
-	if (FAILED(InitDevice()))
+	if (FAILED( InitDevice() ))
 	{
 		CleanupApp();
 		CleanupDevice();
 		return 0;
 	}
+
+	FAIL_CHECK( InitCamera() );
 
 	// Main message loop
 	MSG msg = { 0 };
@@ -138,6 +142,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 			// need to be reset on last frame's time
 			if (t_delta_per_msec >= 1.f)
 				start = std::clock();
+
 			Render();
 		}
 	}
@@ -298,8 +303,7 @@ HRESULT InitDevice()
 		if (SUCCEEDED(hr))
 			break;
 	}
-	if (FAILED(hr))
-		return hr;
+	FAIL_CHECK(hr);
 
 	// Create a render target view
 	ID3D11Texture2D* pBackBuffer = NULL;
@@ -307,16 +311,14 @@ HRESULT InitDevice()
 		0, // back buffer index
 		__uuidof(ID3D11Texture2D), // interface that access to back buffer
 		(LPVOID*)&pBackBuffer);
-	if (FAILED(hr))
-		return hr;
+	FAIL_CHECK(hr);
 
 	hr = g_pd3dDevice->CreateRenderTargetView(
 		pBackBuffer, // resource that view will access
 		NULL, // def of rendertargetview
 		&g_pRenderTargetView);
 	pBackBuffer->Release();
-	if (FAILED(hr))
-		return hr;
+	FAIL_CHECK(hr);
 
 	// Create depth stencil texture
 	D3D11_TEXTURE2D_DESC descDepth;
@@ -333,8 +335,7 @@ HRESULT InitDevice()
 	descDepth.CPUAccessFlags = 0;
 	descDepth.MiscFlags = 0;
 	hr = g_pd3dDevice->CreateTexture2D(&descDepth, NULL, &g_pDepthStencil);
-	if (FAILED(hr))
-		return hr;
+	FAIL_CHECK(hr);
 
 	// Create the depth stencil view
 	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
@@ -343,7 +344,7 @@ HRESULT InitDevice()
 	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	descDSV.Texture2D.MipSlice = 0;
 	hr = g_pd3dDevice->CreateDepthStencilView(g_pDepthStencil, &descDSV, &g_pDepthStencilView);
-	if (FAILED(hr))  return hr;
+	FAIL_CHECK(hr);
 
 	// setting rendertargetview & depth-stencil buffer 
 	g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
@@ -372,9 +373,7 @@ HRESULT InitDevice()
 	g_World = XMMatrixIdentity();
 
 	// Init application
-	hr = InitApp();
-	if (FAILED(hr))
-		return hr;
+	FAIL_CHECK(InitApp());
 
 	//// create shader resource view
 	//hr = SetupTransformSRV(); 
@@ -384,6 +383,40 @@ HRESULT InitDevice()
 	return S_OK;
 }
 
+//--------------------------------------------------------------------------------------
+// Init Camera
+//--------------------------------------------------------------------------------------
+HRESULT InitCamera()
+{
+	HRESULT hr = S_OK;
+
+	RECT rc;
+	GetClientRect(g_hWnd, &rc);
+	UINT width = rc.right - rc.left;
+	UINT height = rc.bottom - rc.top;
+
+	// Initialize the world matrices
+	g_World = XMMatrixIdentity();
+
+	// Initialize the view matrix
+	XMVECTOR initPos;
+	initPos.m128_f32[0] = 0.f;
+	initPos.m128_f32[1] = 0.f;
+	initPos.m128_f32[2] = -50.f;
+	g_Camera.SetPosition(initPos);
+
+	g_Camera.SetViewMatrix();
+	g_View = g_Camera.GetViewMatrix();
+
+	// Initialize the projection matrix
+	g_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, width / (FLOAT)height, 0.01f, 10000.0f);
+
+	return hr;
+}
+
+//--------------------------------------------------------------------------------------
+// Load models, Init buffers, Create layouts, Compile shaders
+//--------------------------------------------------------------------------------------
 HRESULT InitApp()
 {
 	HRESULT hr = S_OK;
@@ -612,11 +645,52 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	PAINTSTRUCT ps;
 	HDC hdc;
 
+	XMVECTOR CameraPos = g_Camera.GetPosition();
+
 	switch (message)
 	{
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
 		EndPaint(hWnd, &ps);
+		break;
+
+		// camera control or model pos/rot control
+	case WM_KEYDOWN:
+		switch (wParam)
+		{
+			// left right back and forth
+		case VK_LEFT:
+			CameraPos.m128_f32[0] -= 5.f;
+			g_Camera.SetPosition(CameraPos);
+			break;
+		case VK_RIGHT:
+			CameraPos.m128_f32[0] += 5.f;
+			g_Camera.SetPosition(CameraPos);
+			break;
+		case VK_UP:
+			CameraPos.m128_f32[2] += 5.f;
+			g_Camera.SetPosition(CameraPos);
+			break;
+		case VK_DOWN:
+			CameraPos.m128_f32[2] -= 5.f;
+			g_Camera.SetPosition(CameraPos);
+			break;
+
+			// Up and Down
+		case 'w':
+		case 'W':
+			CameraPos.m128_f32[1] += 5.f;
+			g_Camera.SetPosition(CameraPos);
+			break;
+		case 's':
+		case 'S':
+			CameraPos.m128_f32[1] -= 5.f;
+			g_Camera.SetPosition(CameraPos);
+			break;
+		}
+		// then Update camera
+		g_Camera.SetViewMatrix();
+		g_View = g_Camera.GetViewMatrix();
 		break;
 
 	case WM_DESTROY:
@@ -631,54 +705,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 //--------------------------------------------------------------------------------------
-// Render a frame
+// Render the model
 //--------------------------------------------------------------------------------------
-void Render()
+void RenderModel()
 {
-	RECT rc;
-	GetClientRect(g_hWnd, &rc);
-	UINT width = rc.right - rc.left;
-	UINT height = rc.bottom - rc.top;
-
-	// Initialize the world matrices
-	g_World = XMMatrixIdentity();
-
-	// Initialize the view matrix
-	XMVECTOR Eye = XMVectorSet(0.0f, 15.f, -50.f, 0.0f);
-	XMVECTOR At = XMVectorSet(0.0f, 15.f, 0.0f, 0.0f);
-	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-	g_View = XMMatrixLookAtLH(Eye, At, Up);
-
-	// Initialize the projection matrix
-	g_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, width / (FLOAT)height, 0.01f, 10000.0f);
-
-	// Update our time
-	static float t = 0.0f;
-	if (g_driverType == D3D_DRIVER_TYPE_REFERENCE)
-		t += (float)XM_PI * 0.0125f;
-	else
-	{
-		static DWORD dwTimeStart = 0;
-		DWORD dwTimeCur = GetTickCount();
-		if (dwTimeStart == 0)
-			dwTimeStart = dwTimeCur;
-		t = (dwTimeCur - dwTimeStart) / 1000.0f;
-	}
-
-	// Clear the back buffer
-	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; // red, green, blue, alpha
-	g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
-
-	// Clear the depth buffer to 1.0 (max depth)
-	g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
-
-	// Set Blend Factors
-	float blendFactors[4] = { D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO };
-	g_pImmediateContext->RSSetState(g_pRS);
-	g_pImmediateContext->OMSetBlendState(g_pBlendState, blendFactors, 0xffffffff);
-	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 0);
-
-	// Pass1
 	// for all model
 	for (UINT mdl_idx = 0; mdl_idx < NUMBER_OF_MODELS; ++mdl_idx)
 	{
@@ -717,6 +747,41 @@ void Render()
 			g_pImmediateContext->PSSetShader(NULL, NULL, 0);
 		}
 	}
+}
+
+//--------------------------------------------------------------------------------------
+// Render a frame
+//--------------------------------------------------------------------------------------
+void Render()
+{
+	// Update our time
+	static float t = 0.0f;
+	if (g_driverType == D3D_DRIVER_TYPE_REFERENCE)
+		t += (float)XM_PI * 0.0125f;
+	else
+	{
+		static DWORD dwTimeStart = 0;
+		DWORD dwTimeCur = GetTickCount();
+		if (dwTimeStart == 0)
+			dwTimeStart = dwTimeCur;
+		t = (dwTimeCur - dwTimeStart) / 1000.0f;
+	}
+
+	// Clear the back buffer
+	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; // red, green, blue, alpha
+	g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
+
+	// Clear the depth buffer to 1.0 (max depth)
+	g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+	// Set Blend Factors
+	float blendFactors[4] = { D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO };
+	g_pImmediateContext->RSSetState(g_pRS);
+	g_pImmediateContext->OMSetBlendState(g_pBlendState, blendFactors, 0xffffffff);
+	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 0);
+
+	// Pass1
+	RenderModel();
 
 	// Present our back buffer to our front buffer
 	g_pSwapChain->Present(0, 0);
