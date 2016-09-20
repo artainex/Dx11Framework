@@ -106,12 +106,7 @@ namespace ursine
 			
 			FBX_DATA::MESH_NODE meshNode;
 			meshNode.m_meshName = currMI.name;
-
-			if (0 == modelInfo.mboneCount)
-				meshNode.m_Layout = FBX_DATA::eLayout::STATIC;
-			else
-				meshNode.m_Layout = FBX_DATA::eLayout::SKINNED;
-
+			meshNode.m_Layout = currMI.mLayout;
 			meshNode.m_meshTM = currMI.meshTM;
 
 			// constructing vertex buffer
@@ -392,21 +387,22 @@ namespace ursine
 	HRESULT CFBXRenderDX11::CreateInputLayout(ID3D11Device*	pd3dDevice,
 		const void* pShaderBytecodeWithInputSignature,
 		size_t BytecodeLength,
-		D3D11_INPUT_ELEMENT_DESC* pLayout, UINT layoutSize)
+		D3D11_INPUT_ELEMENT_DESC* pLayout, 
+		UINT layoutSize)
 	{
 		// InputeLayout
 		if (!pd3dDevice || !pShaderBytecodeWithInputSignature || !pLayout)
 			return E_FAIL;
 
 		HRESULT hr = S_OK;
-		size_t nodeCount = m_meshNodeArray.size();
-		for (size_t i = 0; i < nodeCount; ++i)
+
+		for (auto &iter : m_meshNodeArray)
 		{
 			pd3dDevice->CreateInputLayout(pLayout,
 				layoutSize,
 				pShaderBytecodeWithInputSignature,
 				BytecodeLength,
-				&m_meshNodeArray[i].m_pInputLayout);
+				&iter.m_pInputLayout);
 		}
 
 		return hr;

@@ -218,14 +218,14 @@ namespace ursine
 
 			m_ModelInfo.mmeshCount = static_cast<UINT>(m_Model->mMeshData.size());
 			m_ModelInfo.mMeshInfoVec.resize(m_ModelInfo.mmeshCount);
-
+			
 			for (auto &iter : m_ModelInfo.mMeshInfoVec)
 			{
 				FBX_DATA::MeshData& currMD = m_Model->mMeshData[i];
 				// name & counter initialization
 				iter.name = currMD.name.c_str();
 				memcpy(&iter.meshTM, &currMD.meshTM, sizeof(XMMATRIX));
-
+				
 				// Reconstruct Vertices and Indices for data compression
 				std::vector<ursine::MeshVertex> rmvVec;
 				std::vector<UINT> rIVec;
@@ -436,7 +436,6 @@ namespace ursine
 		// FBX could be 3 diff types - Static Mesh, Just Animation Data, Skinned Mesh
 		// if there is no animation, just static mesh
 		// else process animation
-		m_AnimationFlag.first = m_AnimationFlag.second = false;
 
 		// Skeleton 
 		ProcessSkeletonHierarchy(pRoot);
@@ -445,10 +444,6 @@ namespace ursine
 			// Process Static Mesh
 			ProcessStaticMesh(pRoot, 0, -1);
 			return;
-		}
-		else
-		{
-			m_AnimationFlag.first = true;
 		}
 
 		// Weight blending for control points
@@ -574,6 +569,16 @@ namespace ursine
 			ProcessTexcoord(mesh, &newMesh);
 			ProcessMaterials(pNode, &newMesh);
 
+			// set layout flag
+			if (newMesh.m_LayoutFlag == POS | NOR)
+				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT0;
+			else if (newMesh.m_LayoutFlag == POS | NOR | TEX)
+				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT1;
+			else if (newMesh.m_LayoutFlag == POS | NOR | BITAN)
+				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT2;
+			else if (newMesh.m_LayoutFlag == POS | NOR | BITAN | TEX)
+				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT3;
+
 			//go through all the control points(verticies) and multiply by the transformation
 			for (auto &iter : newMesh.vertices)
 			{
@@ -634,6 +639,10 @@ namespace ursine
 
 		UINT ctrlPtCnt = pMesh->GetControlPointsCount();
 
+		// set layout flag
+		if (ctrlPtCnt > 0)
+			pData->m_LayoutFlag |= POS;
+
 		// vertices
 		pData->vertices.resize(ctrlPtCnt);
 		for (UINT i = 0; i < ctrlPtCnt; ++i)
@@ -679,6 +688,11 @@ namespace ursine
 			{
 				//get the size of our data (triangles)
 				unsigned normalCount = pMesh->GetControlPointsCount();
+
+				// set layout flag
+				if (normalCount > 0)
+					pData->m_LayoutFlag |= NOR;
+
 				pData->normalMode = FbxGeometryElement::eByControlPoint;
 				pData->normals.resize(normalCount);
 
@@ -705,6 +719,11 @@ namespace ursine
 
 				//get the size of our data (triangles)
 				unsigned normalCount = pMesh->GetPolygonCount() * pMesh->GetPolygonSize(0);
+
+				// set layout flag
+				if (normalCount > 0)
+					pData->m_LayoutFlag |= NOR;
+
 				pData->normalMode = FbxGeometryElement::eByPolygonVertex;
 				pData->normals.resize(normalCount);
 
@@ -749,9 +768,14 @@ namespace ursine
 			{
 				unsigned binormalCount = pMesh->GetControlPointsCount();
 
+				// set layout flag
+				if (binormalCount > 0)
+					pData->m_LayoutFlag |= BITAN;
+
 				pData->binormalMode = FbxGeometryElement::eByControlPoint;
 
 				pData->binormals.resize(binormalCount);
+
 
 				for (int lVertexIndex = 0; lVertexIndex < pMesh->GetControlPointsCount(); ++lVertexIndex)
 				{
@@ -774,6 +798,10 @@ namespace ursine
 				int lIndexByPolygonVertex = 0;
 
 				unsigned binormalCount = pMesh->GetPolygonCount() * pMesh->GetPolygonSize(0);
+
+				// set layout flag
+				if (binormalCount > 0)
+					pData->m_LayoutFlag |= BITAN;
 
 				pData->binormalMode = FbxGeometryElement::eByPolygonVertex;
 
@@ -818,6 +846,11 @@ namespace ursine
 			case FbxGeometryElement::eByControlPoint:
 			{
 				unsigned tangentCount = pMesh->GetControlPointsCount();
+
+				// set layout flag
+				if (tangentCount > 0)
+					pData->m_LayoutFlag |= BITAN;
+
 				pData->tangentMode = FbxGeometryElement::eByControlPoint;
 				pData->tangents.resize(tangentCount);
 
@@ -842,6 +875,10 @@ namespace ursine
 				int lIndexByPolygonVertex = 0;
 
 				unsigned tangentCount = pMesh->GetPolygonCount() * pMesh->GetPolygonSize(0);
+
+				// set layout flag
+				if (tangentCount > 0)
+					pData->m_LayoutFlag |= BITAN;
 
 				pData->tangentMode = FbxGeometryElement::eByPolygonVertex;
 				pData->tangents.resize(tangentCount);
@@ -879,8 +916,12 @@ namespace ursine
 		//get all UV set names
 		FbxStringList lUVSetNameList;
 		pMesh->GetUVSetNames(lUVSetNameList);
+
 		if (lUVSetNameList.GetCount() < 1)
 			return;
+		else
+			// set layout flag
+			pData->m_LayoutFlag |= TEX;
 
 		//iterating over all uv sets
 		for (int lUVSetIndex = 0; lUVSetIndex < lUVSetNameList.GetCount(); ++lUVSetIndex)
@@ -1421,7 +1462,6 @@ namespace ursine
 
 	void CFBXLoader::ProcessAnimation(FbxAnimStack* animStack, FbxTime start, FbxTime end, FbxNode* pNode)
 	{
-		m_AnimationFlag.second = true;
 		std::set< FbxTime > keyTimes;
 		int nbAnimLayers = animStack->GetMemberCount<FbxAnimLayer>();
 		FbxString lOutputString;
@@ -1562,6 +1602,16 @@ namespace ursine
 			ProcessTangent(mesh, &newMesh);
 			ProcessTexcoord(mesh, &newMesh);
 			ProcessMaterials(pNode, &newMesh);
+
+			// set layout flag
+			if (newMesh.m_LayoutFlag == POS | NOR | SKIN)
+				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT4;
+			else if (newMesh.m_LayoutFlag == POS | NOR | TEX | SKIN)
+				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT5;
+			else if (newMesh.m_LayoutFlag == POS | NOR | BITAN | SKIN)
+				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT6;
+			else if (newMesh.m_LayoutFlag == POS | NOR | BITAN | TEX | SKIN)
+				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT7;
 
 			//go through all the control points(verticies) and multiply by the transformation
 			for (auto &iter : newMesh.vertices)

@@ -51,3 +51,20 @@ namespace ursine
 		virtual bool SerializeOut(HANDLE hFile);
 	};
 };
+
+//if (m_LayoutFlag == POS | NOR)
+//m_ModelInfo.mLayout = FBX_DATA::eLayout::LAYOUT0;
+//else if (m_LayoutFlag == POS | NOR | TEX)
+//m_ModelInfo.mLayout = FBX_DATA::eLayout::LAYOUT1;
+//else if (m_LayoutFlag == POS | NOR | BITAN)
+//m_ModelInfo.mLayout = FBX_DATA::eLayout::LAYOUT2;
+//else if (m_LayoutFlag == POS | NOR | BITAN | TEX)
+//m_ModelInfo.mLayout = FBX_DATA::eLayout::LAYOUT3;
+//else if (m_LayoutFlag == POS | NOR | SKIN)
+//m_ModelInfo.mLayout = FBX_DATA::eLayout::LAYOUT4;
+//else if (m_LayoutFlag == POS | NOR | TEX | SKIN)
+//m_ModelInfo.mLayout = FBX_DATA::eLayout::LAYOUT5;
+//else if (m_LayoutFlag == POS | NOR | BITAN | SKIN)
+//m_ModelInfo.mLayout = FBX_DATA::eLayout::LAYOUT6;
+//else if (m_LayoutFlag == POS | NOR | TEX | BITAN | SKIN)
+//m_ModelInfo.mLayout = FBX_DATA::eLayout::LAYOUT7;

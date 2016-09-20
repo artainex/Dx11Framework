@@ -92,17 +92,20 @@ namespace ursine
 	class MeshInfo : public ISerialize
 	{
 	public:
-		std::string     name;
-		XMMATRIX		meshTM;
-		UINT    meshVtxInfoCount;
-		UINT    meshVtxIdxCount;
-		UINT    mtrlCount;
-		UINT    mtrlIndexCount;
+		std::string			name;
+		XMMATRIX			meshTM;
+		UINT				meshVtxInfoCount;
+		UINT				meshVtxIdxCount;
+		UINT				mtrlCount;
+		UINT				mtrlIndexCount;
 		std::vector< std::string > mtrlName;
 
 		std::vector<MeshVertex>     meshVtxInfos;
 		std::vector<UINT>   meshVtxIndices; // this will be used when we do vtx reconstruction
 		std::vector<UINT>   materialIndices;
+
+		// layout
+		FBX_DATA::eLayout mLayout;
 
 		MeshInfo();
 		virtual ~MeshInfo();

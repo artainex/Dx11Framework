@@ -476,22 +476,68 @@ HRESULT InitApp()
 		eLayout layout_type = g_pFbxDX11[i]->GetLayoutType(i);
 		switch (layout_type)
 		{
-			// static mesh - currently instancing, but don't need actually
-		case eLayout::STATIC:
+		case eLayout::LAYOUT0:
 			hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
 				pVSBlobStatic->GetBufferPointer(),
 				pVSBlobStatic->GetBufferSize(),
-				input_layout.STATIC_LAYOUT,
+				input_layout.LAYOUT0,
+				2);
+			break;
+
+		case eLayout::LAYOUT1:
+			hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
+				pVSBlobStatic->GetBufferPointer(),
+				pVSBlobStatic->GetBufferSize(),
+				input_layout.LAYOUT1,
 				3);
 			break;
 
-			// skinned mesh
-		case eLayout::SKINNED:
+		case eLayout::LAYOUT2:
 			hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
-				pVSBlobSkinned->GetBufferPointer(),
-				pVSBlobSkinned->GetBufferSize(),
-				input_layout.SKINNED_LAYOUT,
+				pVSBlobStatic->GetBufferPointer(),
+				pVSBlobStatic->GetBufferSize(),
+				input_layout.LAYOUT2,
+				4);
+			break;
+
+		case eLayout::LAYOUT3:
+			hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
+				pVSBlobStatic->GetBufferPointer(),
+				pVSBlobStatic->GetBufferSize(),
+				input_layout.LAYOUT3,
 				5);
+			break;
+
+		case eLayout::LAYOUT4:
+			hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
+				pVSBlobStatic->GetBufferPointer(),
+				pVSBlobStatic->GetBufferSize(),
+				input_layout.LAYOUT4,
+				4);
+			break;
+
+		case eLayout::LAYOUT5:
+			hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
+				pVSBlobStatic->GetBufferPointer(),
+				pVSBlobStatic->GetBufferSize(),
+				input_layout.LAYOUT5,
+				5);
+			break;
+
+		case eLayout::LAYOUT6:
+			hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
+				pVSBlobStatic->GetBufferPointer(),
+				pVSBlobStatic->GetBufferSize(),
+				input_layout.LAYOUT6,
+				6);
+			break;
+
+		case eLayout::LAYOUT7:
+			hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
+				pVSBlobStatic->GetBufferPointer(),
+				pVSBlobStatic->GetBufferSize(),
+				input_layout.LAYOUT7,
+				7);
 			break;
 		}
 	}

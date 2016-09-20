@@ -420,9 +420,7 @@ namespace ursine
 		const AnimInfo& GetAnimInfo() const { return m_AnimInfo; }
 
 	private:
-		UINT            boneindex;
-		std::pair<bool, bool>   m_AnimationFlag;	// first flag = if there is animation
-													// second flag = if there is only animation
+		UINT					boneindex;
 		FbxPose*                m_AnimPose;
 		FBX_DATA::FbxModel*     m_Model;
 
