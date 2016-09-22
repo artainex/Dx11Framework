@@ -35,10 +35,7 @@ using namespace DirectX;
 
 namespace ursine
 {
-	inline bool IsEqualEpsilon(float A, float B)
-	{
-		return fabs(A - B) <= 1e-5f;
-	}
+	inline bool IsEqualEpsilon(float A, float B) { return fabs(A - B) <= 1e-5f; }
 
 	namespace FBX_DATA
 	{
@@ -51,19 +48,14 @@ namespace ursine
 		enum eLayout
 		{
 			NONE = -1,
-
-			LAYOUT0 = 0,// POS NOR
-
+			LAYOUT0,	// POS NOR
 			LAYOUT1, 	// POS NOR TEX
-			LAYOUT5, 	// POS NOR TEX BW BI
-
 			LAYOUT2, 	// POS NOR BIN TAN
-			LAYOUT6, 	// POS NOR BIN TAN BW BI
-
 			LAYOUT3, 	// POS NOR BIN TAN TEX
-			LAYOUT7,	// POS NOR BIN TAN TEX BW BI
-
-			LAYOUT4 	// POS NOR BW BI
+			LAYOUT4, 	// POS NOR BW BI
+			LAYOUT5, 	// POS NOR TEX BW BI
+			LAYOUT6, 	// POS NOR BIN TAN BW BI
+			LAYOUT7		// POS NOR BIN TAN TEX BW BI
 		};
 
 		// 노말 맵 만들려면 binormal이랑 tangent를 써야 하는데,
@@ -72,28 +64,17 @@ namespace ursine
 		// 이건 상당히 멍청한 짓이야. 맷이 한 거처럼 .Add()를 써서 여럿 붙일 수 있으면 좋을텐데.
 		struct LAYOUT
 		{
-			D3D11_INPUT_ELEMENT_DESC LAYOUT0[2];	
-			D3D11_INPUT_ELEMENT_DESC LAYOUT1[3];	
-			D3D11_INPUT_ELEMENT_DESC LAYOUT2[4];	
-			D3D11_INPUT_ELEMENT_DESC LAYOUT3[5];				
-			D3D11_INPUT_ELEMENT_DESC LAYOUT4[4];	
-			D3D11_INPUT_ELEMENT_DESC LAYOUT5[5];	
-			D3D11_INPUT_ELEMENT_DESC LAYOUT6[6];	
-			D3D11_INPUT_ELEMENT_DESC LAYOUT7[7];	
+			D3D11_INPUT_ELEMENT_DESC LAYOUT0[2];
+			D3D11_INPUT_ELEMENT_DESC LAYOUT1[3];
+			D3D11_INPUT_ELEMENT_DESC LAYOUT2[4];
+			D3D11_INPUT_ELEMENT_DESC LAYOUT3[5];		
+			D3D11_INPUT_ELEMENT_DESC LAYOUT4[4];
+			D3D11_INPUT_ELEMENT_DESC LAYOUT5[5];
+			D3D11_INPUT_ELEMENT_DESC LAYOUT6[6];
+			D3D11_INPUT_ELEMENT_DESC LAYOUT7[7];
 
-			// base
-			// base + tex
-			// base + tex + skin
-
-			// base + skin		
-
-			// base2 (base + bin + tan)
-			// base2 + tex
-			// base2 + tex + skin
-
-			// base2 + skin
-
-			LAYOUT() // - TRY OPTIMIZE THESE FORMATS 
+			// TRY OPTIMIZE THESE FORMATS 
+			LAYOUT() 
 			{
 				// pos, material, nbt, tex, bw, bi				
 				LAYOUT0[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
@@ -142,37 +123,23 @@ namespace ursine
 			}		  
 		};
 
-		struct VERTEX_DATA_STATIC
+		// POS NOR
+		struct VERTEX_DATA_L0
+		{
+			XMFLOAT3	vPos;
+			XMFLOAT3	vNor;
+		};
+
+		// POS NOR TEX
+		struct VERTEX_DATA_L1
 		{
 			XMFLOAT3	vPos;
 			XMFLOAT3	vNor;
 			XMFLOAT2	vTexcoord;
 		};
 
-		struct VERTEX_DATA_SKIN
-		{
-			XMFLOAT3	vPos;
-			XMFLOAT3	vNor;
-			XMFLOAT2	vTexcoord;
-			XMFLOAT4	vBWeight;
-			BYTE		vBIdx[4];
-		};
-
-		// new
-		struct VERTEX_DATA_LAYOUT0 // 1
-		{
-			XMFLOAT3	vPos;
-			XMFLOAT3	vNor;
-		};
-
-		struct VERTEX_DATA_LAYOUT1 // 
-		{
-			XMFLOAT3	vPos;
-			XMFLOAT3	vNor;
-			XMFLOAT2	vTexcoord;
-		};
-
-		struct VERTEX_DATA_LAYOUT2
+		// POS NOR BIN TAN
+		struct VERTEX_DATA_L2
 		{
 			XMFLOAT3	vPos;
 			XMFLOAT3	vNor;
@@ -180,7 +147,8 @@ namespace ursine
 			XMFLOAT3	vTan;
 		};
 
-		struct VERTEX_DATA_LAYOUT3
+		// POS NOR BIN TAN TEX
+		struct VERTEX_DATA_L3
 		{
 			XMFLOAT3	vPos;
 			XMFLOAT3	vNor;
@@ -189,7 +157,8 @@ namespace ursine
 			XMFLOAT2	vTexcoord;
 		};
 
-		struct VERTEX_DATA_LAYOUT4
+		// POS NOR BW BI
+		struct VERTEX_DATA_L4
 		{
 			XMFLOAT3	vPos;
 			XMFLOAT3	vNor;
@@ -197,7 +166,8 @@ namespace ursine
 			BYTE		vBIdx[4];
 		};
 
-		struct VERTEX_DATA_LAYOUT5
+		// POS NOR TEX BW BI
+		struct VERTEX_DATA_L5
 		{
 			XMFLOAT3	vPos;
 			XMFLOAT3	vNor;
@@ -206,7 +176,8 @@ namespace ursine
 			BYTE		vBIdx[4];
 		};
 
-		struct VERTEX_DATA_LAYOUT6
+		// POS NOR BIN TAN BW BI
+		struct VERTEX_DATA_L6
 		{
 			XMFLOAT3	vPos;
 			XMFLOAT3	vNor;
@@ -216,7 +187,8 @@ namespace ursine
 			BYTE		vBIdx[4];
 		};
 
-		struct VERTEX_DATA_LAYOUT7
+		// POS NOR BIN TAN TEX BW BI
+		struct VERTEX_DATA_L7
 		{
 			XMFLOAT3	vPos;
 			XMFLOAT3	vNor;
@@ -510,7 +482,6 @@ namespace ursine
 			std::vector<FbxMaterial> fbxmaterials;
 
 			MeshData() : mLayout(eLayout::NONE),
-				mLayoutFlag(0x0000),
 				normalMode(FbxLayerElement::eNone),
 				binormalMode(FbxLayerElement::eNone),
 				tangentMode(FbxLayerElement::eNone)

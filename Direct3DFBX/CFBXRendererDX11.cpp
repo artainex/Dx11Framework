@@ -194,9 +194,28 @@ namespace ursine
 		UINT i = 0;
 		switch (meshNode.m_Layout)
 		{
-		case FBX_DATA::STATIC:
+		case FBX_DATA::LAYOUT0:
 		{
-			FBX_DATA::VERTEX_DATA_STATIC* pVS = new FBX_DATA::VERTEX_DATA_STATIC[currMI.meshVtxInfoCount];
+			FBX_DATA::VERTEX_DATA_L0* pVS = new FBX_DATA::VERTEX_DATA_L0[currMI.meshVtxInfoCount];
+			for (auto &iter : currMI.meshVtxInfos)
+			{
+				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+				XMFLOAT3 currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+				
+				pVS[i].vPos = currVtx;
+				pVS[i].vNor = currNorm;
+
+				++i;
+			}
+
+			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_L0), meshNode.vertexCount);
+			if (pVS)
+				delete[] pVS;
+		}
+		break;
+		case FBX_DATA::LAYOUT1:
+		{
+			FBX_DATA::VERTEX_DATA_L1* pVS = new FBX_DATA::VERTEX_DATA_L1[currMI.meshVtxInfoCount];
 			for (auto &iter : currMI.meshVtxInfos)
 			{
 				XMFLOAT3 currVtx	= XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
@@ -210,41 +229,185 @@ namespace ursine
 				++i;
 			}
 
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_STATIC), meshNode.vertexCount);
+			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_L1), meshNode.vertexCount);
 			if (pVS)
 				delete[] pVS;
 		}
 		break;
-
-		case FBX_DATA::SKINNED:
+		case FBX_DATA::LAYOUT2:
 		{
-			FBX_DATA::VERTEX_DATA_SKIN* pVK = new FBX_DATA::VERTEX_DATA_SKIN[currMI.meshVtxInfoCount];
+			FBX_DATA::VERTEX_DATA_L2* pVS = new FBX_DATA::VERTEX_DATA_L2[currMI.meshVtxInfoCount];
+			for (auto &iter : currMI.meshVtxInfos)
+			{
+				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+				XMFLOAT3 currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+				XMFLOAT3 currBin = XMFLOAT3(iter.binormal.x, iter.binormal.y, iter.binormal.z);
+				XMFLOAT3 currTan = XMFLOAT3(iter.tangent.x, iter.tangent.y, iter.tangent.z);
+
+				pVS[i].vPos = currVtx;
+				pVS[i].vNor = currNorm;
+				pVS[i].vBin = currBin;
+				pVS[i].vTan = currTan;
+
+				++i;
+			}
+
+			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_L2), meshNode.vertexCount);
+			if (pVS)
+				delete[] pVS;
+		}
+		break;
+		case FBX_DATA::LAYOUT3:
+		{
+			FBX_DATA::VERTEX_DATA_L3* pVS = new FBX_DATA::VERTEX_DATA_L3[currMI.meshVtxInfoCount];
+			for (auto &iter : currMI.meshVtxInfos)
+			{
+				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+				XMFLOAT3 currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+				XMFLOAT3 currBin = XMFLOAT3(iter.binormal.x, iter.binormal.y, iter.binormal.z);
+				XMFLOAT3 currTan = XMFLOAT3(iter.tangent.x, iter.tangent.y, iter.tangent.z);
+				XMFLOAT2 currUV = XMFLOAT2(iter.uv.x, iter.uv.y);
+
+				pVS[i].vPos = currVtx;
+				pVS[i].vNor = currNorm;
+				pVS[i].vBin = currBin;
+				pVS[i].vTan = currTan;
+				pVS[i].vTexcoord = currUV;
+
+				++i;
+			}
+
+			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_L3), meshNode.vertexCount);
+			if (pVS)
+				delete[] pVS;
+		}
+		break;
+		case FBX_DATA::LAYOUT4:
+		{
+			FBX_DATA::VERTEX_DATA_L4* pVS = new FBX_DATA::VERTEX_DATA_L4[currMI.meshVtxInfoCount];
+			for (auto &iter : currMI.meshVtxInfos)
+			{
+				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+				XMFLOAT3 currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+
+				pVS[i].vPos = currVtx;
+				pVS[i].vNor = currNorm;
+
+				// blend bone idx, weight
+				pVS[i].vBIdx[0] = (BYTE)iter.ctrlIndices.x;
+				pVS[i].vBIdx[1] = (BYTE)iter.ctrlIndices.y;
+				pVS[i].vBIdx[2] = (BYTE)iter.ctrlIndices.z;
+				pVS[i].vBIdx[3] = (BYTE)iter.ctrlIndices.w;
+				pVS[i].vBWeight.x = (float)iter.ctrlBlendWeights.x;
+				pVS[i].vBWeight.y = (float)iter.ctrlBlendWeights.y;
+				pVS[i].vBWeight.z = (float)iter.ctrlBlendWeights.z;
+				pVS[i].vBWeight.w = (float)iter.ctrlBlendWeights.w;
+
+				++i;
+			}
+
+			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_L4), meshNode.vertexCount);
+			if (pVS)
+				delete[] pVS;
+		}
+		break;
+		case FBX_DATA::LAYOUT5:
+		{
+			FBX_DATA::VERTEX_DATA_L5* pVS = new FBX_DATA::VERTEX_DATA_L5[currMI.meshVtxInfoCount];
 			for (auto &iter : currMI.meshVtxInfos)
 			{
 				XMFLOAT3 currVtx	= XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
 				XMFLOAT3 currNorm	= XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
 				XMFLOAT2 currUV		= XMFLOAT2(iter.uv.x, iter.uv.y);
 
-				pVK[i].vPos			= currVtx;
-				pVK[i].vNor			= currNorm;
-				pVK[i].vTexcoord	= currUV;
+				pVS[i].vPos			= currVtx;
+				pVS[i].vNor			= currNorm;
+				pVS[i].vTexcoord	= currUV;
 
 				// blend bone idx, weight
-				pVK[i].vBIdx[0]		= (BYTE)iter.ctrlIndices.x;
-				pVK[i].vBIdx[1]		= (BYTE)iter.ctrlIndices.y;
-				pVK[i].vBIdx[2]		= (BYTE)iter.ctrlIndices.z;
-				pVK[i].vBIdx[3]		= (BYTE)iter.ctrlIndices.w;
-				pVK[i].vBWeight.x	= (float)iter.ctrlBlendWeights.x;
-				pVK[i].vBWeight.y	= (float)iter.ctrlBlendWeights.y;
-				pVK[i].vBWeight.z	= (float)iter.ctrlBlendWeights.z;
-				pVK[i].vBWeight.w	= (float)iter.ctrlBlendWeights.w;
+				pVS[i].vBIdx[0]		= (BYTE)iter.ctrlIndices.x;
+				pVS[i].vBIdx[1]		= (BYTE)iter.ctrlIndices.y;
+				pVS[i].vBIdx[2]		= (BYTE)iter.ctrlIndices.z;
+				pVS[i].vBIdx[3]		= (BYTE)iter.ctrlIndices.w;
+				pVS[i].vBWeight.x	= (float)iter.ctrlBlendWeights.x;
+				pVS[i].vBWeight.y	= (float)iter.ctrlBlendWeights.y;
+				pVS[i].vBWeight.z	= (float)iter.ctrlBlendWeights.z;
+				pVS[i].vBWeight.w	= (float)iter.ctrlBlendWeights.w;
 
 				++i;
 			}
 
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVK, sizeof(FBX_DATA::VERTEX_DATA_SKIN), meshNode.vertexCount);
-			if (pVK)
-				delete[] pVK;
+			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_L5), meshNode.vertexCount);
+			if (pVS)
+				delete[] pVS;
+		}
+		break;
+		case FBX_DATA::LAYOUT6:
+		{
+			FBX_DATA::VERTEX_DATA_L6* pVS = new FBX_DATA::VERTEX_DATA_L6[currMI.meshVtxInfoCount];
+			for (auto &iter : currMI.meshVtxInfos)
+			{
+				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+				XMFLOAT3 currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+				XMFLOAT3 currBin = XMFLOAT3(iter.binormal.x, iter.binormal.y, iter.binormal.z);
+				XMFLOAT3 currTan = XMFLOAT3(iter.tangent.x, iter.tangent.y, iter.tangent.z);
+
+				pVS[i].vPos = currVtx;
+				pVS[i].vNor = currNorm;
+				pVS[i].vBin = currBin;
+				pVS[i].vTan = currTan;
+
+				// blend bone idx, weight
+				pVS[i].vBIdx[0] = (BYTE)iter.ctrlIndices.x;
+				pVS[i].vBIdx[1] = (BYTE)iter.ctrlIndices.y;
+				pVS[i].vBIdx[2] = (BYTE)iter.ctrlIndices.z;
+				pVS[i].vBIdx[3] = (BYTE)iter.ctrlIndices.w;
+				pVS[i].vBWeight.x = (float)iter.ctrlBlendWeights.x;
+				pVS[i].vBWeight.y = (float)iter.ctrlBlendWeights.y;
+				pVS[i].vBWeight.z = (float)iter.ctrlBlendWeights.z;
+				pVS[i].vBWeight.w = (float)iter.ctrlBlendWeights.w;
+
+				++i;
+			}
+
+			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_L6), meshNode.vertexCount);
+			if (pVS)
+				delete[] pVS;
+		}
+		break;
+		case FBX_DATA::LAYOUT7:
+		{
+			FBX_DATA::VERTEX_DATA_L7* pVS = new FBX_DATA::VERTEX_DATA_L7[currMI.meshVtxInfoCount];
+			for (auto &iter : currMI.meshVtxInfos)
+			{
+				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+				XMFLOAT3 currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+				XMFLOAT3 currBin = XMFLOAT3(iter.binormal.x, iter.binormal.y, iter.binormal.z);
+				XMFLOAT3 currTan = XMFLOAT3(iter.tangent.x, iter.tangent.y, iter.tangent.z);
+				XMFLOAT2 currUV = XMFLOAT2(iter.uv.x, iter.uv.y);
+
+				pVS[i].vPos = currVtx;
+				pVS[i].vNor = currNorm;
+				pVS[i].vBin = currBin;
+				pVS[i].vTan = currTan;
+				pVS[i].vTexcoord = currUV;
+
+				// blend bone idx, weight
+				pVS[i].vBIdx[0] = (BYTE)iter.ctrlIndices.x;
+				pVS[i].vBIdx[1] = (BYTE)iter.ctrlIndices.y;
+				pVS[i].vBIdx[2] = (BYTE)iter.ctrlIndices.z;
+				pVS[i].vBIdx[3] = (BYTE)iter.ctrlIndices.w;
+				pVS[i].vBWeight.x = (float)iter.ctrlBlendWeights.x;
+				pVS[i].vBWeight.y = (float)iter.ctrlBlendWeights.y;
+				pVS[i].vBWeight.z = (float)iter.ctrlBlendWeights.z;
+				pVS[i].vBWeight.w = (float)iter.ctrlBlendWeights.w;
+
+				++i;
+			}
+
+			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_L7), meshNode.vertexCount);
+			if (pVS)
+				delete[] pVS;
 		}
 		break;
 		}
@@ -425,8 +588,14 @@ namespace ursine
 			UINT stride = 0;
 			switch (iter.m_Layout)
 			{
-			case FBX_DATA::STATIC: stride = sizeof(FBX_DATA::VERTEX_DATA_STATIC); break;
-			case FBX_DATA::SKINNED: stride = sizeof(FBX_DATA::VERTEX_DATA_SKIN); break;
+			case FBX_DATA::LAYOUT0: stride = sizeof(FBX_DATA::VERTEX_DATA_L0); break;
+			case FBX_DATA::LAYOUT1: stride = sizeof(FBX_DATA::VERTEX_DATA_L1); break;
+			case FBX_DATA::LAYOUT2: stride = sizeof(FBX_DATA::VERTEX_DATA_L2); break;
+			case FBX_DATA::LAYOUT3: stride = sizeof(FBX_DATA::VERTEX_DATA_L3); break;
+			case FBX_DATA::LAYOUT4: stride = sizeof(FBX_DATA::VERTEX_DATA_L4); break;
+			case FBX_DATA::LAYOUT5: stride = sizeof(FBX_DATA::VERTEX_DATA_L5); break;
+			case FBX_DATA::LAYOUT6: stride = sizeof(FBX_DATA::VERTEX_DATA_L6); break;
+			case FBX_DATA::LAYOUT7: stride = sizeof(FBX_DATA::VERTEX_DATA_L7); break;
 			}
 			UINT offset = 0;
 			pImmediateContext->IASetVertexBuffers(0, 1, &iter.m_pVB, &stride, &offset);
@@ -457,8 +626,14 @@ namespace ursine
 		UINT stride = 0;
 		switch (node->m_Layout)
 		{
-		case FBX_DATA::STATIC: stride = sizeof(FBX_DATA::VERTEX_DATA_STATIC); break;
-		case FBX_DATA::SKINNED: stride = sizeof(FBX_DATA::VERTEX_DATA_SKIN); break;
+		case FBX_DATA::LAYOUT0: stride = sizeof(FBX_DATA::VERTEX_DATA_L0); break;
+		case FBX_DATA::LAYOUT1: stride = sizeof(FBX_DATA::VERTEX_DATA_L1); break;
+		case FBX_DATA::LAYOUT2: stride = sizeof(FBX_DATA::VERTEX_DATA_L2); break;
+		case FBX_DATA::LAYOUT3: stride = sizeof(FBX_DATA::VERTEX_DATA_L3); break;
+		case FBX_DATA::LAYOUT4: stride = sizeof(FBX_DATA::VERTEX_DATA_L4); break;
+		case FBX_DATA::LAYOUT5: stride = sizeof(FBX_DATA::VERTEX_DATA_L5); break;
+		case FBX_DATA::LAYOUT6: stride = sizeof(FBX_DATA::VERTEX_DATA_L6); break;
+		case FBX_DATA::LAYOUT7: stride = sizeof(FBX_DATA::VERTEX_DATA_L7); break;
 		}
 
 		UINT offset = 0;
@@ -494,8 +669,14 @@ namespace ursine
 		UINT stride = 0;
 		switch (node->m_Layout)
 		{
-		case FBX_DATA::STATIC: stride = sizeof(FBX_DATA::VERTEX_DATA_STATIC); break;
-		case FBX_DATA::SKINNED: stride = sizeof(FBX_DATA::VERTEX_DATA_SKIN); break;
+		case FBX_DATA::LAYOUT0: stride = sizeof(FBX_DATA::VERTEX_DATA_L0); break;
+		case FBX_DATA::LAYOUT1: stride = sizeof(FBX_DATA::VERTEX_DATA_L1); break;
+		case FBX_DATA::LAYOUT2: stride = sizeof(FBX_DATA::VERTEX_DATA_L2); break;
+		case FBX_DATA::LAYOUT3: stride = sizeof(FBX_DATA::VERTEX_DATA_L3); break;
+		case FBX_DATA::LAYOUT4: stride = sizeof(FBX_DATA::VERTEX_DATA_L4); break;
+		case FBX_DATA::LAYOUT5: stride = sizeof(FBX_DATA::VERTEX_DATA_L5); break;
+		case FBX_DATA::LAYOUT6: stride = sizeof(FBX_DATA::VERTEX_DATA_L6); break;
+		case FBX_DATA::LAYOUT7: stride = sizeof(FBX_DATA::VERTEX_DATA_L7); break;
 		}
 
 		UINT offset = 0;
@@ -532,8 +713,14 @@ namespace ursine
 		UINT stride = 0;
 		switch (node->m_Layout)
 		{
-		case FBX_DATA::STATIC: stride = sizeof(FBX_DATA::VERTEX_DATA_STATIC); break;
-		case FBX_DATA::SKINNED: stride = sizeof(FBX_DATA::VERTEX_DATA_SKIN); break;
+		case FBX_DATA::LAYOUT0: stride = sizeof(FBX_DATA::VERTEX_DATA_L0); break;
+		case FBX_DATA::LAYOUT1: stride = sizeof(FBX_DATA::VERTEX_DATA_L1); break;
+		case FBX_DATA::LAYOUT2: stride = sizeof(FBX_DATA::VERTEX_DATA_L2); break;
+		case FBX_DATA::LAYOUT3: stride = sizeof(FBX_DATA::VERTEX_DATA_L3); break;
+		case FBX_DATA::LAYOUT4: stride = sizeof(FBX_DATA::VERTEX_DATA_L4); break;
+		case FBX_DATA::LAYOUT5: stride = sizeof(FBX_DATA::VERTEX_DATA_L5); break;
+		case FBX_DATA::LAYOUT6: stride = sizeof(FBX_DATA::VERTEX_DATA_L6); break;
+		case FBX_DATA::LAYOUT7: stride = sizeof(FBX_DATA::VERTEX_DATA_L7); break;
 		}
 
 		UINT offset = 0;

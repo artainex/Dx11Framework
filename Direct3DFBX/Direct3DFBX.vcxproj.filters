@@ -54,6 +54,12 @@
     <Filter Include="Graphics\Camera">
       <UniqueIdentifier>{bebb5beb-9c55-42bc-a48e-ccb05c286641}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\PixelShader">
+      <UniqueIdentifier>{486e7409-8f44-4977-9b7e-48e5d7ad63da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\VertexShader">
+      <UniqueIdentifier>{78786274-6c1e-4aec-be0d-7c85e1331d99}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CFBXRendererDX11.cpp">
@@ -283,17 +289,56 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="simpleRenderPS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="simpleRenderVSSkinned.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="simpleRenderVSStatic.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
     <FxCompile Include="simpleRenderInstancingVS.hlsl">
       <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShader\PixelShaderLayout0.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShader\PixelShaderLayout1.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShader\PixelShaderLayout2.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShader\PixelShaderLayout3.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShader\PixelShaderLayout4.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShader\PixelShaderLayout6.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShader\PixelShaderLayout7.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShader\PixelShaderLayout5.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VertexShader\VertexShaderLayout0.hlsl">
+      <Filter>Shaders\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VertexShader\VertexShaderLayout1.hlsl">
+      <Filter>Shaders\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VertexShader\VertexShaderLayout2.hlsl">
+      <Filter>Shaders\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VertexShader\VertexShaderLayout3.hlsl">
+      <Filter>Shaders\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VertexShader\VertexShaderLayout4.hlsl">
+      <Filter>Shaders\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VertexShader\VertexShaderLayout5.hlsl">
+      <Filter>Shaders\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VertexShader\VertexShaderLayout6.hlsl">
+      <Filter>Shaders\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VertexShader\VertexShaderLayout7.hlsl">
+      <Filter>Shaders\VertexShader</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

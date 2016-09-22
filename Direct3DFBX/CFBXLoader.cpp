@@ -224,6 +224,7 @@ namespace ursine
 				FBX_DATA::MeshData& currMD = m_Model->mMeshData[i];
 				// name & counter initialization
 				iter.name = currMD.name.c_str();
+				iter.mLayout = currMD.mLayout;
 				memcpy(&iter.meshTM, &currMD.meshTM, sizeof(XMMATRIX));
 				
 				// Reconstruct Vertices and Indices for data compression
@@ -534,7 +535,6 @@ namespace ursine
 		{
 			FBX_DATA::MeshData newMesh;
 			newMesh.name = pNode->GetName();
-			newMesh.mLayout = FBX_DATA::STATIC;
 			newMesh.parentIndex = inParentIndex;
 			if ("" == newMesh.name)
 				newMesh.name = m_Model->name;
@@ -1572,10 +1572,7 @@ namespace ursine
 			FBX_DATA::MeshData newMesh;
 
 			newMesh.name = pNode->GetName();
-			newMesh.mLayout = FBX_DATA::SKINNED;
 			newMesh.parentIndex = inParentIndex;
-			if ("" == newMesh.name)
-				newMesh.mLayout = FBX_DATA::SKINNED;
 
 			int nodeIdx = -1;
 

@@ -80,19 +80,19 @@ char g_files[NUMBER_OF_MODELS][256] =
 
 std::vector<XMMATRIX> skin_mat;
 
+// 이것도 어디로 옮겨버리던지 해야지
 ID3D11BlendState*				g_pBlendState = nullptr;
 ID3D11RasterizerState*			g_pRS = nullptr;
 ID3D11Buffer*					g_pmtxBuffer = nullptr;
 ID3D11Buffer*					g_pmtxPaletteBuffer = nullptr;
 ID3D11Buffer*					g_plightBuffer = nullptr;
-ID3D11VertexShader*				g_pvsStatic = nullptr;
-ID3D11VertexShader*             g_pvsSkinned = nullptr;
-ID3D11PixelShader*              g_pps = nullptr;
+ID3D11VertexShader*				g_pvsLayout[8] = { nullptr, };
+ID3D11PixelShader*              g_ppsLayout[8] = { nullptr, };
 
-// Instancing
-bool	g_bInstancing = false;
-const uint32_t g_InstanceMAX = 32;
-ID3D11VertexShader*				g_pvsInstancing = nullptr;
+//// Instancing
+//bool	g_bInstancing = false;
+//const uint32_t g_InstanceMAX = 32;
+//ID3D11VertexShader*				g_pvsInstancing = nullptr;
 
 // Shader Resource View - was implemented for instancing
 struct SRVPerInstanceData
@@ -207,7 +207,7 @@ HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow)
 //
 // With VS 11, we could load up prebuilt .cso files instead...
 //--------------------------------------------------------------------------------------
-HRESULT CompileShaderFromFile(LPCTSTR szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut)
+HRESULT CompileShaderFromFile(bool isVertexShader, LPCTSTR szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut = nullptr, ID3D11VertexShader** ppVSLayout = nullptr, ID3D11PixelShader** ppPSLayout = nullptr)
 {
 	HRESULT hr = S_OK;
 
@@ -224,12 +224,31 @@ HRESULT CompileShaderFromFile(LPCTSTR szFileName, LPCSTR szEntryPoint, LPCSTR sz
 	D3DX11CompileFromFile(szFileName, nullptr, nullptr, szEntryPoint, szShaderModel, dwShaderFlags, 0, 0, ppBlobOut, &pErrorBlob, &hr);
 	if (FAILED(hr))
 	{
-		if (pErrorBlob != NULL)
+		if (pErrorBlob)
+		{
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-		if (pErrorBlob) pErrorBlob->Release();
+			pErrorBlob->Release();
+		}
+		return E_FAIL;
+	}
+
+	// vertex shader
+	if (isVertexShader)
+	{
+		// Create the vertex shader
+		hr = g_pd3dDevice->CreateVertexShader((*ppBlobOut)->GetBufferPointer(), (*ppBlobOut)->GetBufferSize(), NULL, &(*ppVSLayout));
+	}
+	else
+	{
+		// Create the pixel shader
+		hr = g_pd3dDevice->CreatePixelShader((*ppBlobOut)->GetBufferPointer(), (*ppBlobOut)->GetBufferSize(), NULL, &(*ppPSLayout));
+	}
+
+	if (FAILED(hr))
+	{
+		(*ppBlobOut)->Release();
 		return hr;
 	}
-	if (pErrorBlob) pErrorBlob->Release();
 
 	return S_OK;
 }
@@ -421,6 +440,7 @@ HRESULT InitApp()
 {
 	HRESULT hr = S_OK;
 
+	// Load fbx model
 	for (DWORD i = 0; i < NUMBER_OF_MODELS; ++i)
 	{
 		// this is the place where fbx file loaded
@@ -429,134 +449,155 @@ HRESULT InitApp()
 		FAIL_CHECK_WITH_MSG(hr, "Load FBX Error");
 	}
 
-	// Compile the vertex shader
-	ID3DBlob* pVSBlobStatic = NULL, *pVSBlobSkinned = NULL, *pVSBlobInstancing = NULL;
-	hr = CompileShaderFromFile("simpleRenderVSStatic.hlsl", "vs_main", "vs_5_0", &pVSBlobStatic);
-	FAIL_CHECK_WITH_MSG(hr, "The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.");
+	// Compile the vertex shaders
+	ID3DBlob*pVSBlobL0 = NULL, 
+			*pVSBlobL1 = NULL, 
+			*pVSBlobL2 = NULL, 
+			*pVSBlobL3 = NULL, 
+			*pVSBlobL4 = NULL, 
+			*pVSBlobL5 = NULL, 
+			*pVSBlobL6 = NULL, 
+			*pVSBlobL7 = NULL;
 
-	// Create the vertex shader - static
-	hr = g_pd3dDevice->CreateVertexShader(pVSBlobStatic->GetBufferPointer(), pVSBlobStatic->GetBufferSize(), NULL, &g_pvsStatic);
-	if (FAILED(hr))
+	for (UINT i = 0; i < 8; ++i)
 	{
-		pVSBlobStatic->Release();
-		return hr;
+		std::string shaderName = "Shader/VertexShader/VertexShaderLayout";
+		shaderName += (48 + i);
+		shaderName += ".hlsl";
+
+		ID3DBlob **targetVS = nullptr;
+		switch (i)
+		{
+		case 0: targetVS = &pVSBlobL0; break;
+		case 1: targetVS = &pVSBlobL1; break;
+		case 2: targetVS = &pVSBlobL2; break;
+		case 3: targetVS = &pVSBlobL3; break;
+		case 4: targetVS = &pVSBlobL4; break;
+		case 5: targetVS = &pVSBlobL5; break;
+		case 6: targetVS = &pVSBlobL6; break;
+		case 7: targetVS = &pVSBlobL7; break;
+		}
+
+		hr = CompileShaderFromFile(true, shaderName.c_str(), "vs_main", "vs_5_0", &(*targetVS), &g_pvsLayout[i]);
+		shaderName += " cannot be compiled.  Please run this executable from the directory that contains the FX file.";
+		FAIL_CHECK_WITH_MSG(hr, shaderName.c_str());
 	}
-
-	// Compile the vertex shader
-	hr = CompileShaderFromFile("simpleRenderVSSkinned.hlsl", "vs_main", "vs_5_0", &pVSBlobSkinned);
-	FAIL_CHECK_WITH_MSG(hr, "The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.");
-
-	// Create the vertex shader - Skinned
-	hr = g_pd3dDevice->CreateVertexShader(pVSBlobSkinned->GetBufferPointer(), pVSBlobSkinned->GetBufferSize(), NULL, &g_pvsSkinned);
-	if (FAILED(hr))
-	{
-		pVSBlobSkinned->Release();
-		return hr;
-	}
-
-	// Compile the vertex shader
-	hr = CompileShaderFromFile("simpleRenderInstancingVS.hlsl", "vs_main", "vs_5_0", &pVSBlobInstancing);
-	FAIL_CHECK_WITH_MSG(hr, "The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.");
-
-	// Create the vertex shader - Instance
-	hr = g_pd3dDevice->CreateVertexShader(pVSBlobInstancing->GetBufferPointer(), pVSBlobInstancing->GetBufferSize(), NULL, &g_pvsInstancing);
-	if (FAILED(hr))
-	{
-		pVSBlobInstancing->Release();
-		return hr;
-	}
-
-	// Define the input layout	
-	// Todo: InputLayout
+	
+	// Define the input layout
 	// after load fbx successfully, then set the layout.
 	// need to figure out which layout they are
 	LAYOUT input_layout;
 	for (UINT i = 0; i < NUMBER_OF_MODELS; ++i)
 	{
-		eLayout layout_type = g_pFbxDX11[i]->GetLayoutType(i);
-		switch (layout_type)
+		for (UINT j = 0; j < g_pFbxDX11[i]->GetMeshNodeCount(); ++j)
 		{
-		case eLayout::LAYOUT0:
-			hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
-				pVSBlobStatic->GetBufferPointer(),
-				pVSBlobStatic->GetBufferSize(),
-				input_layout.LAYOUT0,
-				2);
-			break;
+			eLayout layout_type = g_pFbxDX11[i]->GetLayoutType(j);
+			switch (layout_type)
+			{
+			case eLayout::LAYOUT0:
+				hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
+					pVSBlobL0->GetBufferPointer(), pVSBlobL0->GetBufferSize(),
+					input_layout.LAYOUT0, 2);
+				break;
 
-		case eLayout::LAYOUT1:
-			hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
-				pVSBlobStatic->GetBufferPointer(),
-				pVSBlobStatic->GetBufferSize(),
-				input_layout.LAYOUT1,
-				3);
-			break;
+			case eLayout::LAYOUT1:
+				hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
+					pVSBlobL1->GetBufferPointer(), pVSBlobL1->GetBufferSize(),
+					input_layout.LAYOUT1, 3);
+				break;
 
-		case eLayout::LAYOUT2:
-			hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
-				pVSBlobStatic->GetBufferPointer(),
-				pVSBlobStatic->GetBufferSize(),
-				input_layout.LAYOUT2,
-				4);
-			break;
+			case eLayout::LAYOUT2:
+				hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
+					pVSBlobL2->GetBufferPointer(), pVSBlobL2->GetBufferSize(),
+					input_layout.LAYOUT2, 4);
+				break;
 
-		case eLayout::LAYOUT3:
-			hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
-				pVSBlobStatic->GetBufferPointer(),
-				pVSBlobStatic->GetBufferSize(),
-				input_layout.LAYOUT3,
-				5);
-			break;
+			case eLayout::LAYOUT3:
+				hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
+					pVSBlobL3->GetBufferPointer(), pVSBlobL3->GetBufferSize(),
+					input_layout.LAYOUT3, 5);
+				break;
 
-		case eLayout::LAYOUT4:
-			hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
-				pVSBlobStatic->GetBufferPointer(),
-				pVSBlobStatic->GetBufferSize(),
-				input_layout.LAYOUT4,
-				4);
-			break;
+			case eLayout::LAYOUT4:
+				hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
+					pVSBlobL4->GetBufferPointer(), pVSBlobL4->GetBufferSize(),
+					input_layout.LAYOUT4, 4);
+				break;
 
-		case eLayout::LAYOUT5:
-			hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
-				pVSBlobStatic->GetBufferPointer(),
-				pVSBlobStatic->GetBufferSize(),
-				input_layout.LAYOUT5,
-				5);
-			break;
+			case eLayout::LAYOUT5:
+				hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
+					pVSBlobL5->GetBufferPointer(), pVSBlobL5->GetBufferSize(),
+					input_layout.LAYOUT5, 5);
+				break;
 
-		case eLayout::LAYOUT6:
-			hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
-				pVSBlobStatic->GetBufferPointer(),
-				pVSBlobStatic->GetBufferSize(),
-				input_layout.LAYOUT6,
-				6);
-			break;
+			case eLayout::LAYOUT6:
+				hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
+					pVSBlobL6->GetBufferPointer(), pVSBlobL6->GetBufferSize(),
+					input_layout.LAYOUT6, 6);
+				break;
 
-		case eLayout::LAYOUT7:
-			hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
-				pVSBlobStatic->GetBufferPointer(),
-				pVSBlobStatic->GetBufferSize(),
-				input_layout.LAYOUT7,
-				7);
-			break;
-		}
+			case eLayout::LAYOUT7:
+				hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
+					pVSBlobL7->GetBufferPointer(), pVSBlobL7->GetBufferSize(),
+					input_layout.LAYOUT7, 7);
+				break;
+			}
+		}		
 	}
-
-	if (pVSBlobStatic) pVSBlobStatic->Release();
-	if (pVSBlobSkinned) pVSBlobSkinned->Release();
-	if (pVSBlobInstancing) pVSBlobInstancing->Release();
 	FAIL_CHECK(hr);
 
-	// Compile the pixel shader
-	ID3DBlob* pPSBlob = NULL;
-	hr = CompileShaderFromFile("simpleRenderPS.hlsl", "PS", "ps_5_0", &pPSBlob);
-	FAIL_CHECK_WITH_MSG(hr, "The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.");
+	SAFE_RELEASE(pVSBlobL0);
+	SAFE_RELEASE(pVSBlobL1);
+	SAFE_RELEASE(pVSBlobL2);
+	SAFE_RELEASE(pVSBlobL3);
+	SAFE_RELEASE(pVSBlobL4);
+	SAFE_RELEASE(pVSBlobL5);
+	SAFE_RELEASE(pVSBlobL6);
+	SAFE_RELEASE(pVSBlobL7);
 
-	// Create the pixel shader
-	hr = g_pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &g_pps);
-	pPSBlob->Release();
-	if (FAILED(hr))
-		return hr;
+	// Compile the pixel shaders
+	ID3DBlob
+		*pPSBlobL0 = NULL,
+		*pPSBlobL1 = NULL,
+		*pPSBlobL2 = NULL,
+		*pPSBlobL3 = NULL,
+		*pPSBlobL4 = NULL,
+		*pPSBlobL5 = NULL,
+		*pPSBlobL6 = NULL,
+		*pPSBlobL7 = NULL;
+
+	for (UINT i = 0; i < 8; ++i)
+	{
+		std::string shaderName = "Shader/PixelShader/PixelShaderLayout";
+		shaderName += (48 + i);
+		shaderName += ".hlsl";
+
+		ID3DBlob **targetPS = nullptr;
+		switch (i)
+		{
+		case 0: targetPS = &pPSBlobL0; break;
+		case 1: targetPS = &pPSBlobL1; break;
+		case 2: targetPS = &pPSBlobL2; break;
+		case 3: targetPS = &pPSBlobL3; break;
+		case 4: targetPS = &pPSBlobL4; break;
+		case 5: targetPS = &pPSBlobL5; break;
+		case 6: targetPS = &pPSBlobL6; break;
+		case 7: targetPS = &pPSBlobL7; break;
+		}
+		hr = CompileShaderFromFile(false, shaderName.c_str(), "PS", "ps_5_0", &(*targetPS), nullptr, &g_ppsLayout[i]);
+		shaderName += " cannot be compiled.  Please run this executable from the directory that contains the FX file.";
+		FAIL_CHECK_WITH_MSG(hr, shaderName.c_str());
+	}
+	FAIL_CHECK(hr);
+	
+	SAFE_RELEASE(pPSBlobL0);
+	SAFE_RELEASE(pPSBlobL1);
+	SAFE_RELEASE(pPSBlobL2);
+	SAFE_RELEASE(pPSBlobL3);
+	SAFE_RELEASE(pPSBlobL4);
+	SAFE_RELEASE(pPSBlobL5);
+	SAFE_RELEASE(pPSBlobL6);
+	SAFE_RELEASE(pPSBlobL7);
 
 	// Create Constant Buffer - For Matrices
 	D3D11_BUFFER_DESC mtxBufferDesc;
@@ -586,7 +627,7 @@ HRESULT InitApp()
 	hr = g_pd3dDevice->CreateBuffer(&lightBufferDesc, NULL, &g_plightBuffer);
 	FAIL_CHECK(hr);
 
-	//
+	// rasterizer
 	D3D11_RASTERIZER_DESC rsDesc;
 	ZeroMemory(&rsDesc, sizeof(D3D11_RASTERIZER_DESC));
 	rsDesc.FillMode = D3D11_FILL_SOLID;
@@ -596,6 +637,7 @@ HRESULT InitApp()
 	g_pd3dDevice->CreateRasterizerState(&rsDesc, &g_pRS);
 	g_pImmediateContext->RSSetState(g_pRS);
 
+	// blend state
 	D3D11_BLEND_DESC blendDesc;
 	ZeroMemory(&blendDesc, sizeof(D3D11_BLEND_DESC));
 	blendDesc.AlphaToCoverageEnable = false;
@@ -617,14 +659,14 @@ HRESULT InitApp()
 HRESULT SetupTransformSRV()
 {
 	HRESULT hr = S_OK;
-	const uint32_t count = g_InstanceMAX;
+	//const uint32_t count = g_InstanceMAX;
 	const uint32_t stride = static_cast<uint32_t>(sizeof(SRVPerInstanceData));
 
 	// Create StructuredBuffer
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory(&bd, sizeof(bd));
 	bd.Usage = D3D11_USAGE_DYNAMIC;
-	bd.ByteWidth = stride * count;
+	bd.ByteWidth = stride;// *count;
 	bd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
@@ -640,7 +682,7 @@ HRESULT SetupTransformSRV()
 	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
 	srvDesc.BufferEx.FirstElement = 0;
 	srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-	srvDesc.BufferEx.NumElements = count;
+	srvDesc.BufferEx.NumElements = 1;// count;
 	hr = g_pd3dDevice->CreateShaderResourceView(g_pTransformStructuredBuffer, &srvDesc, &g_pTransformSRV);
 	FAIL_CHECK(hr);
 
@@ -662,10 +704,12 @@ void CleanupApp()
 	SAFE_RELEASE(g_plightBuffer);
 
 	SAFE_RELEASE(g_pRS);
-	SAFE_RELEASE(g_pvsInstancing);
-	SAFE_RELEASE(g_pvsSkinned);
-	SAFE_RELEASE(g_pvsStatic);
-	SAFE_RELEASE(g_pps);
+	//SAFE_RELEASE(g_pvsInstancing);
+	for (UINT i = 0; i < 8; ++i)
+	{
+		SAFE_RELEASE(g_pvsLayout[i]);
+		SAFE_RELEASE(g_ppsLayout[i]);
+	}
 }
 
 //--------------------------------------------------------------------------------------
@@ -772,15 +816,22 @@ void RenderModel()
 			//////////////////////////////////////
 			eLayout layout_type = currModel->GetLayoutType(mn_idx);
 			ID3D11VertexShader* pVS = nullptr;
+			ID3D11PixelShader* pPS = nullptr;
 			switch (layout_type)
 			{
 			case eLayout::NONE:		continue;
-			case eLayout::STATIC:	pVS = g_pvsStatic;	break;
-			case eLayout::SKINNED:	pVS = g_pvsSkinned;	break;
+			case eLayout::LAYOUT0:	pVS = g_pvsLayout[0];	pPS = g_ppsLayout[0]; break;
+			case eLayout::LAYOUT1:	pVS = g_pvsLayout[1];	pPS = g_ppsLayout[1]; break;
+			case eLayout::LAYOUT2:	pVS = g_pvsLayout[2];	pPS = g_ppsLayout[2]; break;
+			case eLayout::LAYOUT3:	pVS = g_pvsLayout[3];	pPS = g_ppsLayout[3]; break;
+			case eLayout::LAYOUT4:	pVS = g_pvsLayout[4];	pPS = g_ppsLayout[4]; break;
+			case eLayout::LAYOUT5:	pVS = g_pvsLayout[5];	pPS = g_ppsLayout[5]; break;
+			case eLayout::LAYOUT6:	pVS = g_pvsLayout[6];	pPS = g_ppsLayout[6]; break;
+			case eLayout::LAYOUT7:	pVS = g_pvsLayout[7];	pPS = g_ppsLayout[7]; break;
 			}
 
 			g_pImmediateContext->VSSetShader(pVS, NULL, 0);
-			g_pImmediateContext->PSSetShader(g_pps, NULL, 0);
+			g_pImmediateContext->PSSetShader(pPS, NULL, 0);
 
 			// set shader parameters(mapping constant buffers, matrices, resources)
 			SetShaderParameters(&currModel, mn_idx, layout_type);
@@ -880,7 +931,7 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 		if ((*currentModel)->IsSkinned())
 			g_pImmediateContext->VSSetConstantBuffers(1, 1, &g_pmtxPaletteBuffer);	// setting matrix palettes
 
-		if (eLayout::SKINNED == layoutType)
+		if (eLayout::LAYOUT4 == layoutType || eLayout::LAYOUT5 == layoutType || eLayout::LAYOUT6 == layoutType || eLayout::LAYOUT7 == layoutType)
 		{
 			hr = g_pImmediateContext->Map(g_pmtxPaletteBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
 			PaletteBufferType* palBuffer = (PaletteBufferType*)MappedResource.pData;
