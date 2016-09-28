@@ -459,7 +459,7 @@ namespace ursine
 				{
 					for (unsigned j = 0; j < currMI.diff_mapCount; ++j)
 					{
-						if (currMI.diff_texNames[j] != "")
+						if (!currMI.diff_texNames[j].empty())
 						{
 							std::string path1 = "Assets/";
 							std::string folder = currMI.diff_texNames[j];
@@ -479,10 +479,12 @@ namespace ursine
 				D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path2.c_str(), NULL, NULL, &currFbxMtrl.pSRV[1], NULL);
 
 				// Setting sampler as default texture
-				hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler[0]);
+				hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler);
 				FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
-				hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler[1]);
-				FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
+				//hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler[0]);
+				//FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
+				//hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler[1]);
+				//FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
 
 				// currently, constant buffer creation always failed because constant buffer size should be multiple of 16
 				hr = pd3dDevice->CreateBuffer(&mtrlBufferDesc, NULL, &currFbxMtrl.pMaterialCb);
@@ -519,16 +521,17 @@ namespace ursine
 			// Create Shader Resource View from default texture and material
 			std::string path1 = "Assets/uv.png";
 			D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path1.c_str(), NULL, NULL, &currFbxMtrl.pSRV[0], NULL);
-
 			// for default normal map
 			std::string path2 = "Assets/norm.png";
 			D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path2.c_str(), NULL, NULL, &currFbxMtrl.pSRV[1], NULL);
 
 			// Setting sampler as default texture
-			hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler[0]);
+			hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler);
 			FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
-			hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler[1]);
-			FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
+			//hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler[0]);
+			//FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
+			//hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler[1]);
+			//FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
 
 			// currently, constant buffer creation always failed because constant buffer size should be multiple of 16
 			hr = pd3dDevice->CreateBuffer(&mtrlBufferDesc, NULL, &currFbxMtrl.pMaterialCb);

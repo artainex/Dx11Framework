@@ -27,11 +27,11 @@
 
 using namespace DirectX;
 
-#define POS		0x0000	// POSITION
-#define NOR		0x0001	// NORAML
-#define BITAN	0x0011	// BINORMAL, TANGENT
-#define	TEX		0x0100	// TEXTURE
-#define SKIN	0x1000	// SKIN
+const unsigned int POS	= 0x01;	// 1 Hexa 0x0000 0001 POSITION
+const unsigned int NOR	= 0x02;	// 2 Hexa 0x0000 0010 NORAML
+const unsigned int BITAN= 0x04;	// 4 Hexa 0x0000 0100 BINORMAL, TANGENT
+const unsigned int TEX	= 0x08;	// 8 Hexa 0x0000 1000 TEXTURE
+const unsigned int SKIN	= 0x10;	// 16 Hexa 0x0001 0000 SKIN
 
 namespace ursine
 {
@@ -108,8 +108,8 @@ namespace ursine
 
 				LAYOUT6[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
 				LAYOUT6[1] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-				LAYOUT3[2] = { "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-				LAYOUT3[3] = { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+				LAYOUT6[2] = { "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+				LAYOUT6[3] = { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
 				LAYOUT6[4] = { "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
 				LAYOUT6[5] = { "BLENDINDICES", 0, DXGI_FORMAT_R8G8B8A8_UINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };				
 				
@@ -117,7 +117,7 @@ namespace ursine
 				LAYOUT7[1] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
 				LAYOUT7[2] = { "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
 				LAYOUT7[3] = { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-				LAYOUT5[4] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+				LAYOUT7[4] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
 				LAYOUT7[5] = { "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
 				LAYOUT7[6] = { "BLENDINDICES", 0, DXGI_FORMAT_R8G8B8A8_UINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
 			}		  
@@ -257,18 +257,18 @@ namespace ursine
 		struct Material_Data
 		{
 			MaterialBufferType			mtrlConst;
-			ID3D11ShaderResourceView*	pSRV[2]; // for diffuse and normalmap. do I need multiple of this?
-			ID3D11SamplerState*         pSampler[2];
+			ID3D11ShaderResourceView*	pSRV [2]; // for diffuse and normalmap. do I need multiple of this?
+			ID3D11SamplerState*         pSampler;// [2];
 			ID3D11Buffer*				pMaterialCb;
 
 			Material_Data()
-				: pMaterialCb(nullptr)
+				:pSampler(nullptr), pMaterialCb(nullptr)
 			{
 				pSRV[0] = nullptr;
 				pSRV[1] = nullptr;
-
-				pSampler[0] = nullptr;
-				pSampler[1] = nullptr;
+				
+				//pSampler[0] = nullptr;
+				//pSampler[1] = nullptr;
 			}
 
 			void Release()
@@ -277,8 +277,10 @@ namespace ursine
 				for (UINT i = 0; i < 2; ++i)
 				{
 					SAFE_RELEASE(pSRV[i]);
-					SAFE_RELEASE(pSampler[i]);
+					//SAFE_RELEASE(pSampler[i]);
+					//SAFE_RELEASE(pSRV);
 				}
+				SAFE_RELEASE(pSampler);
 			}
 		};
 
@@ -460,7 +462,7 @@ namespace ursine
 		struct MeshData
 		{
 			eLayout mLayout;
-			WORD m_LayoutFlag;
+			unsigned int m_LayoutFlag;
 			
 			std::string name;
 			int parentIndex;
@@ -482,6 +484,8 @@ namespace ursine
 			std::vector<FbxMaterial> fbxmaterials;
 
 			MeshData() : mLayout(eLayout::NONE),
+				m_LayoutFlag(0),
+				parentIndex(0),
 				normalMode(FbxLayerElement::eNone),
 				binormalMode(FbxLayerElement::eNone),
 				tangentMode(FbxLayerElement::eNone)

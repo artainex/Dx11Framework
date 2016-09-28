@@ -58,6 +58,9 @@ Camera								g_Camera;
 HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow);
 HRESULT InitDevice();
 HRESULT InitCamera();
+HRESULT InitVertexShaders();
+HRESULT InitPixelShaders();
+HRESULT CreateBuffers();
 void CleanupDevice();
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 void Update(double deltaTime);
@@ -80,13 +83,13 @@ char g_files[NUMBER_OF_MODELS][256] =
 
 std::vector<XMMATRIX> skin_mat;
 
-// 이것도 어디로 옮겨버리던지 해야지
 ID3D11BlendState*				g_pBlendState = nullptr;
 ID3D11RasterizerState*			g_pRS = nullptr;
 ID3D11Buffer*					g_pmtxBuffer = nullptr;
 ID3D11Buffer*					g_pmtxPaletteBuffer = nullptr;
 ID3D11Buffer*					g_plightBuffer = nullptr;
 ID3D11VertexShader*				g_pvsLayout[8] = { nullptr, };
+ID3D11ComputeShader*			g_pcsLayout[8] = { nullptr, };
 ID3D11PixelShader*              g_ppsLayout[8] = { nullptr, };
 
 //// Instancing
@@ -302,7 +305,7 @@ HRESULT InitDevice()
 	sd.SampleDesc.Quality = 0;
 	sd.Windowed = TRUE;
 
-	for (UINT driverTypeIndex = 0; driverTypeIndex < numDriverTypes; driverTypeIndex++)
+	for (UINT driverTypeIndex = 0; driverTypeIndex < numDriverTypes; ++driverTypeIndex)
 	{
 		g_driverType = driverTypes[driverTypeIndex];
 		hr = D3D11CreateDeviceAndSwapChain(
@@ -434,30 +437,21 @@ HRESULT InitCamera()
 }
 
 //--------------------------------------------------------------------------------------
-// Load models, Init buffers, Create layouts, Compile shaders
+// Init Shaders
 //--------------------------------------------------------------------------------------
-HRESULT InitApp()
+HRESULT InitVertexShaders()
 {
 	HRESULT hr = S_OK;
 
-	// Load fbx model
-	for (DWORD i = 0; i < NUMBER_OF_MODELS; ++i)
-	{
-		// this is the place where fbx file loaded
-		g_pFbxDX11[i] = new ursine::CFBXRenderDX11;
-		hr = g_pFbxDX11[i]->LoadFBX(g_files[i], g_pd3dDevice);
-		FAIL_CHECK_WITH_MSG(hr, "Load FBX Error");
-	}
-
 	// Compile the vertex shaders
-	ID3DBlob*pVSBlobL0 = NULL, 
-			*pVSBlobL1 = NULL, 
-			*pVSBlobL2 = NULL, 
-			*pVSBlobL3 = NULL, 
-			*pVSBlobL4 = NULL, 
-			*pVSBlobL5 = NULL, 
-			*pVSBlobL6 = NULL, 
-			*pVSBlobL7 = NULL;
+	ID3DBlob*pVSBlobL0 = NULL,
+		*pVSBlobL1 = NULL,
+		*pVSBlobL2 = NULL,
+		*pVSBlobL3 = NULL,
+		*pVSBlobL4 = NULL,
+		*pVSBlobL5 = NULL,
+		*pVSBlobL6 = NULL,
+		*pVSBlobL7 = NULL;
 
 	for (UINT i = 0; i < 8; ++i)
 	{
@@ -482,7 +476,7 @@ HRESULT InitApp()
 		shaderName += " cannot be compiled.  Please run this executable from the directory that contains the FX file.";
 		FAIL_CHECK_WITH_MSG(hr, shaderName.c_str());
 	}
-	
+
 	// Define the input layout
 	// after load fbx successfully, then set the layout.
 	// need to figure out which layout they are
@@ -542,7 +536,7 @@ HRESULT InitApp()
 					input_layout.LAYOUT7, 7);
 				break;
 			}
-		}		
+		}
 	}
 	FAIL_CHECK(hr);
 
@@ -554,6 +548,13 @@ HRESULT InitApp()
 	SAFE_RELEASE(pVSBlobL5);
 	SAFE_RELEASE(pVSBlobL6);
 	SAFE_RELEASE(pVSBlobL7);
+
+	return hr;
+}
+
+HRESULT InitPixelShaders()
+{
+	HRESULT hr = S_OK;
 
 	// Compile the pixel shaders
 	ID3DBlob
@@ -589,7 +590,7 @@ HRESULT InitApp()
 		FAIL_CHECK_WITH_MSG(hr, shaderName.c_str());
 	}
 	FAIL_CHECK(hr);
-	
+
 	SAFE_RELEASE(pPSBlobL0);
 	SAFE_RELEASE(pPSBlobL1);
 	SAFE_RELEASE(pPSBlobL2);
@@ -599,7 +600,17 @@ HRESULT InitApp()
 	SAFE_RELEASE(pPSBlobL6);
 	SAFE_RELEASE(pPSBlobL7);
 
-	// Create Constant Buffer - For Matrices
+	return hr;
+}
+
+//--------------------------------------------------------------------------------------
+// Create Buffers
+//--------------------------------------------------------------------------------------
+HRESULT CreateBuffers()
+{
+	HRESULT hr = S_OK; 
+
+	// Create Buffer - For Matrices
 	D3D11_BUFFER_DESC mtxBufferDesc;
 	ZeroMemory(&mtxBufferDesc, sizeof(mtxBufferDesc));
 	mtxBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -618,6 +629,7 @@ HRESULT InitApp()
 	hr = g_pd3dDevice->CreateBuffer(&mtxPaletteBufferDesc, NULL, &g_pmtxPaletteBuffer);
 	FAIL_CHECK(hr);
 
+	// Create Buffer - For light
 	D3D11_BUFFER_DESC lightBufferDesc;
 	ZeroMemory(&lightBufferDesc, sizeof(lightBufferDesc));
 	lightBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -626,6 +638,32 @@ HRESULT InitApp()
 	lightBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	hr = g_pd3dDevice->CreateBuffer(&lightBufferDesc, NULL, &g_plightBuffer);
 	FAIL_CHECK(hr);
+
+	return hr;
+}
+
+//--------------------------------------------------------------------------------------
+// Load models, Init buffers, Create layouts, Compile shaders
+//--------------------------------------------------------------------------------------
+HRESULT InitApp()
+{
+	HRESULT hr = S_OK;
+
+	// Load fbx model
+	for (DWORD i = 0; i < NUMBER_OF_MODELS; ++i)
+	{
+		// this is the place where fbx file loaded
+		g_pFbxDX11[i] = new ursine::CFBXRenderDX11;
+		hr = g_pFbxDX11[i]->LoadFBX(g_files[i], g_pd3dDevice);
+		FAIL_CHECK_WITH_MSG(hr, "Load FBX Error");
+	}
+
+	// Init Shaders
+	FAIL_CHECK_WITH_MSG( InitVertexShaders(), "Vertex Shader initialize failed" );
+	FAIL_CHECK_WITH_MSG( InitPixelShaders(), "Pixel Shader initialize failed" );
+
+	// Create Buffers
+	FAIL_CHECK_WITH_MSG( CreateBuffers(), "Buffer creation failed" );
 
 	// rasterizer
 	D3D11_RASTERIZER_DESC rsDesc;
@@ -809,8 +847,6 @@ void RenderModel()
 		// for all nodes
 		for (UINT mn_idx = 0; mn_idx < meshnodeCnt; ++mn_idx)
 		{
-			//auto &currMesh = g_pFbxDX11[mdl_idx]->GetMeshNode(mn_idx);
-
 			//////////////////////////////////////
 			// sort by layout later
 			//////////////////////////////////////
@@ -865,7 +901,7 @@ void Render()
 	}
 
 	// Clear the back buffer
-	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; // red, green, blue, alpha
+	float ClearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f }; // red, green, blue, alpha
 	g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
 
 	// Clear the depth buffer to 1.0 (max depth)
@@ -959,8 +995,9 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 
 			// 셰이더 리소스 뷰랑 샘플러의 차이가 뭐야?
 			// set sampler
-			if (material.pSampler[0])	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler[0]);
-			if (material.pSampler[1])	g_pImmediateContext->PSSetSamplers(1, 1, &material.pSampler[1]);
+			if (material.pSampler)	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler);
+			//if (material.pSampler[0])	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler[0]);
+			//if (material.pSampler[1])	g_pImmediateContext->PSSetSamplers(1, 1, &material.pSampler[1]);
 			// set shader resource view - for texture
 			if (material.pSRV[0])		g_pImmediateContext->PSSetShaderResources(0, 1, &material.pSRV[0]);
 			if (material.pSRV[1])		g_pImmediateContext->PSSetShaderResources(1, 1, &material.pSRV[1]);

@@ -1,7 +1,6 @@
 Texture2D txDiffuse : register( t0 ); 
 Texture2D txNormal : register( t01 );
-SamplerState diffSampler : register( s0 ); 
-SamplerState normSampler : register( s1 );
+SamplerState basicSampler : register( s0 ); 
 
 cbuffer cbMaterial : register( b0 )
 {
@@ -35,8 +34,8 @@ float4 PS( PS_INPUT input) : SV_Target
 {	
 	// texture map
 	float2 uv = float2(input.Tex.x, input.Tex.y);
-	float4 diffMap = txDiffuse.Sample(diffSampler, uv);
-	float4 normMap = txNormal.Sample(normSampler, uv);
+	float4 diffMap = txDiffuse.Sample(basicSampler, uv);
+	float4 normMap = txNormal.Sample(basicSampler, uv);
 
 	// phong shading 
 	// invert light direction for calculation

@@ -54,14 +54,8 @@ namespace ursine
 	CFBXLoader::~CFBXLoader()
 	{
 		// after finished exporting, then release the data
-		if (mConverter)
-			delete mConverter;
-
-		if (m_Model)
-		{
-			delete m_Model;
-			m_Model = nullptr;
-		}
+		SAFE_DELETE(mConverter);
+		SAFE_DELETE(m_Model);
 
 		if (mImporter)
 		{
@@ -570,13 +564,13 @@ namespace ursine
 			ProcessMaterials(pNode, &newMesh);
 
 			// set layout flag
-			if (newMesh.m_LayoutFlag == POS | NOR)
+			if (newMesh.m_LayoutFlag == (POS | NOR))
 				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT0;
-			else if (newMesh.m_LayoutFlag == POS | NOR | TEX)
+			else if (newMesh.m_LayoutFlag == (POS | NOR | TEX))
 				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT1;
-			else if (newMesh.m_LayoutFlag == POS | NOR | BITAN)
+			else if (newMesh.m_LayoutFlag == (POS | NOR | BITAN))
 				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT2;
-			else if (newMesh.m_LayoutFlag == POS | NOR | BITAN | TEX)
+			else if (newMesh.m_LayoutFlag == (POS | NOR | BITAN | TEX))
 				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT3;
 
 			//go through all the control points(verticies) and multiply by the transformation
@@ -1601,13 +1595,13 @@ namespace ursine
 			ProcessMaterials(pNode, &newMesh);
 
 			// set layout flag
-			if (newMesh.m_LayoutFlag == POS | NOR | SKIN)
+			if ( newMesh.m_LayoutFlag == (POS | NOR) )
 				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT4;
-			else if (newMesh.m_LayoutFlag == POS | NOR | TEX | SKIN)
+			else if ( newMesh.m_LayoutFlag == (POS | NOR | TEX) )
 				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT5;
-			else if (newMesh.m_LayoutFlag == POS | NOR | BITAN | SKIN)
+			else if ( newMesh.m_LayoutFlag == (POS | NOR | BITAN ) )
 				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT6;
-			else if (newMesh.m_LayoutFlag == POS | NOR | BITAN | TEX | SKIN)
+			else if ( newMesh.m_LayoutFlag == (POS | NOR | BITAN | TEX ) )
 				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT7;
 
 			//go through all the control points(verticies) and multiply by the transformation
