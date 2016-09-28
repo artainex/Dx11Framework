@@ -11,8 +11,9 @@ public:
 	bool Initialize(ID3D11Device*, int, int);
 	void Shutdown();
 
-	void SetRenderTarget(ID3D11DeviceContext*, ID3D11DepthStencilView*);
-	void ClearRenderTarget(ID3D11DeviceContext*, ID3D11DepthStencilView*, float, float, float, float);
+	void SetRenderTarget(ID3D11DeviceContext* deviceContext, ID3D11DepthStencilView* depthStencilView);
+	void ClearRenderTarget(ID3D11DeviceContext* deviceContext, ID3D11DepthStencilView* depthStencilView, const float* color);
+	void ClearRenderTarget(ID3D11DeviceContext* deviceContext, ID3D11DepthStencilView* depthStencilView, float r, float g, float b, float a);
 	ID3D11ShaderResourceView* GetShaderResourceView();
 
 private:

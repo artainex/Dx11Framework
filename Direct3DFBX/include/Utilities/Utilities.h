@@ -41,6 +41,9 @@
 #define SAFE_DELETE(pt) if( nullptr != pt )	\
 { delete pt; pt = nullptr; }				\
 
+#define SAFE_DELETE_ARRAY(pt) if( nullptr != pt )	\
+{ delete [] pt; pt = nullptr; }				\
+
 namespace pseudodx
 {
 	struct XMUINT4

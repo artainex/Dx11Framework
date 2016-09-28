@@ -36,6 +36,9 @@ using namespace ursine::FBX_DATA;
 //--------------------------------------------------------------------------------------
 // Global Variables
 //--------------------------------------------------------------------------------------
+const int SCREEN_WIDTH = 1600;
+const int SCREEN_HEIGHT = 900;
+
 HINSTANCE                           g_hInst = NULL;
 HWND                                g_hWnd = NULL;
 D3D_DRIVER_TYPE                     g_driverType = D3D_DRIVER_TYPE_NULL;
@@ -46,8 +49,9 @@ IDXGISwapChain*                     g_pSwapChain = NULL;
 
 const int MAX_RENDERTARGET = 4;
 
-RenderTexture*						g_pRenderTexture = nullptr;
-ID3D11RenderTargetView*             g_pRenderTargetViewArray[MAX_RENDERTARGET] = {NULL,}; // position, color, normal, depth
+RenderTexture*						g_pRenderTexture = NULL; // 4 texture maps - position, color, normal, depth
+
+ID3D11RenderTargetView*				g_pRenderTargetView = NULL;
 ID3D11Texture2D*                    g_pDepthStencil = NULL;
 ID3D11DepthStencilView*             g_pDepthStencilView = NULL;
 ID3D11DepthStencilState*			g_pDepthStencilState = NULL;
@@ -70,6 +74,9 @@ void CleanupDevice();
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 void Update(double deltaTime);
 void Render();
+void RenderScene();
+void RenderToTexture();
+void RenderModel();
 bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh_index, const eLayout& layoutType);
 UINT updateSpeed = 1;
 
@@ -193,7 +200,7 @@ HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow)
 
 	// Create window
 	g_hInst = hInstance;
-	RECT rc = { 0, 0, 640, 480 };
+	RECT rc = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
 	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 	g_hWnd = CreateWindow(
 		"TutorialWindowClass",
@@ -267,12 +274,7 @@ HRESULT CompileShaderFromFile(bool isVertexShader, LPCTSTR szFileName, LPCSTR sz
 HRESULT InitDevice()
 {
 	HRESULT hr = S_OK;
-
-	RECT rc;
-	GetClientRect(g_hWnd, &rc);
-	UINT width = rc.right - rc.left;
-	UINT height = rc.bottom - rc.top;
-
+	
 	UINT createDeviceFlags = 0;
 #ifdef _DEBUG
 	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
@@ -299,8 +301,8 @@ HRESULT InitDevice()
 	DXGI_SWAP_CHAIN_DESC sd;
 	ZeroMemory(&sd, sizeof(sd));
 	sd.BufferCount = 1;
-	sd.BufferDesc.Width = width;
-	sd.BufferDesc.Height = height;
+	sd.BufferDesc.Width = SCREEN_WIDTH;
+	sd.BufferDesc.Height = SCREEN_HEIGHT;
 	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	sd.BufferDesc.RefreshRate.Numerator = 60;
 	sd.BufferDesc.RefreshRate.Denominator = 1;
@@ -340,21 +342,20 @@ HRESULT InitDevice()
 		(LPVOID*)&pBackBuffer);
 	FAIL_CHECK(hr);
 
-	for (auto i = 0; i < MAX_RENDERTARGET; ++i)
-	{
-		hr = g_pd3dDevice->CreateRenderTargetView(
-			pBackBuffer, // resource that view will access
-			NULL, // def of rendertargetview
-			&g_pRenderTargetViewArray[i]);
-	}
+	hr = g_pd3dDevice->CreateRenderTargetView(
+		pBackBuffer, // resource that view will access
+		NULL, // def of rendertargetview
+		&g_pRenderTargetView);
+	FAIL_CHECK(hr);
+
 	pBackBuffer->Release();
 	FAIL_CHECK(hr);
 
 	// Create depth stencil texture
 	D3D11_TEXTURE2D_DESC descDepth;
 	ZeroMemory(&descDepth, sizeof(descDepth));
-	descDepth.Width = width;
-	descDepth.Height = height;
+	descDepth.Width = SCREEN_WIDTH;
+	descDepth.Height = SCREEN_HEIGHT;
 	descDepth.MipLevels = 1;
 	descDepth.ArraySize = 1;
 	descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -366,6 +367,9 @@ HRESULT InitDevice()
 	descDepth.MiscFlags = 0;
 	hr = g_pd3dDevice->CreateTexture2D(&descDepth, NULL, &g_pDepthStencil);
 	FAIL_CHECK(hr);
+	
+	// setting rendertargetview & depth-stencil buffer 
+	g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
 
 	// Create the depth stencil view
 	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
@@ -375,10 +379,7 @@ HRESULT InitDevice()
 	descDSV.Texture2D.MipSlice = 0;
 	hr = g_pd3dDevice->CreateDepthStencilView(g_pDepthStencil, &descDSV, &g_pDepthStencilView);
 	FAIL_CHECK(hr);
-
-	// setting rendertargetview & depth-stencil buffer 
-	g_pImmediateContext->OMSetRenderTargets(MAX_RENDERTARGET, g_pRenderTargetViewArray, g_pDepthStencilView);
-
+	
 	// Create depth stencil state
 	D3D11_DEPTH_STENCIL_DESC descDSS;
 	ZeroMemory(&descDSS, sizeof(descDSS));
@@ -387,11 +388,12 @@ HRESULT InitDevice()
 	descDSS.DepthFunc = D3D11_COMPARISON_LESS;
 	descDSS.StencilEnable = FALSE;
 	hr = g_pd3dDevice->CreateDepthStencilState(&descDSS, &g_pDepthStencilState);
+	FAIL_CHECK(hr);
 
 	// Setup the viewport - topleft(0,0), bottomright(1,1)
 	D3D11_VIEWPORT vp;
-	vp.Width = (FLOAT)width;
-	vp.Height = (FLOAT)height;
+	vp.Width = (FLOAT)SCREEN_WIDTH;
+	vp.Height = (FLOAT)SCREEN_HEIGHT;
 	vp.MinDepth = 0.0f;
 	vp.MaxDepth = 1.0f;
 	vp.TopLeftX = 0;
@@ -657,6 +659,16 @@ HRESULT InitApp()
 {
 	HRESULT hr = S_OK;
 
+	g_pRenderTexture = new RenderTexture[MAX_RENDERTARGET];
+	if (!g_pRenderTexture)
+		return E_FAIL;
+	
+	for (UINT i = 0; i < MAX_RENDERTARGET; ++i)
+	{
+		if (!g_pRenderTexture[i].Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT))
+			return E_FAIL;
+	}
+
 	// Load fbx model
 	for (DWORD i = 0; i < NUMBER_OF_MODELS; ++i)
 	{
@@ -767,8 +779,13 @@ void CleanupDevice()
 	SAFE_RELEASE(g_pDepthStencilState);
 	SAFE_RELEASE(g_pDepthStencil);
 	SAFE_RELEASE(g_pDepthStencilView);
-	for (auto i = 0; i < MAX_RENDERTARGET; ++i)
-		SAFE_RELEASE(g_pRenderTargetViewArray[i]);
+	SAFE_RELEASE(g_pRenderTargetView);
+	if (g_pRenderTexture)
+	{
+		for (UINT i = 0; i < MAX_RENDERTARGET; ++i)
+			g_pRenderTexture[i].Shutdown();
+		SAFE_DELETE_ARRAY(g_pRenderTexture);
+	}
 	SAFE_RELEASE(g_pSwapChain);
 	SAFE_RELEASE(g_pImmediateContext);
 	SAFE_RELEASE(g_pd3dDevice);
@@ -909,31 +926,53 @@ void Render()
 		t = (dwTimeCur - dwTimeStart) / 1000.0f;
 	}
 
-	// Clear the back buffer
-	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; // red, green, blue, alpha
-	float Depth[4] = { 1.0f, 1.0f, 1.0f, 1.0f }; // red, green, blue, alpha
-	for (auto i = 0; i < MAX_RENDERTARGET; ++i)
-	{
-		if(i == MAX_RENDERTARGET - 1)
-			g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetViewArray[i], Depth);
-		else
-			g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetViewArray[i], ClearColor);
-	}
+	// Pass1
+	RenderToTexture();
 
-	// Clear the depth buffer to 1.0 (max depth)
-	g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	// Pass2
+	RenderScene();
+	
+	// Present our back buffer to our front buffer
+	g_pSwapChain->Present(0, 0);
+}
+
+void RenderScene()
+{
+	// Render models
+	RenderModel();
 
 	// Set Blend Factors
 	float blendFactors[4] = { D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO };
 	g_pImmediateContext->RSSetState(g_pRS);
 	g_pImmediateContext->OMSetBlendState(g_pBlendState, blendFactors, 0xffffffff);
 	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 0);
+}
 
-	// Pass1
-	RenderModel();
+void RenderToTexture()
+{
+	for (auto i = 0; i < MAX_RENDERTARGET; ++i)
+	{
+		if (i == MAX_RENDERTARGET - 1)
+			g_pRenderTexture[i].SetRenderTarget(g_pImmediateContext, g_pDepthStencilView);
+		else
+			g_pRenderTexture[i].SetRenderTarget(g_pImmediateContext, g_pDepthStencilView);
+	}
 
-	// Present our back buffer to our front buffer
-	g_pSwapChain->Present(0, 0);
+	// Clear the back buffer with Color rgba
+	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	float Depth[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	for (auto i = 0; i < MAX_RENDERTARGET; ++i)
+	{
+		if (i == MAX_RENDERTARGET - 1)
+			g_pRenderTexture[i].ClearRenderTarget(g_pImmediateContext, g_pDepthStencilView, Depth);
+		else
+			g_pRenderTexture[i].ClearRenderTarget(g_pImmediateContext, g_pDepthStencilView, ClearColor);
+	}
+	
+	RenderScene();
+
+	// Reset the render target back to the original back buffer and not the render to texture anymore.
+	g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
 }
 
 //--------------------------------------------------------------------------------------

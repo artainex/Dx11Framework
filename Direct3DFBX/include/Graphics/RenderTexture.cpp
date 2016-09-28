@@ -43,7 +43,7 @@ bool RenderTexture::Initialize(ID3D11Device* device, int textureWidth, int textu
 
 	// Create the render target texture.
 	result = device->CreateTexture2D(&textureDesc, NULL, &m_renderTargetTexture);
-	FAIL_CHECK(result);
+	FAIL_CHECK_BOOLEAN(result);
 
 	// Setup the description of the render target view.
 	renderTargetViewDesc.Format = textureDesc.Format;
@@ -52,7 +52,7 @@ bool RenderTexture::Initialize(ID3D11Device* device, int textureWidth, int textu
 
 	// Create the render target view.
 	result = device->CreateRenderTargetView(m_renderTargetTexture, &renderTargetViewDesc, &m_renderTargetView);
-	FAIL_CHECK(result);
+	FAIL_CHECK_BOOLEAN(result);
 
 	// Setup the description of the shader resource view.
 	shaderResourceViewDesc.Format = textureDesc.Format;
@@ -62,7 +62,7 @@ bool RenderTexture::Initialize(ID3D11Device* device, int textureWidth, int textu
 
 	// Create the shader resource view.
 	result = device->CreateShaderResourceView(m_renderTargetTexture, &shaderResourceViewDesc, &m_shaderResourceView);
-	FAIL_CHECK(result);
+	FAIL_CHECK_BOOLEAN(result);
 
 	return true;
 }
@@ -88,16 +88,27 @@ void RenderTexture::SetRenderTarget(ID3D11DeviceContext* deviceContext, ID3D11De
 // ClearRenderTarget mimics the functionality of the D3DClass::BeginScene function except for that it operates on the render target view 
 // within this class.This should be called each frame before rendering to this render target view.
 void RenderTexture::ClearRenderTarget(ID3D11DeviceContext* deviceContext,
-	ID3D11DepthStencilView* depthStencilView,
-	float red, float green, float blue, float alpha)
+	ID3D11DepthStencilView* depthStencilView, const float* color)
+{
+	// Clear the back buffer.
+	deviceContext->ClearRenderTargetView(m_renderTargetView, color);
+
+	// Clear the depth buffer.
+	deviceContext->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+	return;
+}
+
+void RenderTexture::ClearRenderTarget(ID3D11DeviceContext* deviceContext,
+	ID3D11DepthStencilView* depthStencilView, float r, float g, float b, float a)
 {
 	float color[4];
 
 	// Setup the color to clear the buffer to.
-	color[0] = red;
-	color[1] = green;
-	color[2] = blue;
-	color[3] = alpha;
+	color[0] = r;
+	color[1] = g;
+	color[2] = b;
+	color[3] = a;
 
 	// Clear the back buffer.
 	deviceContext->ClearRenderTargetView(m_renderTargetView, color);
