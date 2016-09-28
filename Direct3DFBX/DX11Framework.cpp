@@ -12,6 +12,7 @@
 #include <WholeInformation.h>
 #include <Camera.h>
 #include <ctime>
+#include <RenderTexture.h>
 #include "CFBXRendererDX11.h"
 
 using namespace DirectX;
@@ -42,7 +43,11 @@ D3D_FEATURE_LEVEL                   g_featureLevel = D3D_FEATURE_LEVEL_11_0;
 ID3D11Device*                       g_pd3dDevice = NULL;
 ID3D11DeviceContext*                g_pImmediateContext = NULL;
 IDXGISwapChain*                     g_pSwapChain = NULL;
-ID3D11RenderTargetView*             g_pRenderTargetView = NULL;
+
+const int MAX_RENDERTARGET = 4;
+
+RenderTexture*						g_pRenderTexture = nullptr;
+ID3D11RenderTargetView*             g_pRenderTargetViewArray[MAX_RENDERTARGET] = {NULL,}; // position, color, normal, depth
 ID3D11Texture2D*                    g_pDepthStencil = NULL;
 ID3D11DepthStencilView*             g_pDepthStencilView = NULL;
 ID3D11DepthStencilState*			g_pDepthStencilState = NULL;
@@ -335,10 +340,13 @@ HRESULT InitDevice()
 		(LPVOID*)&pBackBuffer);
 	FAIL_CHECK(hr);
 
-	hr = g_pd3dDevice->CreateRenderTargetView(
-		pBackBuffer, // resource that view will access
-		NULL, // def of rendertargetview
-		&g_pRenderTargetView);
+	for (auto i = 0; i < MAX_RENDERTARGET; ++i)
+	{
+		hr = g_pd3dDevice->CreateRenderTargetView(
+			pBackBuffer, // resource that view will access
+			NULL, // def of rendertargetview
+			&g_pRenderTargetViewArray[i]);
+	}
 	pBackBuffer->Release();
 	FAIL_CHECK(hr);
 
@@ -369,7 +377,7 @@ HRESULT InitDevice()
 	FAIL_CHECK(hr);
 
 	// setting rendertargetview & depth-stencil buffer 
-	g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
+	g_pImmediateContext->OMSetRenderTargets(MAX_RENDERTARGET, g_pRenderTargetViewArray, g_pDepthStencilView);
 
 	// Create depth stencil state
 	D3D11_DEPTH_STENCIL_DESC descDSS;
@@ -759,7 +767,8 @@ void CleanupDevice()
 	SAFE_RELEASE(g_pDepthStencilState);
 	SAFE_RELEASE(g_pDepthStencil);
 	SAFE_RELEASE(g_pDepthStencilView);
-	SAFE_RELEASE(g_pRenderTargetView);
+	for (auto i = 0; i < MAX_RENDERTARGET; ++i)
+		SAFE_RELEASE(g_pRenderTargetViewArray[i]);
 	SAFE_RELEASE(g_pSwapChain);
 	SAFE_RELEASE(g_pImmediateContext);
 	SAFE_RELEASE(g_pd3dDevice);
@@ -901,8 +910,15 @@ void Render()
 	}
 
 	// Clear the back buffer
-	float ClearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f }; // red, green, blue, alpha
-	g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
+	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; // red, green, blue, alpha
+	float Depth[4] = { 1.0f, 1.0f, 1.0f, 1.0f }; // red, green, blue, alpha
+	for (auto i = 0; i < MAX_RENDERTARGET; ++i)
+	{
+		if(i == MAX_RENDERTARGET - 1)
+			g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetViewArray[i], Depth);
+		else
+			g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetViewArray[i], ClearColor);
+	}
 
 	// Clear the depth buffer to 1.0 (max depth)
 	g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);

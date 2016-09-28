@@ -434,6 +434,7 @@
     <ClCompile Include="CFBXLoader.cpp" />
     <ClCompile Include="CFBXRendererDX11.cpp" />
     <ClCompile Include="DX11Framework.cpp" />
+    <ClCompile Include="include\Graphics\RenderTexture.cpp" />
     <ClCompile Include="src\Color.cpp" />
     <ClCompile Include="src\Graphics\Camera\Camera.cpp" />
     <ClCompile Include="src\Graphics\Light\LightClass.cpp" />
@@ -465,6 +466,7 @@
     <ClInclude Include="include\Graphics\Camera\Camera.h" />
     <ClInclude Include="include\Graphics\ConstantBuffers.h" />
     <ClInclude Include="include\Graphics\Light\LightClass.h" />
+    <ClInclude Include="include\Graphics\RenderTexture.h" />
     <ClInclude Include="include\Math\Mat3.h" />
     <ClInclude Include="include\Math\Mat3.hpp" />
     <ClInclude Include="include\Math\Mat4.h" />

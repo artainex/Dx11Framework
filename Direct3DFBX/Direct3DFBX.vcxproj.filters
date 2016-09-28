@@ -138,6 +138,9 @@
     <ClCompile Include="src\Graphics\Camera\Camera.cpp">
       <Filter>Graphics\Camera</Filter>
     </ClCompile>
+    <ClCompile Include="include\Graphics\RenderTexture.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CFBXRendererDX11.h">
@@ -286,6 +289,9 @@
     </ClInclude>
     <ClInclude Include="include\Graphics\Camera\Camera.h">
       <Filter>Graphics\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\RenderTexture.h">
+      <Filter>Graphics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
