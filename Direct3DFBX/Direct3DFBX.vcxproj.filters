@@ -60,6 +60,12 @@
     <Filter Include="Shaders\VertexShader">
       <UniqueIdentifier>{78786274-6c1e-4aec-be0d-7c85e1331d99}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graphics\Debug Window">
+      <UniqueIdentifier>{e6ba4776-4ec2-4ce0-831a-cee6d26aa494}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\TextureShader">
+      <UniqueIdentifier>{0090f61d-1e3e-4ac2-b311-c62e8e73099b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CFBXRendererDX11.cpp">
@@ -138,7 +144,13 @@
     <ClCompile Include="src\Graphics\Camera\Camera.cpp">
       <Filter>Graphics\Camera</Filter>
     </ClCompile>
-    <ClCompile Include="include\Graphics\RenderTexture.cpp">
+    <ClCompile Include="src\Graphics\RenderTexture.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Debug Window\DebugWindow.cpp">
+      <Filter>Graphics\Debug Window</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\TextureShaderClass.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
   </ItemGroup>
@@ -293,6 +305,12 @@
     <ClInclude Include="include\Graphics\RenderTexture.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="include\Graphics\Debug Window\DebugWindow.h">
+      <Filter>Graphics\Debug Window</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\TextureShaderClass.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="simpleRenderInstancingVS.hlsl">
@@ -345,6 +363,12 @@
     </FxCompile>
     <FxCompile Include="Shader\VertexShader\VertexShaderLayout7.hlsl">
       <Filter>Shaders\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TextureShader\TexturePixelShader.hlsl">
+      <Filter>Shaders\TextureShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TextureShader\TextureVertexShader.hlsl">
+      <Filter>Shaders\TextureShader</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

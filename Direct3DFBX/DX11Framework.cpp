@@ -13,6 +13,8 @@
 #include <Camera.h>
 #include <ctime>
 #include <RenderTexture.h>
+#include <DebugWindow.h>
+#include <TextureShaderClass.h>
 #include "CFBXRendererDX11.h"
 
 using namespace DirectX;
@@ -39,22 +41,25 @@ using namespace ursine::FBX_DATA;
 const int SCREEN_WIDTH = 1600;
 const int SCREEN_HEIGHT = 900;
 
-HINSTANCE                           g_hInst = NULL;
-HWND                                g_hWnd = NULL;
+HINSTANCE                           g_hInst = nullptr;
+HWND                                g_hWnd = nullptr;
 D3D_DRIVER_TYPE                     g_driverType = D3D_DRIVER_TYPE_NULL;
 D3D_FEATURE_LEVEL                   g_featureLevel = D3D_FEATURE_LEVEL_11_0;
-ID3D11Device*                       g_pd3dDevice = NULL;
-ID3D11DeviceContext*                g_pImmediateContext = NULL;
-IDXGISwapChain*                     g_pSwapChain = NULL;
+ID3D11Device*                       g_pd3dDevice = nullptr;
+ID3D11DeviceContext*                g_pImmediateContext = nullptr;
+IDXGISwapChain*                     g_pSwapChain = nullptr;
 
 const int MAX_RENDERTARGET = 4;
 
-RenderTexture*						g_pRenderTexture = NULL; // 4 texture maps - position, color, normal, depth
+RenderTexture*						g_pRenderTexture = nullptr; // 4 texture maps - position, color, normal, depth
+DebugWindow*						g_pDebugWindow = nullptr;
+TextureShaderClass*					g_pTextureShaderClass = nullptr;
 
-ID3D11RenderTargetView*				g_pRenderTargetView = NULL;
-ID3D11Texture2D*                    g_pDepthStencil = NULL;
-ID3D11DepthStencilView*             g_pDepthStencilView = NULL;
-ID3D11DepthStencilState*			g_pDepthStencilState = NULL;
+ID3D11RenderTargetView*				g_pRenderTargetView = nullptr;
+ID3D11Texture2D*                    g_pDepthStencil = nullptr;
+ID3D11DepthStencilView*             g_pDepthStencilView = nullptr;
+ID3D11DepthStencilState*			g_pDepthStencilState = nullptr;
+ID3D11DepthStencilState*			g_pDepthDisabledStencilState = nullptr;
 
 XMMATRIX                            g_World;
 XMMATRIX                            g_View;
@@ -69,6 +74,12 @@ HRESULT InitDevice();
 HRESULT InitCamera();
 HRESULT InitVertexShaders();
 HRESULT InitPixelShaders();
+HRESULT CompileShaderFromFile(bool isVertexShader, LPCTSTR szFileName,
+	LPCSTR szEntryPoint,
+	LPCSTR szShaderModel,
+	ID3DBlob** ppBlobOut = nullptr,
+	ID3D11VertexShader** ppVSLayout = nullptr,
+	ID3D11PixelShader** ppPSLayout = nullptr);
 HRESULT CreateBuffers();
 void CleanupDevice();
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -218,57 +229,6 @@ HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow)
 }
 
 //--------------------------------------------------------------------------------------
-// Helper for compiling shaders with D3DCompile
-//
-// With VS 11, we could load up prebuilt .cso files instead...
-//--------------------------------------------------------------------------------------
-HRESULT CompileShaderFromFile(bool isVertexShader, LPCTSTR szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut = nullptr, ID3D11VertexShader** ppVSLayout = nullptr, ID3D11PixelShader** ppPSLayout = nullptr)
-{
-	HRESULT hr = S_OK;
-
-	DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
-#if defined( DEBUG ) || defined( _DEBUG )
-	// Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
-	// Setting this flag improves the shader debugging experience, but still allows 
-	// the shaders to be optimized and to run exactly the way they will run in 
-	// the release configuration of this program.
-	dwShaderFlags |= D3DCOMPILE_DEBUG;
-#endif
-
-	ID3DBlob* pErrorBlob;
-	D3DX11CompileFromFile(szFileName, nullptr, nullptr, szEntryPoint, szShaderModel, dwShaderFlags, 0, 0, ppBlobOut, &pErrorBlob, &hr);
-	if (FAILED(hr))
-	{
-		if (pErrorBlob)
-		{
-			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-			pErrorBlob->Release();
-		}
-		return E_FAIL;
-	}
-
-	// vertex shader
-	if (isVertexShader)
-	{
-		// Create the vertex shader
-		hr = g_pd3dDevice->CreateVertexShader((*ppBlobOut)->GetBufferPointer(), (*ppBlobOut)->GetBufferSize(), NULL, &(*ppVSLayout));
-	}
-	else
-	{
-		// Create the pixel shader
-		hr = g_pd3dDevice->CreatePixelShader((*ppBlobOut)->GetBufferPointer(), (*ppBlobOut)->GetBufferSize(), NULL, &(*ppPSLayout));
-	}
-
-	if (FAILED(hr))
-	{
-		(*ppBlobOut)->Release();
-		return hr;
-	}
-
-	return S_OK;
-}
-
-//--------------------------------------------------------------------------------------
 // Create Direct3D device and swap chain
 //--------------------------------------------------------------------------------------
 HRESULT InitDevice()
@@ -368,9 +328,6 @@ HRESULT InitDevice()
 	hr = g_pd3dDevice->CreateTexture2D(&descDepth, NULL, &g_pDepthStencil);
 	FAIL_CHECK(hr);
 	
-	// setting rendertargetview & depth-stencil buffer 
-	g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
-
 	// Create the depth stencil view
 	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
 	ZeroMemory(&descDSV, sizeof(descDSV));
@@ -379,15 +336,57 @@ HRESULT InitDevice()
 	descDSV.Texture2D.MipSlice = 0;
 	hr = g_pd3dDevice->CreateDepthStencilView(g_pDepthStencil, &descDSV, &g_pDepthStencilView);
 	FAIL_CHECK(hr);
+
+	// setting rendertargetview & depth-stencil buffer 
+	g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
 	
 	// Create depth stencil state
 	D3D11_DEPTH_STENCIL_DESC descDSS;
 	ZeroMemory(&descDSS, sizeof(descDSS));
-	descDSS.DepthEnable = TRUE;
+	// Set up the description of the stencil state.
+	descDSS.DepthEnable = true;
 	descDSS.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 	descDSS.DepthFunc = D3D11_COMPARISON_LESS;
-	descDSS.StencilEnable = FALSE;
+	descDSS.StencilEnable = false; //true;
+	//descDSS.StencilReadMask = 0xFF;
+	//descDSS.StencilWriteMask = 0xFF;
+	//
+	//// Stencil operations if pixel is front-facing.
+	//descDSS.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	//descDSS.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+	//descDSS.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	//descDSS.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	//
+	//// Stencil operations if pixel is back-facing.
+	//descDSS.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	//descDSS.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+	//descDSS.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	//descDSS.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 	hr = g_pd3dDevice->CreateDepthStencilState(&descDSS, &g_pDepthStencilState);
+	FAIL_CHECK(hr);
+
+	// Create the depth disabled stencil state
+	D3D11_DEPTH_STENCIL_DESC descDDisabledSS;
+	ZeroMemory(&descDDisabledSS, sizeof(descDDisabledSS));
+	descDDisabledSS.DepthEnable = false;
+	descDDisabledSS.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	descDDisabledSS.DepthFunc = D3D11_COMPARISON_LESS;
+	descDDisabledSS.StencilEnable = false; //true;
+	//descDDisabledSS.StencilReadMask = 0xFF;
+	//descDDisabledSS.StencilWriteMask = 0xFF;
+	//
+	//// Stencil operations if pixel is front-facing.
+	//descDDisabledSS.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	//descDDisabledSS.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+	//descDDisabledSS.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	//descDDisabledSS.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	//
+	//// Stencil operations if pixel is back-facing.
+	//descDDisabledSS.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	//descDDisabledSS.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+	//descDDisabledSS.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	//descDDisabledSS.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	hr = g_pd3dDevice->CreateDepthStencilState(&descDDisabledSS, &g_pDepthDisabledStencilState);
 	FAIL_CHECK(hr);
 
 	// Setup the viewport - topleft(0,0), bottomright(1,1)
@@ -454,14 +453,15 @@ HRESULT InitVertexShaders()
 	HRESULT hr = S_OK;
 
 	// Compile the vertex shaders
-	ID3DBlob*pVSBlobL0 = NULL,
-		*pVSBlobL1 = NULL,
-		*pVSBlobL2 = NULL,
-		*pVSBlobL3 = NULL,
-		*pVSBlobL4 = NULL,
-		*pVSBlobL5 = NULL,
-		*pVSBlobL6 = NULL,
-		*pVSBlobL7 = NULL;
+	ID3DBlob
+		*pVSBlobL0 = nullptr,
+		*pVSBlobL1 = nullptr,
+		*pVSBlobL2 = nullptr,
+		*pVSBlobL3 = nullptr,
+		*pVSBlobL4 = nullptr,
+		*pVSBlobL5 = nullptr,
+		*pVSBlobL6 = nullptr,
+		*pVSBlobL7 = nullptr;
 
 	for (UINT i = 0; i < 8; ++i)
 	{
@@ -568,14 +568,14 @@ HRESULT InitPixelShaders()
 
 	// Compile the pixel shaders
 	ID3DBlob
-		*pPSBlobL0 = NULL,
-		*pPSBlobL1 = NULL,
-		*pPSBlobL2 = NULL,
-		*pPSBlobL3 = NULL,
-		*pPSBlobL4 = NULL,
-		*pPSBlobL5 = NULL,
-		*pPSBlobL6 = NULL,
-		*pPSBlobL7 = NULL;
+		*pPSBlobL0 = nullptr,
+		*pPSBlobL1 = nullptr,
+		*pPSBlobL2 = nullptr,
+		*pPSBlobL3 = nullptr,
+		*pPSBlobL4 = nullptr,
+		*pPSBlobL5 = nullptr,
+		*pPSBlobL6 = nullptr,
+		*pPSBlobL7 = nullptr;
 
 	for (UINT i = 0; i < 8; ++i)
 	{
@@ -611,6 +611,62 @@ HRESULT InitPixelShaders()
 	SAFE_RELEASE(pPSBlobL7);
 
 	return hr;
+}
+
+//--------------------------------------------------------------------------------------
+// Helper for compiling shaders with D3DCompile
+//
+// With VS 11, we could load up prebuilt .cso files instead...
+//--------------------------------------------------------------------------------------
+HRESULT CompileShaderFromFile(bool isVertexShader, LPCTSTR szFileName, 
+	LPCSTR szEntryPoint, 
+	LPCSTR szShaderModel, 
+	ID3DBlob** ppBlobOut, 
+	ID3D11VertexShader** ppVSLayout,
+	ID3D11PixelShader** ppPSLayout)
+{
+	HRESULT hr = S_OK;
+
+	DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+#if defined( DEBUG ) || defined( _DEBUG )
+	// Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
+	// Setting this flag improves the shader debugging experience, but still allows 
+	// the shaders to be optimized and to run exactly the way they will run in 
+	// the release configuration of this program.
+	dwShaderFlags |= D3DCOMPILE_DEBUG;
+#endif
+
+	ID3DBlob* pErrorBlob;
+	D3DX11CompileFromFile(szFileName, nullptr, nullptr, szEntryPoint, szShaderModel, dwShaderFlags, 0, 0, ppBlobOut, &pErrorBlob, &hr);
+	if (FAILED(hr))
+	{
+		if (pErrorBlob)
+		{
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+			pErrorBlob->Release();
+		}
+		return E_FAIL;
+	}
+
+	// vertex shader
+	if (isVertexShader)
+	{
+		// Create the vertex shader
+		hr = g_pd3dDevice->CreateVertexShader((*ppBlobOut)->GetBufferPointer(), (*ppBlobOut)->GetBufferSize(), NULL, &(*ppVSLayout));
+	}
+	else
+	{
+		// Create the pixel shader
+		hr = g_pd3dDevice->CreatePixelShader((*ppBlobOut)->GetBufferPointer(), (*ppBlobOut)->GetBufferSize(), NULL, &(*ppPSLayout));
+	}
+
+	if (FAILED(hr))
+	{
+		(*ppBlobOut)->Release();
+		return hr;
+	}
+
+	return S_OK;
 }
 
 //--------------------------------------------------------------------------------------
@@ -659,14 +715,44 @@ HRESULT InitApp()
 {
 	HRESULT hr = S_OK;
 
-	g_pRenderTexture = new RenderTexture[MAX_RENDERTARGET];
+	// create the render to texture obj
+	g_pRenderTexture = new RenderTexture;// [MAX_RENDERTARGET];
 	if (!g_pRenderTexture)
 		return E_FAIL;
-	
-	for (UINT i = 0; i < MAX_RENDERTARGET; ++i)
+	// initialize the render to texture obj
+	if (!g_pRenderTexture->Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT))
 	{
-		if (!g_pRenderTexture[i].Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT))
-			return E_FAIL;
+		MessageBox(nullptr, "Could not initialize the render texture object.", "Error", MB_OK);
+		return E_FAIL;
+	}
+	//for (UINT i = 0; i < MAX_RENDERTARGET; ++i)
+	//{
+	//	if (!g_pRenderTexture[i].Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT))
+	//		return E_FAIL;
+	//}
+
+	// create debug window obj
+	g_pDebugWindow = new DebugWindow;
+	if (!g_pDebugWindow)
+		return E_FAIL;
+
+	// initialize the debug window obj.
+	if (!g_pDebugWindow->Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT, 100, 100))
+	{
+		MessageBox(nullptr, "Could not initialize the debug window object.", "Error", MB_OK);
+		return false;
+	}
+	
+	// create texture class obj
+	g_pTextureShaderClass = new TextureShaderClass;
+	if (!g_pTextureShaderClass)
+		return E_FAIL;
+	
+	// initialize the debug window obj.
+	if (!g_pTextureShaderClass->Initialize(g_pd3dDevice, g_hWnd))
+	{
+		MessageBox(nullptr, "Could not initialize the debug window object.", "Error", MB_OK);
+		return false;
 	}
 
 	// Load fbx model
@@ -780,11 +866,26 @@ void CleanupDevice()
 	SAFE_RELEASE(g_pDepthStencil);
 	SAFE_RELEASE(g_pDepthStencilView);
 	SAFE_RELEASE(g_pRenderTargetView);
+	if (g_pTextureShaderClass)
+	{
+		g_pTextureShaderClass->Shutdown();
+		SAFE_DELETE(g_pTextureShaderClass);
+	}
+	if (g_pDebugWindow)
+	{
+		g_pDebugWindow->Shutdown();
+		SAFE_DELETE(g_pDebugWindow);
+		//for (UINT i = 0; i < MAX_RENDERTARGET; ++i)
+		//	g_pRenderTexture[i].Shutdown();
+		//SAFE_DELETE_ARRAY(g_pRenderTexture);
+	}
 	if (g_pRenderTexture)
 	{
-		for (UINT i = 0; i < MAX_RENDERTARGET; ++i)
-			g_pRenderTexture[i].Shutdown();
-		SAFE_DELETE_ARRAY(g_pRenderTexture);
+		g_pRenderTexture->Shutdown();
+		SAFE_DELETE(g_pRenderTexture);
+		//for (UINT i = 0; i < MAX_RENDERTARGET; ++i)
+		//	g_pRenderTexture[i].Shutdown();
+		//SAFE_DELETE_ARRAY(g_pRenderTexture);
 	}
 	SAFE_RELEASE(g_pSwapChain);
 	SAFE_RELEASE(g_pImmediateContext);
@@ -931,43 +1032,70 @@ void Render()
 
 	// Pass2
 	RenderScene();
+
+	// turn z buffer off
+	g_pImmediateContext->OMSetDepthStencilState(g_pDepthDisabledStencilState, 1);
+
+	// render the debug window on 50x50 posittion
+	g_pDebugWindow->Render(g_pImmediateContext, 50, 50);
+
+	// Render the debug window using the texture shader.
+	if (!g_pTextureShaderClass->Render(g_pImmediateContext, g_pDebugWindow->GetIndexCount(), g_World, g_View, g_Projection,
+		g_pRenderTexture->GetShaderResourceView()))
+	{
+		MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
+		return;
+	}
+
+	// turn z buffer off
+	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 1);
 	
 	// Present our back buffer to our front buffer
 	g_pSwapChain->Present(0, 0);
 }
 
+//--------------------------------------------------------------------------------------
+// Render the texture
+//--------------------------------------------------------------------------------------
 void RenderScene()
 {
-	// Render models
-	RenderModel();
+	// Clear the back buffer
+	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; // red, green, blue, alpha
+	g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
+
+	// Clear the depth buffer to 1.0 (max depth)
+	g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	// Set Blend Factors
 	float blendFactors[4] = { D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO };
 	g_pImmediateContext->RSSetState(g_pRS);
 	g_pImmediateContext->OMSetBlendState(g_pBlendState, blendFactors, 0xffffffff);
 	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 0);
+	
+	RenderModel();
 }
 
 void RenderToTexture()
 {
-	for (auto i = 0; i < MAX_RENDERTARGET; ++i)
-	{
-		if (i == MAX_RENDERTARGET - 1)
-			g_pRenderTexture[i].SetRenderTarget(g_pImmediateContext, g_pDepthStencilView);
-		else
-			g_pRenderTexture[i].SetRenderTarget(g_pImmediateContext, g_pDepthStencilView);
-	}
+	g_pRenderTexture->SetRenderTarget(g_pImmediateContext, g_pDepthStencilView);
+	//for (auto i = 0; i < MAX_RENDERTARGET; ++i)
+	//{
+	//	if (i == MAX_RENDERTARGET - 1)
+	//		g_pRenderTexture[i].SetRenderTarget(g_pImmediateContext, g_pDepthStencilView);
+	//	else
+	//		g_pRenderTexture[i].SetRenderTarget(g_pImmediateContext, g_pDepthStencilView);
+	//}
 
 	// Clear the back buffer with Color rgba
 	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	float Depth[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	for (auto i = 0; i < MAX_RENDERTARGET; ++i)
-	{
-		if (i == MAX_RENDERTARGET - 1)
-			g_pRenderTexture[i].ClearRenderTarget(g_pImmediateContext, g_pDepthStencilView, Depth);
-		else
-			g_pRenderTexture[i].ClearRenderTarget(g_pImmediateContext, g_pDepthStencilView, ClearColor);
-	}
+	//for (auto i = 0; i < MAX_RENDERTARGET; ++i)
+	//{
+	//	if (i == MAX_RENDERTARGET - 1)
+	//		g_pRenderTexture[i].ClearRenderTarget(g_pImmediateContext, g_pDepthStencilView, Depth);
+	//	else
+	//		g_pRenderTexture[i].ClearRenderTarget(g_pImmediateContext, g_pDepthStencilView, ClearColor);
+	//}
 	
 	RenderScene();
 
@@ -1034,6 +1162,14 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 		}
 	}
 
+	// 랜더 투 텍스쳐는 된다 치고, 이제 텍스쳐 여럿 생성해서 셰이더에 넘기면 되는데 문제가 있어
+	// 사용할 맵이 여러개인데 그린 텍스쳐들은 hlsl 내 어디서 받는담?
+	// 텍스쳐를 네개 만들지. 포지션, 노멀, 스펙, 깊이
+	// pass 1에서 각 타겟 텍스쳐들에다가 이런저런 것들을 그려줬다고 치자. 이때 제대로 그려 랜더 모델로
+	// 그럼 pass 2에서 그 텍스쳐에 가공을 하겠지
+	// 그럼 우선 이것들이 정상적으로 그려졌는지 pass2에서 확인을 해봐야해. 우선 포지션부터 해. 월드 포지션이지?
+	// 뎁스부터 하던가. 그 뒤에는 셰도우도 덧붙일 수 있을거야
+
 	if (g_pTransformSRV)	g_pImmediateContext->VSSetShaderResources(0, 1, &g_pTransformSRV);
 
 	//--------------------------------------------------------------------------------------
@@ -1048,7 +1184,6 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 		{
 			Material_Data material = (*currentModel)->GetNodeFbxMaterial(mesh_index);
 
-			// 셰이더 리소스 뷰랑 샘플러의 차이가 뭐야?
 			// set sampler
 			if (material.pSampler)	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler);
 			//if (material.pSampler[0])	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler[0]);
