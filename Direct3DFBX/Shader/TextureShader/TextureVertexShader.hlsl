@@ -1,3 +1,11 @@
+cbuffer cbMatrices : register(b0)
+{
+	matrix	World;
+	matrix	View;
+	matrix	Projection;
+	matrix	WVP;
+};
+
 //////////////
 // TYPEDEFS //
 //////////////
@@ -22,13 +30,13 @@ PixelInputType TextureVertexShader(VertexInputType input)
 
 	output.Pos = input.Pos;
 
-	//// Change the position vector to be 4 units for proper matrix calculations.
-	//input.pos.w = 1.0f;
+	// Change the position vector to be 4 units for proper matrix calculations.
+	input.Pos.w = 1.0f;
 
-	//// Calculate the position of the vertex against the world, view, and projection matrices.
-	//output.pos = mul(input.pos, worldMatrix);
-	//output.pos = mul(output.pos, viewMatrix);
-	//output.pos = mul(output.pos, projectionMatrix);
+	// Calculate the position of the vertex against the world, view, and projection matrices.
+	output.Pos = mul(input.Pos, World);
+	output.Pos = mul(output.Pos, View);
+	output.Pos = mul(output.Pos, Projection);
 	
 	// Store the texture coordinates for the pixel shader.
 	output.Tex = input.Tex;

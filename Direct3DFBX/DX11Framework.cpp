@@ -1040,14 +1040,15 @@ void Render()
 	g_pDebugWindow->Render(g_pImmediateContext, 50, 50);
 
 	// Render the debug window using the texture shader.
-	if (!g_pTextureShaderClass->Render(g_pImmediateContext, g_pDebugWindow->GetIndexCount(), g_World, g_View, g_Projection,
+	if (!g_pTextureShaderClass->Render(g_pImmediateContext, g_pDebugWindow->GetIndexCount(), 
+		g_World, g_View, g_Projection,
 		g_pRenderTexture->GetShaderResourceView()))
 	{
 		MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
 		return;
 	}
 
-	// turn z buffer off
+	// turn z buffer on
 	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 1);
 	
 	// Present our back buffer to our front buffer
@@ -1059,9 +1060,9 @@ void Render()
 //--------------------------------------------------------------------------------------
 void RenderScene()
 {
-	// Clear the back buffer
+	// Clear the back bufferw
 	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; // red, green, blue, alpha
-	g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
+	//g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
 
 	// Clear the depth buffer to 1.0 (max depth)
 	g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -1075,6 +1076,7 @@ void RenderScene()
 	RenderModel();
 }
 
+// seems like debug window texture is not painted
 void RenderToTexture()
 {
 	g_pRenderTexture->SetRenderTarget(g_pImmediateContext, g_pDepthStencilView);
@@ -1089,6 +1091,8 @@ void RenderToTexture()
 	// Clear the back buffer with Color rgba
 	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	float Depth[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	float Blue[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
+	g_pRenderTexture->ClearRenderTarget(g_pImmediateContext, g_pDepthStencilView, Blue);
 	//for (auto i = 0; i < MAX_RENDERTARGET; ++i)
 	//{
 	//	if (i == MAX_RENDERTARGET - 1)

@@ -1,5 +1,5 @@
 Texture2D txDiffuse : register( t0 ); 
-Texture2D txNormal : register( t01 );
+Texture2D txNormal : register( t1 );
 SamplerState basicSampler : register( s0 );
 
 cbuffer cbMaterial : register( b0 )
@@ -24,7 +24,7 @@ cbuffer cLights : register( b1 )
 
 struct PS_INPUT
 {
-    float4	Pos			: POSITION;
+    float4	Pos			: SV_POSITION;
 	float3	Nor			: NORMAL;
 	float2	Tex			: TEXCOORD0;
 	float4	ViewDir 	: TEXCOORD1;

@@ -18,7 +18,6 @@ bool DebugWindow::Initialize(ID3D11Device* device, int screenWidth, int screenHe
 {
 	bool result;
 
-
 	// Store the screen size.
 	m_screenWidth = screenWidth;
 	m_screenHeight = screenHeight;
@@ -34,9 +33,7 @@ bool DebugWindow::Initialize(ID3D11Device* device, int screenWidth, int screenHe
 	// Initialize the vertex and index buffers.
 	result = InitializeBuffers(device);
 	if (!result)
-	{
 		return false;
-	}
 
 	return true;
 }
@@ -51,14 +48,11 @@ void DebugWindow::Shutdown()
 bool DebugWindow::Render(ID3D11DeviceContext* deviceContext, int positionX, int positionY)
 {
 	bool result;
-
-
+	
 	// Re-build the dynamic vertex buffer for rendering to possibly a different location on the screen.
 	result = UpdateBuffers(deviceContext, positionX, positionY);
 	if (!result)
-	{
 		return false;
-	}
 
 	// Put the vertex and index buffers on the graphics pipeline to prepare them for drawing.
 	RenderBuffers(deviceContext);
@@ -80,7 +74,6 @@ bool DebugWindow::InitializeBuffers(ID3D11Device* device)
 	HRESULT result;
 	int i;
 
-
 	// Set the number of vertices in the vertex array.
 	m_vertexCount = 6;
 
@@ -90,25 +83,19 @@ bool DebugWindow::InitializeBuffers(ID3D11Device* device)
 	// Create the vertex array.
 	vertices = new VertexType[m_vertexCount];
 	if (!vertices)
-	{
 		return false;
-	}
 
 	// Create the index array.
 	indices = new unsigned long[m_indexCount];
 	if (!indices)
-	{
 		return false;
-	}
 
 	// Initialize vertex array to zeros at first.
 	memset(vertices, 0, (sizeof(VertexType) * m_vertexCount));
 
 	// Load the index array with data.
-	for (i = 0; i<m_indexCount; i++)
-	{
+	for (i = 0; i<m_indexCount; ++i)
 		indices[i] = i;
-	}
 
 	// Set up the description of the static vertex buffer.
 	vertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -125,10 +112,7 @@ bool DebugWindow::InitializeBuffers(ID3D11Device* device)
 
 	// Now create the vertex buffer.
 	result = device->CreateBuffer(&vertexBufferDesc, &vertexData, &m_vertexBuffer);
-	if (FAILED(result))
-	{
-		return false;
-	}
+	FAIL_CHECK_BOOLEAN(result);
 
 	// Set up the description of the static index buffer.
 	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -145,10 +129,7 @@ bool DebugWindow::InitializeBuffers(ID3D11Device* device)
 
 	// Create the index buffer.
 	result = device->CreateBuffer(&indexBufferDesc, &indexData, &m_indexBuffer);
-	if (FAILED(result))
-	{
-		return false;
-	}
+	FAIL_CHECK_BOOLEAN(result);
 
 	// Release the arrays now that the vertex and index buffers have been created and loaded.
 	SAFE_DELETE_ARRAY(vertices);
@@ -206,18 +187,21 @@ bool DebugWindow::UpdateBuffers(ID3D11DeviceContext* deviceContext, int position
 	// Top left
 	vertices[0].position.m128_f32[0] = left;
 	vertices[0].position.m128_f32[1] = top;
+	vertices[0].position.m128_f32[2] = 0.0f;
 	vertices[0].texture.m128_f32[0] = 0.0f;
 	vertices[0].texture.m128_f32[1] = 0.0f;
 
 	// Bottom right.
 	vertices[1].position.m128_f32[0] = right;
 	vertices[1].position.m128_f32[1] = bottom;
+	vertices[1].position.m128_f32[2] = 0.0f;
 	vertices[1].texture.m128_f32[0] = 1.0f;
 	vertices[1].texture.m128_f32[1] = 1.0f;
 
 	// Bottom left.
 	vertices[2].position.m128_f32[0] = left;
 	vertices[2].position.m128_f32[1] = bottom;
+	vertices[2].position.m128_f32[2] = 0.0f;
 	vertices[2].texture.m128_f32[0] = 0.0f;
 	vertices[2].texture.m128_f32[1] = 1.0f;
 
@@ -225,18 +209,21 @@ bool DebugWindow::UpdateBuffers(ID3D11DeviceContext* deviceContext, int position
 	// Top left.
 	vertices[3].position.m128_f32[0] = left;
 	vertices[3].position.m128_f32[1] = top;
+	vertices[3].position.m128_f32[2] = 0.0f;
 	vertices[3].texture.m128_f32[0] = 0.0f;
 	vertices[3].texture.m128_f32[1] = 0.0f;
 
 	// Top right.
 	vertices[4].position.m128_f32[0] = right;
 	vertices[4].position.m128_f32[1] = top;
+	vertices[4].position.m128_f32[2] = 0.0f;
 	vertices[4].texture.m128_f32[0] = 1.0f;
 	vertices[4].texture.m128_f32[1] = 0.0f;
 
 	// Bottom right.
 	vertices[5].position.m128_f32[0] = right;
 	vertices[5].position.m128_f32[1] = bottom;
+	vertices[5].position.m128_f32[2] = 0.0f;
 	vertices[5].texture.m128_f32[0] = 1.0f;
 	vertices[5].texture.m128_f32[1] = 1.0f;
 
@@ -254,8 +241,7 @@ bool DebugWindow::UpdateBuffers(ID3D11DeviceContext* deviceContext, int position
 	deviceContext->Unmap(m_vertexBuffer, 0);
 
 	// Release the vertex array as it is no longer needed.
-	delete[] vertices;
-	vertices = 0;
+	SAFE_DELETE_ARRAY(vertices);
 
 	return true;
 }

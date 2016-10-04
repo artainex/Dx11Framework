@@ -21,9 +21,8 @@ bool TextureShaderClass::Initialize(ID3D11Device* device, HWND hwnd)
 {
 	bool result;
 	
-	std::string vsshaderName = "TextureVertexShader.hlsl";
-	std::string psshaderName = "TexturePixelShader.hlsl";
-													
+	std::string vsshaderName = "Shader/TextureShader/TextureVertexShader.hlsl";
+	std::string psshaderName = "Shader/TextureShader/TexturePixelShader.hlsl";
 	result = InitializeShader(device, hwnd, vsshaderName, psshaderName);
 	if (!result)
 		return false;

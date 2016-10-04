@@ -20,7 +20,7 @@ cbuffer cLights : register( b1 )
 
 struct PS_INPUT
 {
-    float4	Pos			: POSITION;
+    float4	Pos			: SV_POSITION;
 	float3	Nor			: NORMAL;
 	float4	ViewDir 	: TEXCOORD0;
 };
