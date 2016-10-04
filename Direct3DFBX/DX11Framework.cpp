@@ -91,7 +91,7 @@ void RenderModel();
 bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh_index, const eLayout& layoutType);
 UINT updateSpeed = 1;
 
-const UINT	NUMBER_OF_MODELS = 1;
+const UINT	NUMBER_OF_MODELS = 2;
 
 HRESULT InitApp();
 void CleanupApp();
@@ -100,7 +100,8 @@ ursine::CFBXRenderDX11*	g_pFbxDX11[NUMBER_OF_MODELS];
 // FBX file
 char g_files[NUMBER_OF_MODELS][256] =
 {
-	//"Assets/Models/stanford_bunny.fbx"
+	//"Assets/Models/stanford_bunny.fbx",
+	"Assets/Models/Plane.fbx",
 	"Assets/Animations/Player/Player_Idle.fbx"
 };
 
@@ -1062,7 +1063,7 @@ void RenderScene()
 {
 	// Clear the back bufferw
 	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; // red, green, blue, alpha
-	//g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
+	g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
 
 	// Clear the depth buffer to 1.0 (max depth)
 	g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);

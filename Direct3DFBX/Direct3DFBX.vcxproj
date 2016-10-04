@@ -141,7 +141,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;DEBUG;PROFILE;_WINDOWS;_WIN32_WINNT=0x0600;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)include\Utilities;$(ProjectDir)include\Utilities\File System;$(ProjectDir)include\Math;$(ProjectDir)include\Math\SIMD;$(ProjectDir)dep\FBX\include;$(ProjectDir)dep\DirectX\include;$(ProjectDir)dep\Boost\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)include\Utilities;$(ProjectDir)include\Utilities\File System;$(ProjectDir)include\Math;$(ProjectDir)include\Math\SIMD;$(ProjectDir)include\Graphics;$(ProjectDir)include\Graphics\Camera;$(ProjectDir)include\Graphics\Debug Window;$(ProjectDir)include\Graphics\Light;$(ProjectDir)dep\FBX\include;$(ProjectDir)dep\DirectX\include;$(ProjectDir)dep\Boost\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalUsingDirectories>
       </AdditionalUsingDirectories>
     </ClCompile>
