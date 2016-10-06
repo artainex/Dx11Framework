@@ -649,6 +649,7 @@ namespace ursine
 			DXGI_FORMAT indexbit = DXGI_FORMAT_R16_UINT;
 			if (node->m_indexBit == FBX_DATA::MESH_NODE::INDEX_32BIT)
 				indexbit = DXGI_FORMAT_R32_UINT;
+
 			pImmediateContext->IASetIndexBuffer(node->m_pIB, indexbit, 0);
 			pImmediateContext->DrawIndexed(node->indexCount, 0, 0);
 		}

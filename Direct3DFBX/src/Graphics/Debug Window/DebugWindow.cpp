@@ -94,7 +94,7 @@ bool DebugWindow::InitializeBuffers(ID3D11Device* device)
 	memset(vertices, 0, (sizeof(VertexType) * m_vertexCount));
 
 	// Load the index array with data.
-	for (i = 0; i<m_indexCount; ++i)
+	for (i = 0; i < m_indexCount; ++i)
 		indices[i] = i;
 
 	// Set up the description of the static vertex buffer.

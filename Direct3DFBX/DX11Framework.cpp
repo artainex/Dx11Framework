@@ -62,8 +62,9 @@ ID3D11DepthStencilState*			g_pDepthStencilState = nullptr;
 ID3D11DepthStencilState*			g_pDepthDisabledStencilState = nullptr;
 
 XMMATRIX                            g_World;
-XMMATRIX                            g_View;
 XMMATRIX                            g_Projection;
+XMMATRIX							g_OrthoMatrix;
+XMMATRIX							g_TRSMatrix;
 Camera								g_Camera;
 
 //--------------------------------------------------------------------------------------
@@ -434,14 +435,16 @@ HRESULT InitCamera()
 	XMVECTOR initPos;
 	initPos.m128_f32[0] = 0.f;
 	initPos.m128_f32[1] = 0.f;
-	initPos.m128_f32[2] = -50.f;
+	initPos.m128_f32[2] = -100.f;
 	g_Camera.SetPosition(initPos);
-
 	g_Camera.SetViewMatrix();
-	g_View = g_Camera.GetViewMatrix();
 
 	// Initialize the projection matrix
 	g_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, width / (FLOAT)height, 0.01f, 10000.0f);
+
+	g_OrthoMatrix = XMMatrixOrthographicLH(width, height, 0.01f, 10000.0f);
+
+	g_TRSMatrix = XMMatrixIdentity();
 
 	return hr;
 }
@@ -738,7 +741,7 @@ HRESULT InitApp()
 		return E_FAIL;
 
 	// initialize the debug window obj.
-	if (!g_pDebugWindow->Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT, 100, 100))
+	if (!g_pDebugWindow->Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT, 150, 150))
 	{
 		MessageBox(nullptr, "Could not initialize the debug window object.", "Error", MB_OK);
 		return false;
@@ -863,6 +866,7 @@ void CleanupApp()
 void CleanupDevice()
 {
 	if (g_pImmediateContext) g_pImmediateContext->ClearState();
+	SAFE_RELEASE(g_pDepthDisabledStencilState);
 	SAFE_RELEASE(g_pDepthStencilState);
 	SAFE_RELEASE(g_pDepthStencil);
 	SAFE_RELEASE(g_pDepthStencilView);
@@ -900,8 +904,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	PAINTSTRUCT ps;
 	HDC hdc;
-
-	XMVECTOR CameraPos = g_Camera.GetPosition();
+	static float rot_Angle[3] = { 0.0f, };
+	static float tsl_dist[3] = { 0, };
+	XMMATRIX tsl;
+	XMMATRIX rot;
+	XMMATRIX scl;
 
 	switch (message)
 	{
@@ -916,37 +923,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			// left right back and forth
 		case VK_LEFT:
-			CameraPos.m128_f32[0] -= 5.f;
-			g_Camera.SetPosition(CameraPos);
+			tsl_dist[0] -= 5.0f;
 			break;
 		case VK_RIGHT:
-			CameraPos.m128_f32[0] += 5.f;
-			g_Camera.SetPosition(CameraPos);
+			tsl_dist[0] += 5.0f;
 			break;
 		case VK_UP:
-			CameraPos.m128_f32[2] += 5.f;
-			g_Camera.SetPosition(CameraPos);
+			tsl_dist[2] += 5.0f;
 			break;
 		case VK_DOWN:
-			CameraPos.m128_f32[2] -= 5.f;
-			g_Camera.SetPosition(CameraPos);
+			tsl_dist[2] -= 5.0f;
 			break;
-
-			// Up and Down
+	
+			// x-Axis rot
 		case 'w':
 		case 'W':
-			CameraPos.m128_f32[1] += 5.f;
-			g_Camera.SetPosition(CameraPos);
+			rot_Angle[0] += 0.1f;
 			break;
 		case 's':
 		case 'S':
-			CameraPos.m128_f32[1] -= 5.f;
-			g_Camera.SetPosition(CameraPos);
+			rot_Angle[0] -= 0.1f;
+			break;
+			// y-Axis rot
+		case 'a':
+		case 'A':
+			rot_Angle[1] += 0.1f;
+			break;
+		case 'd':
+		case 'D':
+			rot_Angle[1] -= 0.1f;
 			break;
 		}
-		// then Update camera
-		g_Camera.SetViewMatrix();
-		g_View = g_Camera.GetViewMatrix();
+		if (rot_Angle[0] >= 360.f)
+			rot_Angle[0] = 0.0f;
+		if (rot_Angle[1] >= 360.f)
+			rot_Angle[1] = 0.0f;
 		break;
 
 	case WM_DESTROY:
@@ -956,6 +967,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
+
+	tsl = XMMatrixTranslation(tsl_dist[0], tsl_dist[1], tsl_dist[2]);	
+	rot = XMMatrixRotationRollPitchYaw(rot_Angle[0], rot_Angle[1], rot_Angle[2]);
+	g_TRSMatrix = rot * tsl;
 
 	return 0;
 }
@@ -1028,10 +1043,10 @@ void Render()
 		t = (dwTimeCur - dwTimeStart) / 1000.0f;
 	}
 
-	// Pass1
+	// Pass1 - Render to texture
 	RenderToTexture();
 
-	// Pass2
+	// Pass2 - Render to back buffer
 	RenderScene();
 
 	// turn z buffer off
@@ -1042,7 +1057,9 @@ void Render()
 
 	// Render the debug window using the texture shader.
 	if (!g_pTextureShaderClass->Render(g_pImmediateContext, g_pDebugWindow->GetIndexCount(), 
-		g_World, g_View, g_Projection,
+		g_World, 
+		g_Camera.GetViewMatrix(),
+		g_OrthoMatrix,
 		g_pRenderTexture->GetShaderResourceView()))
 	{
 		MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
@@ -1068,11 +1085,11 @@ void RenderScene()
 	// Clear the depth buffer to 1.0 (max depth)
 	g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	// Set Blend Factors
-	float blendFactors[4] = { D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO };
-	g_pImmediateContext->RSSetState(g_pRS);
-	g_pImmediateContext->OMSetBlendState(g_pBlendState, blendFactors, 0xffffffff);
-	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 0);
+	//// Set Blend Factors
+	//float blendFactors[4] = { D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO };
+	//g_pImmediateContext->RSSetState(g_pRS);
+	//g_pImmediateContext->OMSetBlendState(g_pBlendState, blendFactors, 0xffffffff);
+	//g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 0);
 	
 	RenderModel();
 }
@@ -1135,14 +1152,14 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 		MatrixBufferType* mtxBuffer = (MatrixBufferType*)MappedResource.pData;
 
 		// WVP
-		mtxBuffer->mWorld = XMMatrixTranspose(g_World);
-		mtxBuffer->mView = XMMatrixTranspose(g_View);
+		mtxBuffer->mWorld = XMMatrixTranspose(g_TRSMatrix * g_World);
+		mtxBuffer->mView = XMMatrixTranspose(g_Camera.GetViewMatrix());
 		mtxBuffer->mProj = XMMatrixTranspose(g_Projection);
 
 		// xm matrix - row major
 		// hlsl - column major
 		// that's why we should transpose this
-		mtxBuffer->mWVP = XMMatrixTranspose(g_World * g_View * g_Projection);
+		mtxBuffer->mWVP = XMMatrixTranspose(g_TRSMatrix * g_World * g_Camera.GetViewMatrix() * g_Projection);
 
 		// unmap constant buffer
 		g_pImmediateContext->Unmap(g_pmtxBuffer, 0);
@@ -1155,7 +1172,10 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 		if ((*currentModel)->IsSkinned())
 			g_pImmediateContext->VSSetConstantBuffers(1, 1, &g_pmtxPaletteBuffer);	// setting matrix palettes
 
-		if (eLayout::LAYOUT4 == layoutType || eLayout::LAYOUT5 == layoutType || eLayout::LAYOUT6 == layoutType || eLayout::LAYOUT7 == layoutType)
+		if (eLayout::LAYOUT4 == layoutType || 
+			eLayout::LAYOUT5 == layoutType ||
+			eLayout::LAYOUT6 == layoutType || 
+			eLayout::LAYOUT7 == layoutType)
 		{
 			hr = g_pImmediateContext->Map(g_pmtxPaletteBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
 			PaletteBufferType* palBuffer = (PaletteBufferType*)MappedResource.pData;
@@ -1166,14 +1186,6 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 			g_pImmediateContext->Unmap(g_pmtxPaletteBuffer, 0);
 		}
 	}
-
-	// 랜더 투 텍스쳐는 된다 치고, 이제 텍스쳐 여럿 생성해서 셰이더에 넘기면 되는데 문제가 있어
-	// 사용할 맵이 여러개인데 그린 텍스쳐들은 hlsl 내 어디서 받는담?
-	// 텍스쳐를 네개 만들지. 포지션, 노멀, 스펙, 깊이
-	// pass 1에서 각 타겟 텍스쳐들에다가 이런저런 것들을 그려줬다고 치자. 이때 제대로 그려 랜더 모델로
-	// 그럼 pass 2에서 그 텍스쳐에 가공을 하겠지
-	// 그럼 우선 이것들이 정상적으로 그려졌는지 pass2에서 확인을 해봐야해. 우선 포지션부터 해. 월드 포지션이지?
-	// 뎁스부터 하던가. 그 뒤에는 셰도우도 덧붙일 수 있을거야
 
 	if (g_pTransformSRV)	g_pImmediateContext->VSSetShaderResources(0, 1, &g_pTransformSRV);
 
@@ -1193,9 +1205,11 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 			if (material.pSampler)	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler);
 			//if (material.pSampler[0])	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler[0]);
 			//if (material.pSampler[1])	g_pImmediateContext->PSSetSamplers(1, 1, &material.pSampler[1]);
+
 			// set shader resource view - for texture
 			if (material.pSRV[0])		g_pImmediateContext->PSSetShaderResources(0, 1, &material.pSRV[0]);
 			if (material.pSRV[1])		g_pImmediateContext->PSSetShaderResources(1, 1, &material.pSRV[1]);
+			
 			// set constant buffer for material
 			if (material.pMaterialCb)
 			{
