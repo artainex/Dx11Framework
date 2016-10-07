@@ -1,4 +1,4 @@
-#include <LightClass.h>
+#include <Light.h>
 
 namespace ursine
 {

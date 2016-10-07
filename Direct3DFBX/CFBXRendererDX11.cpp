@@ -195,9 +195,9 @@ namespace ursine
 		UINT i = 0;
 		switch (meshNode.m_Layout)
 		{
-		case FBX_DATA::LAYOUT0:
+		case LAYOUT0:
 		{
-			FBX_DATA::VERTEX_DATA_L0* pVS = new FBX_DATA::VERTEX_DATA_L0[currMI.meshVtxInfoCount];
+			VERTEX_DATA_L0* pVS = new VERTEX_DATA_L0[currMI.meshVtxInfoCount];
 			for (auto &iter : currMI.meshVtxInfos)
 			{
 				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
@@ -209,14 +209,13 @@ namespace ursine
 				++i;
 			}
 
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_L0), meshNode.vertexCount);
-			if (pVS)
-				delete[] pVS;
+			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_L0), meshNode.vertexCount);
+			SAFE_DELETE_ARRAY(pVS);
 		}
 		break;
-		case FBX_DATA::LAYOUT1:
+		case LAYOUT1:
 		{
-			FBX_DATA::VERTEX_DATA_L1* pVS = new FBX_DATA::VERTEX_DATA_L1[currMI.meshVtxInfoCount];
+			VERTEX_DATA_L1* pVS = new VERTEX_DATA_L1[currMI.meshVtxInfoCount];
 			for (auto &iter : currMI.meshVtxInfos)
 			{
 				XMFLOAT3 currVtx	= XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
@@ -230,14 +229,13 @@ namespace ursine
 				++i;
 			}
 
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_L1), meshNode.vertexCount);
-			if (pVS)
-				delete[] pVS;
+			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_L1), meshNode.vertexCount);
+			SAFE_DELETE_ARRAY(pVS);
 		}
 		break;
-		case FBX_DATA::LAYOUT2:
+		case LAYOUT2:
 		{
-			FBX_DATA::VERTEX_DATA_L2* pVS = new FBX_DATA::VERTEX_DATA_L2[currMI.meshVtxInfoCount];
+			VERTEX_DATA_L2* pVS = new VERTEX_DATA_L2[currMI.meshVtxInfoCount];
 			for (auto &iter : currMI.meshVtxInfos)
 			{
 				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
@@ -253,14 +251,13 @@ namespace ursine
 				++i;
 			}
 
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_L2), meshNode.vertexCount);
-			if (pVS)
-				delete[] pVS;
+			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_L2), meshNode.vertexCount);
+			SAFE_DELETE_ARRAY(pVS);
 		}
 		break;
-		case FBX_DATA::LAYOUT3:
+		case LAYOUT3:
 		{
-			FBX_DATA::VERTEX_DATA_L3* pVS = new FBX_DATA::VERTEX_DATA_L3[currMI.meshVtxInfoCount];
+			VERTEX_DATA_L3* pVS = new VERTEX_DATA_L3[currMI.meshVtxInfoCount];
 			for (auto &iter : currMI.meshVtxInfos)
 			{
 				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
@@ -278,14 +275,13 @@ namespace ursine
 				++i;
 			}
 
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_L3), meshNode.vertexCount);
-			if (pVS)
-				delete[] pVS;
+			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_L3), meshNode.vertexCount);
+			SAFE_DELETE_ARRAY(pVS);
 		}
 		break;
-		case FBX_DATA::LAYOUT4:
+		case LAYOUT4:
 		{
-			FBX_DATA::VERTEX_DATA_L4* pVS = new FBX_DATA::VERTEX_DATA_L4[currMI.meshVtxInfoCount];
+			VERTEX_DATA_L4* pVS = new VERTEX_DATA_L4[currMI.meshVtxInfoCount];
 			for (auto &iter : currMI.meshVtxInfos)
 			{
 				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
@@ -307,14 +303,13 @@ namespace ursine
 				++i;
 			}
 
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_L4), meshNode.vertexCount);
-			if (pVS)
-				delete[] pVS;
+			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_L4), meshNode.vertexCount);
+			SAFE_DELETE_ARRAY(pVS);
 		}
 		break;
-		case FBX_DATA::LAYOUT5:
+		case LAYOUT5:
 		{
-			FBX_DATA::VERTEX_DATA_L5* pVS = new FBX_DATA::VERTEX_DATA_L5[currMI.meshVtxInfoCount];
+			VERTEX_DATA_L5* pVS = new VERTEX_DATA_L5[currMI.meshVtxInfoCount];
 			for (auto &iter : currMI.meshVtxInfos)
 			{
 				XMFLOAT3 currVtx	= XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
@@ -338,14 +333,13 @@ namespace ursine
 				++i;
 			}
 
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_L5), meshNode.vertexCount);
-			if (pVS)
-				delete[] pVS;
+			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_L5), meshNode.vertexCount);
+			SAFE_DELETE_ARRAY(pVS);
 		}
 		break;
-		case FBX_DATA::LAYOUT6:
+		case LAYOUT6:
 		{
-			FBX_DATA::VERTEX_DATA_L6* pVS = new FBX_DATA::VERTEX_DATA_L6[currMI.meshVtxInfoCount];
+			VERTEX_DATA_L6* pVS = new VERTEX_DATA_L6[currMI.meshVtxInfoCount];
 			for (auto &iter : currMI.meshVtxInfos)
 			{
 				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
@@ -371,14 +365,13 @@ namespace ursine
 				++i;
 			}
 
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_L6), meshNode.vertexCount);
-			if (pVS)
-				delete[] pVS;
+			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_L6), meshNode.vertexCount);
+			SAFE_DELETE_ARRAY(pVS);
 		}
 		break;
-		case FBX_DATA::LAYOUT7:
+		case LAYOUT7:
 		{
-			FBX_DATA::VERTEX_DATA_L7* pVS = new FBX_DATA::VERTEX_DATA_L7[currMI.meshVtxInfoCount];
+			VERTEX_DATA_L7* pVS = new VERTEX_DATA_L7[currMI.meshVtxInfoCount];
 			for (auto &iter : currMI.meshVtxInfos)
 			{
 				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
@@ -406,9 +399,8 @@ namespace ursine
 				++i;
 			}
 
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_L7), meshNode.vertexCount);
-			if (pVS)
-				delete[] pVS;
+			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_L7), meshNode.vertexCount);
+			SAFE_DELETE_ARRAY(pVS);
 		}
 		break;
 		//case FBX_DATA::LAYOUTT:
@@ -611,14 +603,14 @@ namespace ursine
 			UINT stride = 0;
 			switch (iter.m_Layout)
 			{
-			case FBX_DATA::LAYOUT0: stride = sizeof(FBX_DATA::VERTEX_DATA_L0); break;
-			case FBX_DATA::LAYOUT1: stride = sizeof(FBX_DATA::VERTEX_DATA_L1); break;
-			case FBX_DATA::LAYOUT2: stride = sizeof(FBX_DATA::VERTEX_DATA_L2); break;
-			case FBX_DATA::LAYOUT3: stride = sizeof(FBX_DATA::VERTEX_DATA_L3); break;
-			case FBX_DATA::LAYOUT4: stride = sizeof(FBX_DATA::VERTEX_DATA_L4); break;
-			case FBX_DATA::LAYOUT5: stride = sizeof(FBX_DATA::VERTEX_DATA_L5); break;
-			case FBX_DATA::LAYOUT6: stride = sizeof(FBX_DATA::VERTEX_DATA_L6); break;
-			case FBX_DATA::LAYOUT7: stride = sizeof(FBX_DATA::VERTEX_DATA_L7); break;
+			case LAYOUT0: stride = sizeof(VERTEX_DATA_L0); break;
+			case LAYOUT1: stride = sizeof(VERTEX_DATA_L1); break;
+			case LAYOUT2: stride = sizeof(VERTEX_DATA_L2); break;
+			case LAYOUT3: stride = sizeof(VERTEX_DATA_L3); break;
+			case LAYOUT4: stride = sizeof(VERTEX_DATA_L4); break;
+			case LAYOUT5: stride = sizeof(VERTEX_DATA_L5); break;
+			case LAYOUT6: stride = sizeof(VERTEX_DATA_L6); break;
+			case LAYOUT7: stride = sizeof(VERTEX_DATA_L7); break;
 			//case FBX_DATA::LAYOUTT: stride = sizeof(FBX_DATA::VERTEX_DATA_LT); break;
 			}
 			UINT offset = 0;
@@ -650,14 +642,14 @@ namespace ursine
 		UINT stride = 0;
 		switch (node->m_Layout)
 		{
-		case FBX_DATA::LAYOUT0: stride = sizeof(FBX_DATA::VERTEX_DATA_L0); break;
-		case FBX_DATA::LAYOUT1: stride = sizeof(FBX_DATA::VERTEX_DATA_L1); break;
-		case FBX_DATA::LAYOUT2: stride = sizeof(FBX_DATA::VERTEX_DATA_L2); break;
-		case FBX_DATA::LAYOUT3: stride = sizeof(FBX_DATA::VERTEX_DATA_L3); break;
-		case FBX_DATA::LAYOUT4: stride = sizeof(FBX_DATA::VERTEX_DATA_L4); break;
-		case FBX_DATA::LAYOUT5: stride = sizeof(FBX_DATA::VERTEX_DATA_L5); break;
-		case FBX_DATA::LAYOUT6: stride = sizeof(FBX_DATA::VERTEX_DATA_L6); break;
-		case FBX_DATA::LAYOUT7: stride = sizeof(FBX_DATA::VERTEX_DATA_L7); break;
+		case LAYOUT0: stride = sizeof(VERTEX_DATA_L0); break;
+		case LAYOUT1: stride = sizeof(VERTEX_DATA_L1); break;
+		case LAYOUT2: stride = sizeof(VERTEX_DATA_L2); break;
+		case LAYOUT3: stride = sizeof(VERTEX_DATA_L3); break;
+		case LAYOUT4: stride = sizeof(VERTEX_DATA_L4); break;
+		case LAYOUT5: stride = sizeof(VERTEX_DATA_L5); break;
+		case LAYOUT6: stride = sizeof(VERTEX_DATA_L6); break;
+		case LAYOUT7: stride = sizeof(VERTEX_DATA_L7); break;
 		//case FBX_DATA::LAYOUTT: stride = sizeof(FBX_DATA::VERTEX_DATA_LT); break;
 		}
 
@@ -695,14 +687,14 @@ namespace ursine
 		UINT stride = 0;
 		switch (node->m_Layout)
 		{
-		case FBX_DATA::LAYOUT0: stride = sizeof(FBX_DATA::VERTEX_DATA_L0); break;
-		case FBX_DATA::LAYOUT1: stride = sizeof(FBX_DATA::VERTEX_DATA_L1); break;
-		case FBX_DATA::LAYOUT2: stride = sizeof(FBX_DATA::VERTEX_DATA_L2); break;
-		case FBX_DATA::LAYOUT3: stride = sizeof(FBX_DATA::VERTEX_DATA_L3); break;
-		case FBX_DATA::LAYOUT4: stride = sizeof(FBX_DATA::VERTEX_DATA_L4); break;
-		case FBX_DATA::LAYOUT5: stride = sizeof(FBX_DATA::VERTEX_DATA_L5); break;
-		case FBX_DATA::LAYOUT6: stride = sizeof(FBX_DATA::VERTEX_DATA_L6); break;
-		case FBX_DATA::LAYOUT7: stride = sizeof(FBX_DATA::VERTEX_DATA_L7); break;
+		case LAYOUT0: stride = sizeof(VERTEX_DATA_L0); break;
+		case LAYOUT1: stride = sizeof(VERTEX_DATA_L1); break;
+		case LAYOUT2: stride = sizeof(VERTEX_DATA_L2); break;
+		case LAYOUT3: stride = sizeof(VERTEX_DATA_L3); break;
+		case LAYOUT4: stride = sizeof(VERTEX_DATA_L4); break;
+		case LAYOUT5: stride = sizeof(VERTEX_DATA_L5); break;
+		case LAYOUT6: stride = sizeof(VERTEX_DATA_L6); break;
+		case LAYOUT7: stride = sizeof(VERTEX_DATA_L7); break;
 		//case FBX_DATA::LAYOUTT: stride = sizeof(FBX_DATA::VERTEX_DATA_LT); break;
 		}
 
@@ -740,14 +732,14 @@ namespace ursine
 		UINT stride = 0;
 		switch (node->m_Layout)
 		{
-		case FBX_DATA::LAYOUT0: stride = sizeof(FBX_DATA::VERTEX_DATA_L0); break;
-		case FBX_DATA::LAYOUT1: stride = sizeof(FBX_DATA::VERTEX_DATA_L1); break;
-		case FBX_DATA::LAYOUT2: stride = sizeof(FBX_DATA::VERTEX_DATA_L2); break;
-		case FBX_DATA::LAYOUT3: stride = sizeof(FBX_DATA::VERTEX_DATA_L3); break;
-		case FBX_DATA::LAYOUT4: stride = sizeof(FBX_DATA::VERTEX_DATA_L4); break;
-		case FBX_DATA::LAYOUT5: stride = sizeof(FBX_DATA::VERTEX_DATA_L5); break;
-		case FBX_DATA::LAYOUT6: stride = sizeof(FBX_DATA::VERTEX_DATA_L6); break;
-		case FBX_DATA::LAYOUT7: stride = sizeof(FBX_DATA::VERTEX_DATA_L7); break;
+		case LAYOUT0: stride = sizeof(VERTEX_DATA_L0); break;
+		case LAYOUT1: stride = sizeof(VERTEX_DATA_L1); break;
+		case LAYOUT2: stride = sizeof(VERTEX_DATA_L2); break;
+		case LAYOUT3: stride = sizeof(VERTEX_DATA_L3); break;
+		case LAYOUT4: stride = sizeof(VERTEX_DATA_L4); break;
+		case LAYOUT5: stride = sizeof(VERTEX_DATA_L5); break;
+		case LAYOUT6: stride = sizeof(VERTEX_DATA_L6); break;
+		case LAYOUT7: stride = sizeof(VERTEX_DATA_L7); break;
 		//case FBX_DATA::LAYOUTT: stride = sizeof(FBX_DATA::VERTEX_DATA_LT); break;
 		}
 

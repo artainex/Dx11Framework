@@ -437,9 +437,9 @@
     <ClCompile Include="src\Color.cpp" />
     <ClCompile Include="src\Graphics\Camera\Camera.cpp" />
     <ClCompile Include="src\Graphics\Debug Window\DebugWindow.cpp" />
-    <ClCompile Include="src\Graphics\Light\LightClass.cpp" />
+    <ClCompile Include="src\Graphics\Light\Light.cpp" />
     <ClCompile Include="src\Graphics\RenderTexture.cpp" />
-    <ClCompile Include="src\Graphics\TextureShaderClass.cpp" />
+    <ClCompile Include="src\Graphics\TextureShader.cpp" />
     <ClCompile Include="src\Math\Mat3.cpp" />
     <ClCompile Include="src\Math\Mat4.cpp" />
     <ClCompile Include="src\Math\SIMD\SMat3.cpp" />
@@ -468,9 +468,9 @@
     <ClInclude Include="include\Graphics\Camera\Camera.h" />
     <ClInclude Include="include\Graphics\ConstantBuffers.h" />
     <ClInclude Include="include\Graphics\Debug Window\DebugWindow.h" />
-    <ClInclude Include="include\Graphics\Light\LightClass.h" />
+    <ClInclude Include="include\Graphics\Light\Light.h" />
     <ClInclude Include="include\Graphics\RenderTexture.h" />
-    <ClInclude Include="include\Graphics\TextureShaderClass.h" />
+    <ClInclude Include="include\Graphics\TextureShader.h" />
     <ClInclude Include="include\Math\Mat3.h" />
     <ClInclude Include="include\Math\Mat3.hpp" />
     <ClInclude Include="include\Math\Mat4.h" />

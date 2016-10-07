@@ -44,7 +44,7 @@ namespace ursine
 		FBX_DATA::MESH_NODE& GetMeshNode(const int id) { return m_meshNodeArray[id]; };
 		XMMATRIX GetNodeTM(const int id) { return m_meshNodeArray[id].m_meshTM; }
 		FBX_DATA::Material_Data& GetNodeFbxMaterial(const size_t id, const size_t mtrl_id = 0) { return m_meshNodeArray[id].fbxmtrlData[mtrl_id]; };
-		FBX_DATA::eLayout GetLayoutType(const int id) { return m_meshNodeArray[id].m_Layout; }
+		eLayout GetLayoutType(const int id) { return m_meshNodeArray[id].m_Layout; }
 		bool IsSkinned();
 
 		void Update(double timedelta);

@@ -68,7 +68,7 @@ int DebugWindow::GetIndexCount()
 
 bool DebugWindow::InitializeBuffers(ID3D11Device* device)
 {
-	ursine::FBX_DATA::VERTEX_DATA_LT* vertices;
+	VERTEX_DATA_LT* vertices;
 	unsigned long* indices;
 	HRESULT result;
 	int i;
@@ -80,7 +80,7 @@ bool DebugWindow::InitializeBuffers(ID3D11Device* device)
 	m_indexCount = m_vertexCount;
 
 	// Create the vertex array.
-	vertices = new ursine::FBX_DATA::VERTEX_DATA_LT[m_vertexCount];
+	vertices = new VERTEX_DATA_LT[m_vertexCount];
 	if (!vertices)
 		return false;
 
@@ -90,13 +90,13 @@ bool DebugWindow::InitializeBuffers(ID3D11Device* device)
 		return false;
 
 	// Initialize vertex array to zeros at first.
-	memset(vertices, 0, (sizeof(ursine::FBX_DATA::VERTEX_DATA_LT) * m_vertexCount));
+	memset(vertices, 0, (sizeof(VERTEX_DATA_LT) * m_vertexCount));
 
 	// Load the index array with data.
 	for (i = 0; i < m_indexCount; ++i)
 		indices[i] = i;
 
-	size_t stride = sizeof(ursine::FBX_DATA::VERTEX_DATA_LT);
+	size_t stride = sizeof(VERTEX_DATA_LT);
 
 	// Set up the description of the static vertex buffer.
 	D3D11_BUFFER_DESC vertexBufferDesc;
@@ -161,9 +161,9 @@ void DebugWindow::ShutdownBuffers()
 bool DebugWindow::UpdateBuffers(ID3D11DeviceContext* deviceContext, int positionX, int positionY)
 {
 	float left, right, top, bottom;
-	ursine::FBX_DATA::VERTEX_DATA_LT* vertices;
+	VERTEX_DATA_LT* vertices;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
-	ursine::FBX_DATA::VERTEX_DATA_LT* verticesPtr;
+	VERTEX_DATA_LT* verticesPtr;
 	HRESULT result;
 
 	// If the position we are rendering this bitmap to has not changed then don't update the vertex buffer since it
@@ -188,7 +188,7 @@ bool DebugWindow::UpdateBuffers(ID3D11DeviceContext* deviceContext, int position
 	bottom = top - (float)m_bitmapHeight;
 
 	// Create the vertex array.
-	vertices = new ursine::FBX_DATA::VERTEX_DATA_LT[m_vertexCount];
+	vertices = new VERTEX_DATA_LT[m_vertexCount];
 	if (!vertices)
 		return false;
 
@@ -229,10 +229,10 @@ bool DebugWindow::UpdateBuffers(ID3D11DeviceContext* deviceContext, int position
 	FAIL_CHECK_BOOLEAN(result);
 
 	// Get a pointer to the data in the vertex buffer.
-	verticesPtr = (ursine::FBX_DATA::VERTEX_DATA_LT*)mappedResource.pData;
+	verticesPtr = (VERTEX_DATA_LT*)mappedResource.pData;
 
 	// Copy the data into the vertex buffer.
-	memcpy(verticesPtr, (void*)vertices, sizeof(ursine::FBX_DATA::VERTEX_DATA_LT) * m_vertexCount);
+	memcpy(verticesPtr, (void*)vertices, sizeof(VERTEX_DATA_LT) * m_vertexCount);
 
 	// Unlock the vertex buffer.
 	deviceContext->Unmap(m_vertexBuffer, 0);
@@ -249,7 +249,7 @@ void DebugWindow::RenderBuffers(ID3D11DeviceContext* deviceContext)
 	unsigned int offset;
 
 	// Set vertex buffer stride and offset.
-	stride = sizeof(ursine::FBX_DATA::VERTEX_DATA_LT);
+	stride = sizeof(VERTEX_DATA_LT);
 	offset = 0;
 
 	// Set the vertex buffer to active in the input assembler so it can be rendered.

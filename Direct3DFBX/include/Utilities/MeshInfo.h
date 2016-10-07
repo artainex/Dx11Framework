@@ -105,7 +105,7 @@ namespace ursine
 		std::vector<UINT>   materialIndices;
 
 		// layout
-		FBX_DATA::eLayout mLayout;
+		eLayout				mLayout;
 
 		MeshInfo();
 		virtual ~MeshInfo();

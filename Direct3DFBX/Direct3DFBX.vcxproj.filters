@@ -135,9 +135,6 @@
       <Filter>Utilities\src\File System</Filter>
     </ClCompile>
     <ClCompile Include="DX11Framework.cpp" />
-    <ClCompile Include="src\Graphics\Light\LightClass.cpp">
-      <Filter>Graphics\Light</Filter>
-    </ClCompile>
     <ClCompile Include="src\Color.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
@@ -150,7 +147,10 @@
     <ClCompile Include="src\Graphics\Debug Window\DebugWindow.cpp">
       <Filter>Graphics\Debug Window</Filter>
     </ClCompile>
-    <ClCompile Include="src\Graphics\TextureShaderClass.cpp">
+    <ClCompile Include="src\Graphics\Light\Light.cpp">
+      <Filter>Graphics\Light</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\TextureShader.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
   </ItemGroup>
@@ -287,9 +287,6 @@
     <ClInclude Include="include\UrsinePrecompiled.h">
       <Filter>Utilities</Filter>
     </ClInclude>
-    <ClInclude Include="include\Graphics\Light\LightClass.h">
-      <Filter>Graphics\Light</Filter>
-    </ClInclude>
     <ClInclude Include="include\Color.h">
       <Filter>Graphics</Filter>
     </ClInclude>
@@ -308,7 +305,10 @@
     <ClInclude Include="include\Graphics\Debug Window\DebugWindow.h">
       <Filter>Graphics\Debug Window</Filter>
     </ClInclude>
-    <ClInclude Include="include\Graphics\TextureShaderClass.h">
+    <ClInclude Include="include\Graphics\Light\Light.h">
+      <Filter>Graphics\Light</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\TextureShader.h">
       <Filter>Graphics</Filter>
     </ClInclude>
   </ItemGroup>

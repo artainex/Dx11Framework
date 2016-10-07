@@ -10,11 +10,12 @@
 
 
 #include <WholeInformation.h>
-#include <Camera.h>
 #include <ctime>
+#include <Camera.h>
+#include <Light.h>
 #include <RenderTexture.h>
 #include <DebugWindow.h>
-#include <TextureShaderClass.h>
+#include <TextureShader.h>
 #include "CFBXRendererDX11.h"
 
 using namespace DirectX;
@@ -48,24 +49,31 @@ D3D_FEATURE_LEVEL                   g_featureLevel = D3D_FEATURE_LEVEL_11_0;
 ID3D11Device*                       g_pd3dDevice = nullptr;
 ID3D11DeviceContext*                g_pImmediateContext = nullptr;
 IDXGISwapChain*                     g_pSwapChain = nullptr;
-
-const int MAX_RENDERTARGET = 4;
-
-RenderTexture*						g_pRenderTexture = nullptr; // 4 texture maps - position, color, normal, depth
-DebugWindow*						g_pDebugWindow = nullptr;
-TextureShaderClass*					g_pTextureShaderClass = nullptr;
-
 ID3D11RenderTargetView*				g_pRenderTargetView = nullptr;
 ID3D11Texture2D*                    g_pDepthStencil = nullptr;
 ID3D11DepthStencilView*             g_pDepthStencilView = nullptr;
 ID3D11DepthStencilState*			g_pDepthStencilState = nullptr;
 ID3D11DepthStencilState*			g_pDepthDisabledStencilState = nullptr;
 
+// Matrices
 XMMATRIX                            g_World;
 XMMATRIX                            g_Projection;
 XMMATRIX							g_OrthoMatrix;
 XMMATRIX							g_TRSMatrix;
+
+// Camera
 Camera								g_Camera;
+
+// Lights
+const int MAX_LIGHT = 5;
+ursine::Light						g_AmbientLight;
+ursine::Light						g_GlobalLight;
+ursine::Light						g_LocalLights[MAX_LIGHT];
+
+const int MAX_RENDERTARGET = 4;
+RenderTexture*						g_pRenderTexture = nullptr; // 4 texture maps - position, color, normal, depth
+DebugWindow*						g_pDebugWindow = nullptr;
+TextureShader*						g_pTextureShader = nullptr;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations
@@ -75,12 +83,6 @@ HRESULT InitDevice();
 HRESULT InitCamera();
 HRESULT InitVertexShaders();
 HRESULT InitPixelShaders();
-HRESULT CompileShaderFromFile(bool isVertexShader, LPCTSTR szFileName,
-	LPCSTR szEntryPoint,
-	LPCSTR szShaderModel,
-	ID3DBlob** ppBlobOut = nullptr,
-	ID3D11VertexShader** ppVSLayout = nullptr,
-	ID3D11PixelShader** ppPSLayout = nullptr);
 HRESULT CreateBuffers();
 void CleanupDevice();
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -499,7 +501,7 @@ HRESULT InitVertexShaders()
 		//case 8: targetVS = &pVSBlobL8; break;
 		}
 
-		hr = CompileShaderFromFile(true, shaderName.c_str(), "vs_main", "vs_5_0", &(*targetVS), &g_pvsLayout[i]);
+		hr = CompileShaderFromFile(VERTEX_SHADER, shaderName.c_str(), "vs_main", "vs_5_0", &g_pd3dDevice, &(*targetVS), &g_pvsLayout[i]);
 		shaderName += " cannot be compiled.  Please run this executable from the directory that contains the FX file.";
 		FAIL_CHECK_WITH_MSG(hr, shaderName.c_str());
 	}
@@ -618,7 +620,7 @@ HRESULT InitPixelShaders()
 		case 6: targetPS = &pPSBlobL6; break;
 		case 7: targetPS = &pPSBlobL7; break;
 		}
-		hr = CompileShaderFromFile(false, shaderName.c_str(), "PS", "ps_5_0", &(*targetPS), nullptr, &g_ppsLayout[i]);
+		hr = CompileShaderFromFile(PIXEL_SHADER, shaderName.c_str(), "PS", "ps_5_0", &g_pd3dDevice, &(*targetPS), nullptr, &g_ppsLayout[i]);
 		shaderName += " cannot be compiled.  Please run this executable from the directory that contains the FX file.";
 		FAIL_CHECK_WITH_MSG(hr, shaderName.c_str());
 	}
@@ -634,62 +636,6 @@ HRESULT InitPixelShaders()
 	SAFE_RELEASE(pPSBlobL7);
 
 	return hr;
-}
-
-//--------------------------------------------------------------------------------------
-// Helper for compiling shaders with D3DCompile
-//
-// With VS 11, we could load up prebuilt .cso files instead...
-//--------------------------------------------------------------------------------------
-HRESULT CompileShaderFromFile(bool isVertexShader, LPCTSTR szFileName, 
-	LPCSTR szEntryPoint, 
-	LPCSTR szShaderModel, 
-	ID3DBlob** ppBlobOut, 
-	ID3D11VertexShader** ppVSLayout,
-	ID3D11PixelShader** ppPSLayout)
-{
-	HRESULT hr = S_OK;
-
-	DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
-#if defined( DEBUG ) || defined( _DEBUG )
-	// Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
-	// Setting this flag improves the shader debugging experience, but still allows 
-	// the shaders to be optimized and to run exactly the way they will run in 
-	// the release configuration of this program.
-	dwShaderFlags |= D3DCOMPILE_DEBUG;
-#endif
-
-	ID3DBlob* pErrorBlob;
-	D3DX11CompileFromFile(szFileName, nullptr, nullptr, szEntryPoint, szShaderModel, dwShaderFlags, 0, 0, ppBlobOut, &pErrorBlob, &hr);
-	if (FAILED(hr))
-	{
-		if (pErrorBlob)
-		{
-			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-			pErrorBlob->Release();
-		}
-		return E_FAIL;
-	}
-
-	// vertex shader
-	if (isVertexShader)
-	{
-		// Create the vertex shader
-		hr = g_pd3dDevice->CreateVertexShader((*ppBlobOut)->GetBufferPointer(), (*ppBlobOut)->GetBufferSize(), nullptr, &(*ppVSLayout));
-	}
-	else
-	{
-		// Create the pixel shader
-		hr = g_pd3dDevice->CreatePixelShader((*ppBlobOut)->GetBufferPointer(), (*ppBlobOut)->GetBufferSize(), nullptr, &(*ppPSLayout));
-	}
-
-	if (FAILED(hr))
-	{
-		(*ppBlobOut)->Release();
-		return hr;
-	}
-
-	return S_OK;
 }
 
 //--------------------------------------------------------------------------------------
@@ -760,19 +706,19 @@ HRESULT InitApp()
 		return E_FAIL;
 
 	// initialize the debug window obj.
-	if (!g_pDebugWindow->Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT, 150, 150))
+	if (!g_pDebugWindow->Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT, 100, 100))
 	{
 		MessageBox(nullptr, "Could not initialize the debug window object.", "Error", MB_OK);
 		return false;
 	}
 	
 	// create texture class obj
-	g_pTextureShaderClass = new TextureShaderClass;
-	if (!g_pTextureShaderClass)
+	g_pTextureShader = new TextureShader;
+	if (!g_pTextureShader)
 		return E_FAIL;
 	
 	// initialize the debug window obj.
-	if (!g_pTextureShaderClass->Initialize(g_pd3dDevice, g_hWnd))
+	if (!g_pTextureShader->Initialize(g_pd3dDevice, g_hWnd))
 	{
 		MessageBox(nullptr, "Could not initialize the debug window object.", "Error", MB_OK);
 		return false;
@@ -890,10 +836,10 @@ void CleanupDevice()
 	SAFE_RELEASE(g_pDepthStencil);
 	SAFE_RELEASE(g_pDepthStencilView);
 	SAFE_RELEASE(g_pRenderTargetView);
-	if (g_pTextureShaderClass)
+	if (g_pTextureShader)
 	{
-		g_pTextureShaderClass->Shutdown();
-		SAFE_DELETE(g_pTextureShaderClass);
+		g_pTextureShader->Shutdown();
+		SAFE_DELETE(g_pTextureShader);
 	}
 	if (g_pDebugWindow)
 	{
@@ -1017,7 +963,7 @@ void RenderModel()
 			ID3D11PixelShader* pPS = nullptr;
 			switch (layout_type)
 			{
-			case eLayout::NONE:		continue;
+			case eLayout::NONE_LAYOUT:		continue;
 			case eLayout::LAYOUT0:	pVS = g_pvsLayout[0];	pPS = g_ppsLayout[0]; break;
 			case eLayout::LAYOUT1:	pVS = g_pvsLayout[1];	pPS = g_ppsLayout[1]; break;
 			case eLayout::LAYOUT2:	pVS = g_pvsLayout[2];	pPS = g_ppsLayout[2]; break;
@@ -1090,7 +1036,7 @@ void Render()
 	//g_pImmediateContext->RSSetViewports(1, &newViewport);
 
 	// Render the debug window using the texture shader.
-	if (!g_pTextureShaderClass->Render(g_pImmediateContext, g_pDebugWindow->GetIndexCount(), 
+	if (!g_pTextureShader->Render(g_pImmediateContext, g_pDebugWindow->GetIndexCount(), 
 		g_World, 
 		g_Camera.GetViewMatrix(),
 		g_OrthoMatrix,
@@ -1099,6 +1045,7 @@ void Render()
 		MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
 		return;
 	}
+
 	//
 	//g_pImmediateContext->RSSetViewports(1, viewportArray);
 

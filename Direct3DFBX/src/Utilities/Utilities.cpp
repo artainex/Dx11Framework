@@ -13,6 +13,68 @@
 
 #include <Utilities.h>
 
+//--------------------------------------------------------------------------------------
+// Helper for compiling shaders with D3DCompile
+//
+// With VS 11, we could load up prebuilt .cso files instead...
+//--------------------------------------------------------------------------------------
+HRESULT CompileShaderFromFile(eShaderType shaderType,
+	LPCTSTR szFileName,
+	LPCSTR szEntryPoint,
+	LPCSTR szShaderModel,
+	ID3D11Device** ppD3Ddevice,
+	ID3DBlob** ppBlobOut,
+	ID3D11VertexShader** ppVSLayout,
+	ID3D11PixelShader** ppPSLayout)
+{
+	HRESULT hr = S_OK;
+
+	DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+#if defined( DEBUG ) || defined( _DEBUG )
+	// Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
+	// Setting this flag improves the shader debugging experience, but still allows 
+	// the shaders to be optimized and to run exactly the way they will run in 
+	// the release configuration of this program.
+	dwShaderFlags |= D3DCOMPILE_DEBUG;
+#endif
+
+	ID3DBlob* pErrorBlob;
+	D3DX11CompileFromFile(szFileName, nullptr, nullptr, szEntryPoint, szShaderModel, dwShaderFlags, 0, 0, ppBlobOut, &pErrorBlob, &hr);
+	if (FAILED(hr))
+	{
+		if (pErrorBlob)
+		{
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+			pErrorBlob->Release();
+		}
+		else
+		{
+			MessageBox(nullptr, "Missing Shader File", "Error", MB_OK);
+		}
+		return E_FAIL;
+	}
+
+	// vertex shader
+	if (VERTEX_SHADER == shaderType)
+	{
+		// Create the vertex shader
+		hr = (*ppD3Ddevice)->CreateVertexShader((*ppBlobOut)->GetBufferPointer(), (*ppBlobOut)->GetBufferSize(), nullptr, &(*ppVSLayout));
+	}
+	else if (PIXEL_SHADER == shaderType)
+	{
+		// Create the pixel shader
+		hr = (*ppD3Ddevice)->CreatePixelShader((*ppBlobOut)->GetBufferPointer(), (*ppBlobOut)->GetBufferSize(), nullptr, &(*ppPSLayout));
+	}
+
+	if (FAILED(hr))
+	{
+		(*ppBlobOut)->Release();
+		return hr;
+	}
+
+	return S_OK;
+}
+
 namespace Utilities
 {
     /*===============================

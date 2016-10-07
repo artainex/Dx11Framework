@@ -4,7 +4,7 @@
 
 using namespace DirectX;
 
-class TextureShaderClass
+class TextureShader
 {
 private:
 	struct MtxBufferType
@@ -15,9 +15,9 @@ private:
 	};
 
 public:
-	TextureShaderClass();
-	TextureShaderClass(const TextureShaderClass&);
-	~TextureShaderClass();
+	TextureShader();
+	TextureShader(const TextureShader&);
+	~TextureShader();
 
 	bool Initialize(ID3D11Device* device, HWND hwnd);
 	void Shutdown();

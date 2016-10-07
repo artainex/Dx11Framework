@@ -1,5 +1,5 @@
 #include <Utilities.h>
-#include <LightClass.h>
+#include <Light.h>
 
 using namespace DirectX;
 typedef ursine::Color urColor;

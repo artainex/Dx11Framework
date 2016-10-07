@@ -565,13 +565,13 @@ namespace ursine
 
 			// set layout flag
 			if (newMesh.m_LayoutFlag == (POS | NOR))
-				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT0;
+				newMesh.mLayout = eLayout::LAYOUT0;
 			else if (newMesh.m_LayoutFlag == (POS | NOR | TEX))
-				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT1;
+				newMesh.mLayout = eLayout::LAYOUT1;
 			else if (newMesh.m_LayoutFlag == (POS | NOR | BITAN))
-				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT2;
+				newMesh.mLayout = eLayout::LAYOUT2;
 			else if (newMesh.m_LayoutFlag == (POS | NOR | BITAN | TEX))
-				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT3;
+				newMesh.mLayout = eLayout::LAYOUT3;
 
 			//go through all the control points(verticies) and multiply by the transformation
 			for (auto &iter : newMesh.vertices)
@@ -1596,13 +1596,13 @@ namespace ursine
 
 			// set layout flag
 			if ( newMesh.m_LayoutFlag == (POS | NOR) )
-				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT4;
+				newMesh.mLayout = eLayout::LAYOUT4;
 			else if ( newMesh.m_LayoutFlag == (POS | NOR | TEX) )
-				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT5;
+				newMesh.mLayout = eLayout::LAYOUT5;
 			else if ( newMesh.m_LayoutFlag == (POS | NOR | BITAN ) )
-				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT6;
+				newMesh.mLayout = eLayout::LAYOUT6;
 			else if ( newMesh.m_LayoutFlag == (POS | NOR | BITAN | TEX ) )
-				newMesh.mLayout = FBX_DATA::eLayout::LAYOUT7;
+				newMesh.mLayout = eLayout::LAYOUT7;
 
 			//go through all the control points(verticies) and multiply by the transformation
 			for (auto &iter : newMesh.vertices)
