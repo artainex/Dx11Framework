@@ -7,7 +7,7 @@ using namespace DirectX;
 class TextureShaderClass
 {
 private:
-	struct MatrixBufferType
+	struct MtxBufferType
 	{
 		XMMATRIX world;
 		XMMATRIX view;

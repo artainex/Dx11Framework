@@ -170,6 +170,7 @@ namespace ursine
 		bd.ByteWidth = static_cast<uint32_t>(stride*indexCount);
 		bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		bd.CPUAccessFlags = 0;
+
 		D3D11_SUBRESOURCE_DATA InitData;
 		ZeroMemory(&InitData, sizeof(InitData));
 
@@ -410,6 +411,25 @@ namespace ursine
 				delete[] pVS;
 		}
 		break;
+		//case FBX_DATA::LAYOUTT:
+		//{
+		//	FBX_DATA::VERTEX_DATA_LT* pVS = new FBX_DATA::VERTEX_DATA_LT[currMI.meshVtxInfoCount];
+		//	for (auto &iter : currMI.meshVtxInfos)
+		//	{
+		//		XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+		//		XMFLOAT2 currUV = XMFLOAT2(iter.uv.x, iter.uv.y);
+		//
+		//		pVS[i].vPos = currVtx;
+		//		pVS[i].vTexcoord = currUV;
+		//
+		//		++i;
+		//	}
+		//
+		//	hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_LT), meshNode.vertexCount);
+		//	if (pVS)
+		//		delete[] pVS;
+		//}
+		//break;
 		}
 
 		return hr;
@@ -599,6 +619,7 @@ namespace ursine
 			case FBX_DATA::LAYOUT5: stride = sizeof(FBX_DATA::VERTEX_DATA_L5); break;
 			case FBX_DATA::LAYOUT6: stride = sizeof(FBX_DATA::VERTEX_DATA_L6); break;
 			case FBX_DATA::LAYOUT7: stride = sizeof(FBX_DATA::VERTEX_DATA_L7); break;
+			//case FBX_DATA::LAYOUTT: stride = sizeof(FBX_DATA::VERTEX_DATA_LT); break;
 			}
 			UINT offset = 0;
 			pImmediateContext->IASetVertexBuffers(0, 1, &iter.m_pVB, &stride, &offset);
@@ -637,6 +658,7 @@ namespace ursine
 		case FBX_DATA::LAYOUT5: stride = sizeof(FBX_DATA::VERTEX_DATA_L5); break;
 		case FBX_DATA::LAYOUT6: stride = sizeof(FBX_DATA::VERTEX_DATA_L6); break;
 		case FBX_DATA::LAYOUT7: stride = sizeof(FBX_DATA::VERTEX_DATA_L7); break;
+		//case FBX_DATA::LAYOUTT: stride = sizeof(FBX_DATA::VERTEX_DATA_LT); break;
 		}
 
 		UINT offset = 0;
@@ -681,6 +703,7 @@ namespace ursine
 		case FBX_DATA::LAYOUT5: stride = sizeof(FBX_DATA::VERTEX_DATA_L5); break;
 		case FBX_DATA::LAYOUT6: stride = sizeof(FBX_DATA::VERTEX_DATA_L6); break;
 		case FBX_DATA::LAYOUT7: stride = sizeof(FBX_DATA::VERTEX_DATA_L7); break;
+		//case FBX_DATA::LAYOUTT: stride = sizeof(FBX_DATA::VERTEX_DATA_LT); break;
 		}
 
 		UINT offset = 0;
@@ -725,6 +748,7 @@ namespace ursine
 		case FBX_DATA::LAYOUT5: stride = sizeof(FBX_DATA::VERTEX_DATA_L5); break;
 		case FBX_DATA::LAYOUT6: stride = sizeof(FBX_DATA::VERTEX_DATA_L6); break;
 		case FBX_DATA::LAYOUT7: stride = sizeof(FBX_DATA::VERTEX_DATA_L7); break;
+		//case FBX_DATA::LAYOUTT: stride = sizeof(FBX_DATA::VERTEX_DATA_LT); break;
 		}
 
 		UINT offset = 0;

@@ -155,7 +155,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	MSG msg = { 0 };
 	while (WM_QUIT != msg.message)
 	{
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -205,7 +205,7 @@ HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow)
 	wcex.style = CS_HREDRAW | CS_VREDRAW;
 	wcex.lpfnWndProc = WndProc;
 	wcex.hInstance = hInstance;
-	wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)COLOR_WINDOW;
 	wcex.lpszClassName = "TutorialWindowClass";
 	if (!RegisterClassEx(&wcex))
@@ -221,7 +221,7 @@ HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow)
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		rc.right - rc.left, rc.bottom - rc.top,
-		NULL, NULL, hInstance, NULL);
+		nullptr, nullptr, hInstance, nullptr);
 	if (!g_hWnd)
 		return E_FAIL;
 
@@ -274,13 +274,23 @@ HRESULT InitDevice()
 	sd.SampleDesc.Quality = 0;
 	sd.Windowed = TRUE;
 
+	// scanline order, scaling unspecified
+	sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+	sd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+
+	// discard back buffer after swap
+	sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+
+	// no additional option flag
+	sd.Flags = 0;
+
 	for (UINT driverTypeIndex = 0; driverTypeIndex < numDriverTypes; ++driverTypeIndex)
 	{
 		g_driverType = driverTypes[driverTypeIndex];
 		hr = D3D11CreateDeviceAndSwapChain(
-			NULL, //adaptor?
+			nullptr, //adaptor?
 			g_driverType, // driver-type
-			NULL, // flag
+			nullptr, // flag
 			createDeviceFlags, // device flag
 			featureLevels, // feature lvl array
 			numFeatureLevels, // feature lvl count                        
@@ -297,7 +307,7 @@ HRESULT InitDevice()
 	FAIL_CHECK(hr);
 
 	// Create a render target view
-	ID3D11Texture2D* pBackBuffer = NULL;
+	ID3D11Texture2D* pBackBuffer = nullptr;
 	hr = g_pSwapChain->GetBuffer(
 		0, // back buffer index
 		__uuidof(ID3D11Texture2D), // interface that access to back buffer
@@ -306,7 +316,7 @@ HRESULT InitDevice()
 
 	hr = g_pd3dDevice->CreateRenderTargetView(
 		pBackBuffer, // resource that view will access
-		NULL, // def of rendertargetview
+		nullptr, // def of rendertargetview
 		&g_pRenderTargetView);
 	FAIL_CHECK(hr);
 
@@ -327,7 +337,7 @@ HRESULT InitDevice()
 	descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 	descDepth.CPUAccessFlags = 0;
 	descDepth.MiscFlags = 0;
-	hr = g_pd3dDevice->CreateTexture2D(&descDepth, NULL, &g_pDepthStencil);
+	hr = g_pd3dDevice->CreateTexture2D(&descDepth, nullptr, &g_pDepthStencil);
 	FAIL_CHECK(hr);
 	
 	// Create the depth stencil view
@@ -345,25 +355,26 @@ HRESULT InitDevice()
 	// Create depth stencil state
 	D3D11_DEPTH_STENCIL_DESC descDSS;
 	ZeroMemory(&descDSS, sizeof(descDSS));
+
 	// Set up the description of the stencil state.
 	descDSS.DepthEnable = true;
 	descDSS.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 	descDSS.DepthFunc = D3D11_COMPARISON_LESS;
-	descDSS.StencilEnable = false; //true;
-	//descDSS.StencilReadMask = 0xFF;
-	//descDSS.StencilWriteMask = 0xFF;
-	//
-	//// Stencil operations if pixel is front-facing.
-	//descDSS.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	//descDSS.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
-	//descDSS.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	//descDSS.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-	//
-	//// Stencil operations if pixel is back-facing.
-	//descDSS.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	//descDSS.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
-	//descDSS.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	//descDSS.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	descDSS.StencilEnable = true;
+	descDSS.StencilReadMask = 0xFF;
+	descDSS.StencilWriteMask = 0xFF;
+	
+	// Stencil operations if pixel is front-facing.
+	descDSS.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	descDSS.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+	descDSS.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	descDSS.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	
+	// Stencil operations if pixel is back-facing.
+	descDSS.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	descDSS.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+	descDSS.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	descDSS.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 	hr = g_pd3dDevice->CreateDepthStencilState(&descDSS, &g_pDepthStencilState);
 	FAIL_CHECK(hr);
 
@@ -373,21 +384,21 @@ HRESULT InitDevice()
 	descDDisabledSS.DepthEnable = false;
 	descDDisabledSS.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 	descDDisabledSS.DepthFunc = D3D11_COMPARISON_LESS;
-	descDDisabledSS.StencilEnable = false; //true;
-	//descDDisabledSS.StencilReadMask = 0xFF;
-	//descDDisabledSS.StencilWriteMask = 0xFF;
-	//
-	//// Stencil operations if pixel is front-facing.
-	//descDDisabledSS.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	//descDDisabledSS.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
-	//descDDisabledSS.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	//descDDisabledSS.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-	//
-	//// Stencil operations if pixel is back-facing.
-	//descDDisabledSS.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	//descDDisabledSS.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
-	//descDDisabledSS.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	//descDDisabledSS.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	descDDisabledSS.StencilEnable = true;
+	descDDisabledSS.StencilReadMask = 0xFF;
+	descDDisabledSS.StencilWriteMask = 0xFF;
+	
+	// Stencil operations if pixel is front-facing.
+	descDDisabledSS.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	descDDisabledSS.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+	descDDisabledSS.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	descDDisabledSS.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	
+	// Stencil operations if pixel is back-facing.
+	descDDisabledSS.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	descDDisabledSS.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+	descDDisabledSS.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	descDDisabledSS.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 	hr = g_pd3dDevice->CreateDepthStencilState(&descDDisabledSS, &g_pDepthDisabledStencilState);
 	FAIL_CHECK(hr);
 
@@ -465,7 +476,8 @@ HRESULT InitVertexShaders()
 		*pVSBlobL4 = nullptr,
 		*pVSBlobL5 = nullptr,
 		*pVSBlobL6 = nullptr,
-		*pVSBlobL7 = nullptr;
+		*pVSBlobL7 = nullptr;// ,
+		//*pVSBlobL8 = nullptr;
 
 	for (UINT i = 0; i < 8; ++i)
 	{
@@ -484,6 +496,7 @@ HRESULT InitVertexShaders()
 		case 5: targetVS = &pVSBlobL5; break;
 		case 6: targetVS = &pVSBlobL6; break;
 		case 7: targetVS = &pVSBlobL7; break;
+		//case 8: targetVS = &pVSBlobL8; break;
 		}
 
 		hr = CompileShaderFromFile(true, shaderName.c_str(), "vs_main", "vs_5_0", &(*targetVS), &g_pvsLayout[i]);
@@ -549,6 +562,12 @@ HRESULT InitVertexShaders()
 					pVSBlobL7->GetBufferPointer(), pVSBlobL7->GetBufferSize(),
 					input_layout.LAYOUT7, 7);
 				break;
+
+			//case eLayout::LAYOUTT:
+			//	hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
+			//		pVSBlobL8->GetBufferPointer(), pVSBlobL8->GetBufferSize(),
+			//		input_layout.LAYOUT_TEX, 2);
+			//	break;
 			}
 		}
 	}
@@ -656,12 +675,12 @@ HRESULT CompileShaderFromFile(bool isVertexShader, LPCTSTR szFileName,
 	if (isVertexShader)
 	{
 		// Create the vertex shader
-		hr = g_pd3dDevice->CreateVertexShader((*ppBlobOut)->GetBufferPointer(), (*ppBlobOut)->GetBufferSize(), NULL, &(*ppVSLayout));
+		hr = g_pd3dDevice->CreateVertexShader((*ppBlobOut)->GetBufferPointer(), (*ppBlobOut)->GetBufferSize(), nullptr, &(*ppVSLayout));
 	}
 	else
 	{
 		// Create the pixel shader
-		hr = g_pd3dDevice->CreatePixelShader((*ppBlobOut)->GetBufferPointer(), (*ppBlobOut)->GetBufferSize(), NULL, &(*ppPSLayout));
+		hr = g_pd3dDevice->CreatePixelShader((*ppBlobOut)->GetBufferPointer(), (*ppBlobOut)->GetBufferSize(), nullptr, &(*ppPSLayout));
 	}
 
 	if (FAILED(hr))
@@ -687,7 +706,7 @@ HRESULT CreateBuffers()
 	mtxBufferDesc.ByteWidth = sizeof(MatrixBufferType);
 	mtxBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	mtxBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	hr = g_pd3dDevice->CreateBuffer(&mtxBufferDesc, NULL, &g_pmtxBuffer);
+	hr = g_pd3dDevice->CreateBuffer(&mtxBufferDesc, nullptr, &g_pmtxBuffer);
 	FAIL_CHECK(hr);
 
 	D3D11_BUFFER_DESC mtxPaletteBufferDesc;
@@ -696,7 +715,7 @@ HRESULT CreateBuffers()
 	mtxPaletteBufferDesc.ByteWidth = sizeof(PaletteBufferType);
 	mtxPaletteBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	mtxPaletteBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	hr = g_pd3dDevice->CreateBuffer(&mtxPaletteBufferDesc, NULL, &g_pmtxPaletteBuffer);
+	hr = g_pd3dDevice->CreateBuffer(&mtxPaletteBufferDesc, nullptr, &g_pmtxPaletteBuffer);
 	FAIL_CHECK(hr);
 
 	// Create Buffer - For light
@@ -706,7 +725,7 @@ HRESULT CreateBuffers()
 	lightBufferDesc.ByteWidth = sizeof(LightBufferType);
 	lightBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	lightBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	hr = g_pd3dDevice->CreateBuffer(&lightBufferDesc, NULL, &g_plightBuffer);
+	hr = g_pd3dDevice->CreateBuffer(&lightBufferDesc, nullptr, &g_plightBuffer);
 	FAIL_CHECK(hr);
 
 	return hr;
@@ -821,7 +840,7 @@ HRESULT SetupTransformSRV()
 	bd.StructureByteStride = stride;
 
 	// create transformStructuredBuffer
-	hr = g_pd3dDevice->CreateBuffer(&bd, NULL, &g_pTransformStructuredBuffer);
+	hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pTransformStructuredBuffer);
 	FAIL_CHECK(hr);
 
 	// Create ShaderResourceView
@@ -1007,10 +1026,11 @@ void RenderModel()
 			case eLayout::LAYOUT5:	pVS = g_pvsLayout[5];	pPS = g_ppsLayout[5]; break;
 			case eLayout::LAYOUT6:	pVS = g_pvsLayout[6];	pPS = g_ppsLayout[6]; break;
 			case eLayout::LAYOUT7:	pVS = g_pvsLayout[7];	pPS = g_ppsLayout[7]; break;
+			//case eLayout::LAYOUTT:	pVS = g_pvsLayout[8];	pPS = g_ppsLayout[8]; break;
 			}
 
-			g_pImmediateContext->VSSetShader(pVS, NULL, 0);
-			g_pImmediateContext->PSSetShader(pPS, NULL, 0);
+			g_pImmediateContext->VSSetShader(pVS, nullptr, 0);
+			g_pImmediateContext->PSSetShader(pPS, nullptr, 0);
 
 			// set shader parameters(mapping constant buffers, matrices, resources)
 			SetShaderParameters(&currModel, mn_idx, layout_type);
@@ -1019,8 +1039,8 @@ void RenderModel()
 			currModel->RenderNode(g_pImmediateContext, mn_idx);
 
 			// reset shader
-			g_pImmediateContext->VSSetShader(NULL, NULL, 0);
-			g_pImmediateContext->PSSetShader(NULL, NULL, 0);
+			g_pImmediateContext->VSSetShader(nullptr, nullptr, 0);
+			g_pImmediateContext->PSSetShader(nullptr, nullptr, 0);
 		}
 	}
 }
@@ -1055,6 +1075,20 @@ void Render()
 	// render the debug window on 50x50 posittion
 	g_pDebugWindow->Render(g_pImmediateContext, 50, 50);
 
+	//D3D11_VIEWPORT viewportArray[16];
+	//UINT outputVPCount = 16;
+	//g_pImmediateContext->RSGetViewports(&outputVPCount, viewportArray);
+	//
+	//D3D11_VIEWPORT newViewport;
+	//newViewport.Width = 50;
+	//newViewport.Height = 50;
+	//newViewport.MaxDepth = 1;
+	//newViewport.MinDepth = 0;
+	//newViewport.TopLeftX = 10;
+	//newViewport.TopLeftY = 10;
+	//
+	//g_pImmediateContext->RSSetViewports(1, &newViewport);
+
 	// Render the debug window using the texture shader.
 	if (!g_pTextureShaderClass->Render(g_pImmediateContext, g_pDebugWindow->GetIndexCount(), 
 		g_World, 
@@ -1065,6 +1099,8 @@ void Render()
 		MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
 		return;
 	}
+	//
+	//g_pImmediateContext->RSSetViewports(1, viewportArray);
 
 	// turn z buffer on
 	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 1);
@@ -1213,7 +1249,7 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 			// set constant buffer for material
 			if (material.pMaterialCb)
 			{
-				//g_pImmediateContext->UpdateSubresource(material.pMaterialCb, 0, NULL, &material.mtrlConst, 0, 0);
+				//g_pImmediateContext->UpdateSubresource(material.pMaterialCb, 0, nullptr, &material.mtrlConst, 0, 0);
 				g_pImmediateContext->PSSetConstantBuffers(0, 1, &material.pMaterialCb);	// setting materials constant buffer
 
 				hr = g_pImmediateContext->Map(material.pMaterialCb, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);

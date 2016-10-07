@@ -1,4 +1,5 @@
 #include <DebugWindow.h>
+#include <AnimationDef.h>
 
 DebugWindow::DebugWindow()
 {
@@ -67,10 +68,8 @@ int DebugWindow::GetIndexCount()
 
 bool DebugWindow::InitializeBuffers(ID3D11Device* device)
 {
-	VertexType* vertices;
+	ursine::FBX_DATA::VERTEX_DATA_LT* vertices;
 	unsigned long* indices;
-	D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc;
-	D3D11_SUBRESOURCE_DATA vertexData, indexData;
 	HRESULT result;
 	int i;
 
@@ -81,7 +80,7 @@ bool DebugWindow::InitializeBuffers(ID3D11Device* device)
 	m_indexCount = m_vertexCount;
 
 	// Create the vertex array.
-	vertices = new VertexType[m_vertexCount];
+	vertices = new ursine::FBX_DATA::VERTEX_DATA_LT[m_vertexCount];
 	if (!vertices)
 		return false;
 
@@ -91,21 +90,27 @@ bool DebugWindow::InitializeBuffers(ID3D11Device* device)
 		return false;
 
 	// Initialize vertex array to zeros at first.
-	memset(vertices, 0, (sizeof(VertexType) * m_vertexCount));
+	memset(vertices, 0, (sizeof(ursine::FBX_DATA::VERTEX_DATA_LT) * m_vertexCount));
 
 	// Load the index array with data.
 	for (i = 0; i < m_indexCount; ++i)
 		indices[i] = i;
 
+	size_t stride = sizeof(ursine::FBX_DATA::VERTEX_DATA_LT);
+
 	// Set up the description of the static vertex buffer.
+	D3D11_BUFFER_DESC vertexBufferDesc;
+	ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
 	vertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	vertexBufferDesc.ByteWidth = sizeof(VertexType) * m_vertexCount;
+	vertexBufferDesc.ByteWidth = stride * m_vertexCount;
 	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	vertexBufferDesc.MiscFlags = 0;
 	vertexBufferDesc.StructureByteStride = 0;
 
 	// Give the subresource structure a pointer to the vertex data.
+	D3D11_SUBRESOURCE_DATA vertexData;
+	ZeroMemory(&vertexData, sizeof(vertexData));
 	vertexData.pSysMem = vertices;
 	vertexData.SysMemPitch = 0;
 	vertexData.SysMemSlicePitch = 0;
@@ -115,14 +120,19 @@ bool DebugWindow::InitializeBuffers(ID3D11Device* device)
 	FAIL_CHECK_BOOLEAN(result);
 
 	// Set up the description of the static index buffer.
+	stride = sizeof(UINT);
+	D3D11_BUFFER_DESC indexBufferDesc;
+	ZeroMemory(&indexBufferDesc, sizeof(indexBufferDesc));
 	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	indexBufferDesc.ByteWidth = sizeof(unsigned long) * m_indexCount;
+	indexBufferDesc.ByteWidth = static_cast<uint32_t>(stride * m_indexCount);
 	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	indexBufferDesc.CPUAccessFlags = 0;
 	indexBufferDesc.MiscFlags = 0;
 	indexBufferDesc.StructureByteStride = 0;
 
 	// Give the subresource structure a pointer to the index data.
+	D3D11_SUBRESOURCE_DATA indexData;
+	ZeroMemory(&indexData, sizeof(indexData));
 	indexData.pSysMem = indices;
 	indexData.SysMemPitch = 0;
 	indexData.SysMemSlicePitch = 0;
@@ -151,9 +161,9 @@ void DebugWindow::ShutdownBuffers()
 bool DebugWindow::UpdateBuffers(ID3D11DeviceContext* deviceContext, int positionX, int positionY)
 {
 	float left, right, top, bottom;
-	VertexType* vertices;
+	ursine::FBX_DATA::VERTEX_DATA_LT* vertices;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
-	VertexType* verticesPtr;
+	ursine::FBX_DATA::VERTEX_DATA_LT* verticesPtr;
 	HRESULT result;
 
 	// If the position we are rendering this bitmap to has not changed then don't update the vertex buffer since it
@@ -178,64 +188,51 @@ bool DebugWindow::UpdateBuffers(ID3D11DeviceContext* deviceContext, int position
 	bottom = top - (float)m_bitmapHeight;
 
 	// Create the vertex array.
-	vertices = new VertexType[m_vertexCount];
+	vertices = new ursine::FBX_DATA::VERTEX_DATA_LT[m_vertexCount];
 	if (!vertices)
 		return false;
 
+	//left = -1;
+	//right = 1;
+	//bottom = -1;
+	//top = 1;
+	
 	// Load the vertex array with data.
 	// First triangle.
 	// Top left
-	vertices[0].position.m128_f32[0] = left;
-	vertices[0].position.m128_f32[1] = top;
-	vertices[0].position.m128_f32[2] = 0.0f;
-	vertices[0].texture.m128_f32[0] = 0.0f;
-	vertices[0].texture.m128_f32[1] = 0.0f;
+	vertices[0].vPos		= XMFLOAT3(left, top, 0.0f);
+	vertices[0].vTexcoord	= XMFLOAT2(0.0f, 0.0f);
 
 	// Bottom right.
-	vertices[1].position.m128_f32[0] = right;
-	vertices[1].position.m128_f32[1] = bottom;
-	vertices[1].position.m128_f32[2] = 0.0f;
-	vertices[1].texture.m128_f32[0] = 1.0f;
-	vertices[1].texture.m128_f32[1] = 1.0f;
+	vertices[1].vPos		= XMFLOAT3(right, bottom, 0.0f);
+	vertices[1].vTexcoord	= XMFLOAT2(1.0f, 1.0f);
 
 	// Bottom left.
-	vertices[2].position.m128_f32[0] = left;
-	vertices[2].position.m128_f32[1] = bottom;
-	vertices[2].position.m128_f32[2] = 0.0f;
-	vertices[2].texture.m128_f32[0] = 0.0f;
-	vertices[2].texture.m128_f32[1] = 1.0f;
+	vertices[2].vPos		= XMFLOAT3(left, bottom, 0.0f);
+	vertices[2].vTexcoord	= XMFLOAT2(0.0f, 1.0f);
 
 	// Second triangle.
 	// Top left.
-	vertices[3].position.m128_f32[0] = left;
-	vertices[3].position.m128_f32[1] = top;
-	vertices[3].position.m128_f32[2] = 0.0f;
-	vertices[3].texture.m128_f32[0] = 0.0f;
-	vertices[3].texture.m128_f32[1] = 0.0f;
+	vertices[3].vPos		= XMFLOAT3(left, top, 0.0f);
+	vertices[3].vTexcoord	= XMFLOAT2(0.0f, 0.0f);
 
 	// Top right.
-	vertices[4].position.m128_f32[0] = right;
-	vertices[4].position.m128_f32[1] = top;
-	vertices[4].position.m128_f32[2] = 0.0f;
-	vertices[4].texture.m128_f32[0] = 1.0f;
-	vertices[4].texture.m128_f32[1] = 0.0f;
+	vertices[4].vPos		= XMFLOAT3(right, top, 0.0f);
+	vertices[4].vTexcoord	= XMFLOAT2(1.0f, 0.0f);
 
 	// Bottom right.
-	vertices[5].position.m128_f32[0] = right;
-	vertices[5].position.m128_f32[1] = bottom;
-	vertices[5].position.m128_f32[2] = 0.0f;
-	vertices[5].texture.m128_f32[0] = 1.0f;
-	vertices[5].texture.m128_f32[1] = 1.0f;
+	vertices[5].vPos		= XMFLOAT3(right, bottom, 0.0f);
+	vertices[5].vTexcoord	= XMFLOAT2(1.0f, 1.0f);
 
 	// Lock the vertex buffer so it can be written to.
 	result = deviceContext->Map(m_vertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	FAIL_CHECK_BOOLEAN(result);
 
 	// Get a pointer to the data in the vertex buffer.
-	verticesPtr = (VertexType*)mappedResource.pData;
+	verticesPtr = (ursine::FBX_DATA::VERTEX_DATA_LT*)mappedResource.pData;
 
 	// Copy the data into the vertex buffer.
-	memcpy(verticesPtr, (void*)vertices, (sizeof(VertexType) * m_vertexCount));
+	memcpy(verticesPtr, (void*)vertices, sizeof(ursine::FBX_DATA::VERTEX_DATA_LT) * m_vertexCount);
 
 	// Unlock the vertex buffer.
 	deviceContext->Unmap(m_vertexBuffer, 0);
@@ -252,7 +249,7 @@ void DebugWindow::RenderBuffers(ID3D11DeviceContext* deviceContext)
 	unsigned int offset;
 
 	// Set vertex buffer stride and offset.
-	stride = sizeof(VertexType);
+	stride = sizeof(ursine::FBX_DATA::VERTEX_DATA_LT);
 	offset = 0;
 
 	// Set the vertex buffer to active in the input assembler so it can be rendered.
