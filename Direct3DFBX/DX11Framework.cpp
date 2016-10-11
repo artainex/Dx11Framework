@@ -15,7 +15,9 @@
 #include <Light.h>
 #include <RenderTexture.h>
 #include <DebugWindow.h>
+#include <PointShader.h>
 #include <TextureShader.h>
+#include <LightShader.h>
 #include "CFBXRendererDX11.h"
 
 using namespace DirectX;
@@ -23,18 +25,17 @@ using namespace ursine::FBX_DATA;
 
 //--------------------------------------------------------------------------------------
 // TODO list
-// 1. Multiple Model/Animation Loading
+// 1. Multiple Model/Animation Loading - done
 // 2. FBX Data-> Output -> Output load instead FBX(don't need to do right now. 
 // cauz I've already done this before, we need to show FBX parsing actually works
 // 3. Normal mapping, Shadow Mapping, Deferred Shading
 // understand how to use G-Buffer first
-// Not priority 
-// - create boolean structure to check if diff/ambi/spec maps exist
-// struct ~{bool amap, bool dmap, bool smap}
-// - if there is no texture -> cylinderical or spherical mapping
 // - draw grid
 // - UI add
 //--------------------------------------------------------------------------------------
+// 큐브 fbx로드해서 인스턴싱으로 본 위치마다 매트릭스 팔레트 곱해서 배치하고
+// 그 본 위치들을 라인으로 그리자
+// 우선 본 위치들부터 먼저 벡터에 저장해봐
 
 //--------------------------------------------------------------------------------------
 // Global Variables
@@ -66,14 +67,14 @@ Camera								g_Camera;
 
 // Lights
 const int MAX_LIGHT = 5;
-ursine::Light						g_AmbientLight;
-ursine::Light						g_GlobalLight;
+ursine::Light						g_GlobalLight; // ambient, global
 ursine::Light						g_LocalLights[MAX_LIGHT];
 
-const int MAX_RENDERTARGET = 4;
 RenderTexture*						g_pRenderTexture = nullptr; // 4 texture maps - position, color, normal, depth
 DebugWindow*						g_pDebugWindow = nullptr;
+PointShader*						g_pPointShader = nullptr;
 TextureShader*						g_pTextureShader = nullptr;
+LightShader*						g_pLightShader = nullptr;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations
@@ -81,6 +82,7 @@ TextureShader*						g_pTextureShader = nullptr;
 HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow);
 HRESULT InitDevice();
 HRESULT InitCamera();
+HRESULT InitLight();
 HRESULT InitVertexShaders();
 HRESULT InitPixelShaders();
 HRESULT CreateBuffers();
@@ -96,6 +98,9 @@ UINT updateSpeed = 1;
 
 const UINT	NUMBER_OF_MODELS = 2;
 
+// Skeleton
+std::vector<XMFLOAT3>				bonePoints[NUMBER_OF_MODELS];
+
 HRESULT InitApp();
 void CleanupApp();
 ursine::CFBXRenderDX11*	g_pFbxDX11[NUMBER_OF_MODELS];
@@ -103,9 +108,9 @@ ursine::CFBXRenderDX11*	g_pFbxDX11[NUMBER_OF_MODELS];
 // FBX file
 char g_files[NUMBER_OF_MODELS][256] =
 {
-	//"Assets/Models/stanford_bunny.fbx",
-	"Assets/Models/Plane.fbx",
-	"Assets/Animations/Player/Player_Idle.fbx"
+	"Assets/Models/stanford_bunny.fbx",
+	"Assets/Models/Plane.fbx"
+	//"Assets/Animations/Player/Player_Win.fbx"
 };
 
 std::vector<XMMATRIX> skin_mat;
@@ -151,6 +156,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 		return 0;
 	}
 
+	FAIL_CHECK( InitLight() );
 	FAIL_CHECK( InitCamera() );
 
 	// Main message loop
@@ -170,7 +176,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 			Update(t_delta_per_msec);
 
 			// need to be reset on last frame's time
-			if (t_delta_per_msec >= 1.f)
+			// should change this if delta time goes over the last frame, set it as 0
+			if (t_delta_per_msec >= 2.f)
 				start = std::clock();
 
 			Render();
@@ -445,21 +452,37 @@ HRESULT InitCamera()
 	g_World = XMMatrixIdentity();
 
 	// Initialize the view matrix
-	XMVECTOR initPos;
-	initPos.m128_f32[0] = 0.f;
-	initPos.m128_f32[1] = 0.f;
-	initPos.m128_f32[2] = -100.f;
+	XMFLOAT3 initPos;
+	initPos.x = 0.f;
+	initPos.y = 0.f;
+	initPos.z = -100.f;
 	g_Camera.SetPosition(initPos);
 	g_Camera.SetViewMatrix();
 
 	// Initialize the projection matrix
-	g_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, width / (FLOAT)height, 0.01f, 10000.0f);
+	g_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, (float)width / (float)height, 0.01f, 10000.0f);
 
 	g_OrthoMatrix = XMMatrixOrthographicLH(width, height, 0.01f, 10000.0f);
 
 	g_TRSMatrix = XMMatrixIdentity();
 
 	return hr;
+}
+
+//--------------------------------------------------------------------------------------
+// Init Light
+//--------------------------------------------------------------------------------------
+HRESULT InitLight()
+{
+	g_GlobalLight.SetAmbientColor(255.f, 255.f, 255.f, 255.f);
+	g_GlobalLight.SetDiffuseColor(255.f, 255.f, 255.f, 255.f);
+	g_GlobalLight.SetDirection(0.f, 0.f, 1.f);
+	for (UINT i = 0; i < MAX_LIGHT; ++i)
+	{
+		g_LocalLights[i].SetDiffuseColor(i*10, i*30, i*50, 255.f);
+	}
+
+	return S_OK;
 }
 
 //--------------------------------------------------------------------------------------
@@ -685,7 +708,7 @@ HRESULT InitApp()
 	HRESULT hr = S_OK;
 
 	// create the render to texture obj
-	g_pRenderTexture = new RenderTexture;// [MAX_RENDERTARGET];
+	g_pRenderTexture = new RenderTexture;
 	if (!g_pRenderTexture)
 		return E_FAIL;
 	// initialize the render to texture obj
@@ -694,11 +717,6 @@ HRESULT InitApp()
 		MessageBox(nullptr, "Could not initialize the render texture object.", "Error", MB_OK);
 		return E_FAIL;
 	}
-	//for (UINT i = 0; i < MAX_RENDERTARGET; ++i)
-	//{
-	//	if (!g_pRenderTexture[i].Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT))
-	//		return E_FAIL;
-	//}
 
 	// create debug window obj
 	g_pDebugWindow = new DebugWindow;
@@ -711,17 +729,41 @@ HRESULT InitApp()
 		MessageBox(nullptr, "Could not initialize the debug window object.", "Error", MB_OK);
 		return false;
 	}
+
+	//// create point class obj
+	//g_pPointShader = new PointShader;
+	//if (!g_pPointShader)
+	//	return E_FAIL;
+	//
+	//// initialize the point shader obj.
+	//if (!g_pPointShader->Initialize(g_pd3dDevice, g_hWnd))
+	//{
+	//	MessageBox(nullptr, "Could not initialize the texture shader object.", "Error", MB_OK);
+	//	return false;
+	//}	
 	
 	// create texture class obj
 	g_pTextureShader = new TextureShader;
 	if (!g_pTextureShader)
 		return E_FAIL;
 	
-	// initialize the debug window obj.
+	// initialize the texture shader obj.
 	if (!g_pTextureShader->Initialize(g_pd3dDevice, g_hWnd))
 	{
-		MessageBox(nullptr, "Could not initialize the debug window object.", "Error", MB_OK);
-		return false;
+		MessageBox(nullptr, "Could not initialize the texture shader object.", "Error", MB_OK);
+		return E_FAIL;
+	}
+
+	// create light class obj
+	g_pLightShader = new LightShader;
+	if (!g_pLightShader)
+		return E_FAIL;
+
+	// initialize the light shader obj
+	if (!g_pLightShader->Initialize(g_pd3dDevice, g_hWnd))
+	{
+		MessageBox(nullptr, "Could not initialize the light shader object.", "Error", MB_OK);
+		return E_FAIL;
 	}
 
 	// Load fbx model
@@ -779,7 +821,7 @@ HRESULT SetupTransformSRV()
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory(&bd, sizeof(bd));
 	bd.Usage = D3D11_USAGE_DYNAMIC;
-	bd.ByteWidth = stride;// *count;
+	bd.ByteWidth = stride;// *count;2
 	bd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
@@ -836,10 +878,20 @@ void CleanupDevice()
 	SAFE_RELEASE(g_pDepthStencil);
 	SAFE_RELEASE(g_pDepthStencilView);
 	SAFE_RELEASE(g_pRenderTargetView);
+	if (g_pLightShader)
+	{
+		g_pLightShader->Shutdown();
+		SAFE_DELETE(g_pLightShader);
+	}
 	if (g_pTextureShader)
 	{
 		g_pTextureShader->Shutdown();
 		SAFE_DELETE(g_pTextureShader);
+	}
+	if (g_pPointShader)
+	{
+		g_pPointShader->Shutdown();
+		SAFE_DELETE(g_pPointShader);
 	}
 	if (g_pDebugWindow)
 	{
@@ -871,6 +923,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	HDC hdc;
 	static float rot_Angle[3] = { 0.0f, };
 	static float tsl_dist[3] = { 0, };
+	static float scale = 1.0f;
 	XMMATRIX tsl;
 	XMMATRIX rot;
 	XMMATRIX scl;
@@ -886,37 +939,44 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_KEYDOWN:
 		switch (wParam)
 		{
-			// left right back and forth
-		case VK_LEFT:
-			tsl_dist[0] -= 5.0f;
-			break;
-		case VK_RIGHT:
-			tsl_dist[0] += 5.0f;
-			break;
-		case VK_UP:
-			tsl_dist[2] += 5.0f;
-			break;
-		case VK_DOWN:
+			// xz translation
+		case VK_NUMPAD2:
 			tsl_dist[2] -= 5.0f;
 			break;
+		case VK_NUMPAD8:
+			tsl_dist[2] += 5.0f;
+			break;
+		case VK_NUMPAD4:
+			tsl_dist[0] -= 5.0f;
+			break;
+		case VK_NUMPAD6:
+			tsl_dist[0] += 5.0f;
+			break;
+
+			// initialize
+		case VK_NUMPAD5:
+			tsl_dist[0] = tsl_dist[1] = tsl_dist[2] = 0.f;
+			rot_Angle[0] = rot_Angle[1] = rot_Angle[2] = 0.f;
+			scale = 1.0f;
+			break;
 	
-			// x-Axis rot
-		case 'w':
-		case 'W':
-			rot_Angle[0] += 0.1f;
-			break;
-		case 's':
-		case 'S':
-			rot_Angle[0] -= 0.1f;
-			break;
+			// Number pad rotation "0" cw, "." ccw
 			// y-Axis rot
-		case 'a':
-		case 'A':
+		case VK_NUMPAD0:
 			rot_Angle[1] += 0.1f;
 			break;
-		case 'd':
-		case 'D':
+		case VK_DECIMAL:
 			rot_Angle[1] -= 0.1f;
+			break;
+
+			// Zoom in and out
+		case VK_ADD:
+			scale += 0.1f;
+			break;
+		case VK_SUBTRACT:
+			scale -= 0.1f;
+			if (scale <= 0.f)
+				scale = 1.f;
 			break;
 		}
 		if (rot_Angle[0] >= 360.f)
@@ -935,7 +995,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	tsl = XMMatrixTranslation(tsl_dist[0], tsl_dist[1], tsl_dist[2]);	
 	rot = XMMatrixRotationRollPitchYaw(rot_Angle[0], rot_Angle[1], rot_Angle[2]);
-	g_TRSMatrix = rot * tsl;
+	scl = XMMatrixScaling(scale, scale, scale);
+	g_TRSMatrix = scl * rot * tsl;
 
 	return 0;
 }
@@ -950,9 +1011,10 @@ void RenderModel()
 	{
 		auto &currModel = g_pFbxDX11[mdl_idx];
 
+		// mesh nodes count
 		size_t meshnodeCnt = currModel->GetMeshNodeCount();
-
-		// for all nodes
+				
+		// for all mesh nodes
 		for (UINT mn_idx = 0; mn_idx < meshnodeCnt; ++mn_idx)
 		{
 			//////////////////////////////////////
@@ -984,6 +1046,9 @@ void RenderModel()
 			// render node
 			currModel->RenderNode(g_pImmediateContext, mn_idx);
 
+			//// render bone points
+			//currModel->RenderPoint(g_pImmediateContext);
+
 			// reset shader
 			g_pImmediateContext->VSSetShader(nullptr, nullptr, 0);
 			g_pImmediateContext->PSSetShader(nullptr, nullptr, 0);
@@ -1010,6 +1075,7 @@ void Render()
 	}
 
 	// Pass1 - Render to texture
+	// pos, norm, diff, spec+shineness
 	RenderToTexture();
 
 	// Pass2 - Render to back buffer
@@ -1017,37 +1083,49 @@ void Render()
 
 	// turn z buffer off
 	g_pImmediateContext->OMSetDepthStencilState(g_pDepthDisabledStencilState, 1);
-
-	// render the debug window on 50x50 posittion
-	g_pDebugWindow->Render(g_pImmediateContext, 50, 50);
-
-	//D3D11_VIEWPORT viewportArray[16];
-	//UINT outputVPCount = 16;
-	//g_pImmediateContext->RSGetViewports(&outputVPCount, viewportArray);
-	//
-	//D3D11_VIEWPORT newViewport;
-	//newViewport.Width = 50;
-	//newViewport.Height = 50;
-	//newViewport.MaxDepth = 1;
-	//newViewport.MinDepth = 0;
-	//newViewport.TopLeftX = 10;
-	//newViewport.TopLeftY = 10;
-	//
-	//g_pImmediateContext->RSSetViewports(1, &newViewport);
-
-	// Render the debug window using the texture shader.
-	if (!g_pTextureShader->Render(g_pImmediateContext, g_pDebugWindow->GetIndexCount(), 
-		g_World, 
+	
+	// 디버그 창을 네번 그리는 게 아니라
+	// 한번 그리는데 텍스쳐를 넷 다 쓰는거야
+	// Render the debug window using the texture shader on 0x0 posittion
+	g_pDebugWindow->Render(g_pImmediateContext, 0, 0);
+	
+	if (!g_pTextureShader->Render(g_pImmediateContext,
+		g_pDebugWindow->GetIndexCount(),
+		g_World,
 		g_Camera.GetViewMatrix(),
 		g_OrthoMatrix,
-		g_pRenderTexture->GetShaderResourceView()))
+		&g_GlobalLight,
+		g_pRenderTexture->GetShaderResourceViews()))
 	{
 		MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
 		return;
 	}
 
-	//
-	//g_pImmediateContext->RSSetViewports(1, viewportArray);
+	//for (UINT i = 0; i < RT_COUNT; ++i)
+	//{
+	//	g_pDebugWindow->Render(g_pImmediateContext, i * 200, 0);
+	//	if (!g_pTextureShader->Render(g_pImmediateContext,
+	//		g_pDebugWindow->GetIndexCount(),
+	//		g_World,
+	//		g_Camera.GetViewMatrix(),
+	//		g_OrthoMatrix,
+	//		g_pRenderTexture->GetShaderResourceView(i)))
+	//	{
+	//		MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
+	//		return;
+	//	}
+	//}
+
+	//// Render the animation debugger
+	//if (!g_pPointShader->Render(g_pImmediateContext,
+	//	g_pPointShader->GetIndexCount(),
+	//	g_World,
+	//	g_Camera.GetViewMatrix(),
+	//	g_Projection))
+	//{
+	//	MessageBox(nullptr, "failed to render point by using Point Shader", "Error", MB_OK);
+	//	return;
+	//}
 
 	// turn z buffer on
 	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 1);
@@ -1072,7 +1150,7 @@ void RenderScene()
 	//float blendFactors[4] = { D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO };
 	//g_pImmediateContext->RSSetState(g_pRS);
 	//g_pImmediateContext->OMSetBlendState(g_pBlendState, blendFactors, 0xffffffff);
-	//g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 0);
+	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 0);
 	
 	RenderModel();
 }
@@ -1081,26 +1159,12 @@ void RenderScene()
 void RenderToTexture()
 {
 	g_pRenderTexture->SetRenderTarget(g_pImmediateContext, g_pDepthStencilView);
-	//for (auto i = 0; i < MAX_RENDERTARGET; ++i)
-	//{
-	//	if (i == MAX_RENDERTARGET - 1)
-	//		g_pRenderTexture[i].SetRenderTarget(g_pImmediateContext, g_pDepthStencilView);
-	//	else
-	//		g_pRenderTexture[i].SetRenderTarget(g_pImmediateContext, g_pDepthStencilView);
-	//}
 
 	// Clear the back buffer with Color rgba
 	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	float Depth[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	float Blue[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
 	g_pRenderTexture->ClearRenderTarget(g_pImmediateContext, g_pDepthStencilView, Blue);
-	//for (auto i = 0; i < MAX_RENDERTARGET; ++i)
-	//{
-	//	if (i == MAX_RENDERTARGET - 1)
-	//		g_pRenderTexture[i].ClearRenderTarget(g_pImmediateContext, g_pDepthStencilView, Depth);
-	//	else
-	//		g_pRenderTexture[i].ClearRenderTarget(g_pImmediateContext, g_pDepthStencilView, ClearColor);
-	//}
 	
 	RenderScene();
 
@@ -1224,11 +1288,14 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 			LightBufferType* lightBuffer = (LightBufferType*)MappedResource.pData;
 			FAIL_CHECK_BOOLEAN(hr);
 			
-			lightBuffer->ambientColor	= urColor::White;
-			lightBuffer->diffuseColor	= urColor::White;
-			lightBuffer->specularColor	= urColor::White;
-			lightBuffer->emissiveColor	= urColor::White;
-			lightBuffer->lightDirection = ursine::SVec3(0.f, 0.f, 1.f);			
+			XMFLOAT4 gambi = g_GlobalLight.GetAmbientColor();
+			XMFLOAT4 gdiff = g_GlobalLight.GetDiffuseColor();
+			XMFLOAT3 gdir = g_GlobalLight.GetDirection();
+			lightBuffer->ambientColor	= gambi;
+			lightBuffer->diffuseColor	= gdiff;
+			lightBuffer->specularColor	= gdiff;
+			lightBuffer->emissiveColor	= gdiff;
+			lightBuffer->lightDirection = gdir;
 
 			g_pImmediateContext->Unmap(g_plightBuffer, 0);
 		}

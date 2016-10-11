@@ -171,7 +171,7 @@ namespace ursine
         , g( math::Clamp( green, 0.0f, 1.0f ) )
         , b( math::Clamp( blue, 0.0f, 1.0f ) )
         , a( math::Clamp( alpha, 0.0f, 1.0f ) ) { }
-
+	
     Color::Color(const Color &color, float alpha)
         : r( math::Clamp( color.r, 0.0f, 1.0f ) )
         , g( math::Clamp( color.g, 0.0f, 1.0f ) )

@@ -5,15 +5,13 @@
 
 Camera::Camera()
 {
-	mPos.m128_f32[0] = 0.f;
-	mPos.m128_f32[1] = 0.f;
-	mPos.m128_f32[2] = 0.f;
-	mPos.m128_f32[3] = 1.f;
+	mPos.x = 0.f;
+	mPos.y = 0.f;
+	mPos.z = 0.f;
 
-	mRot.m128_f32[0] = 0.f;
-	mRot.m128_f32[1] = 0.f;
-	mRot.m128_f32[2] = 0.f;
-	mRot.m128_f32[3] = 1.f;
+	mRot.x = 0.f;
+	mRot.y = 0.f;
+	mRot.z = 0.f;
 }
 
 Camera::Camera(const Camera& other)
@@ -47,7 +45,9 @@ void Camera::SetViewMatrix()
 	up.m128_f32[2] = 0.0f;
 
 	// Setup the position of the camera in the world.
-	eyePos = mPos;
+	eyePos.m128_f32[0] = mPos.x;
+	eyePos.m128_f32[1] = mPos.y;
+	eyePos.m128_f32[2] = mPos.z;
 
 	// Setup where the camera is looking by default.
 	lookAt.m128_f32[0] = 0.0f;
@@ -55,9 +55,9 @@ void Camera::SetViewMatrix()
 	lookAt.m128_f32[2] = 1.0f;
 
 	// Set the yaw (Y axis), pitch (X axis), and roll (Z axis) rotations in radians.
-	pitch	= mRot.m128_f32[0] * 0.0174532925f;
-	yaw		= mRot.m128_f32[1] * 0.0174532925f;
-	roll	= mRot.m128_f32[2] * 0.0174532925f;
+	pitch	= mRot.x * 0.0174532925f;
+	yaw		= mRot.y * 0.0174532925f;
+	roll	= mRot.z * 0.0174532925f;
 
 	// Create the rotation matrix from the yaw, pitch, and roll values.
 	rotMtx = XMMatrixRotationRollPitchYaw(yaw, pitch, roll);
@@ -67,7 +67,7 @@ void Camera::SetViewMatrix()
 	up		= XMVector3TransformCoord(up, rotMtx);
 
 	// Translate the rotated camera position to the location of the viewer.
-	//lookAt = eyePos + lookAt;
+	lookAt = eyePos + lookAt;
 
 	// Finally create the view matrix from the three updated vectors.
 	mViewMtx = XMMatrixLookAtLH(eyePos, lookAt, up);

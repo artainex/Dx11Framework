@@ -19,18 +19,18 @@ public:
 
 	void Update();
 
-	void SetPosition(const XMVECTOR& pos) { mPos = pos; }
-	void SetRotation(const XMVECTOR& rot) { mRot = rot; }
+	void SetPosition(const XMFLOAT3& pos) { mPos = pos; }
+	void SetRotation(const XMFLOAT3& rot) { mRot = rot; }
 
-	const XMVECTOR& GetPosition() const { return mPos; }
-	const XMVECTOR& GetRotation() const { return mRot; }
+	const XMFLOAT3& GetPosition() const { return mPos; }
+	const XMFLOAT3& GetRotation() const { return mRot; }
 
 	void SetViewMatrix();
 	void SetViewMatrix(const XMMATRIX& viewMtx) { mViewMtx = viewMtx; }
 	const XMMATRIX& GetViewMatrix() const { return mViewMtx; }
 
 private:
-	XMVECTOR mPos;
-	XMVECTOR mRot;
+	XMFLOAT3 mPos;
+	XMFLOAT3 mRot;
 	XMMATRIX mViewMtx;
 };

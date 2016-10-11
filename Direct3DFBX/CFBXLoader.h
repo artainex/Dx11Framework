@@ -76,6 +76,8 @@ namespace ursine
 		*/
 		void UpdateMatPal(XMMATRIX* matPal = nullptr);
 
+		const std::vector<XMMATRIX>& GetMatPal() const { return mtxPalArray; }
+
 		/** @brief fbx loader export function
 		*
 		*  this will build up custom file datastructure from fbx

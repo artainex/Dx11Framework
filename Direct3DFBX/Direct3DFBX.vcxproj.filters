@@ -66,6 +66,15 @@
     <Filter Include="Shaders\TextureShader">
       <UniqueIdentifier>{0090f61d-1e3e-4ac2-b311-c62e8e73099b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\LightShader">
+      <UniqueIdentifier>{1ab08ad2-8e58-43c3-902a-f177afed4f9a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PointShader">
+      <UniqueIdentifier>{0ae4ef30-e8f2-4123-8aff-c786c0fbb4be}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\LineShader">
+      <UniqueIdentifier>{2a2c317e-7b68-471a-b214-964602717a83}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CFBXRendererDX11.cpp">
@@ -151,6 +160,12 @@
       <Filter>Graphics\Light</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\TextureShader.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Light\LightShader.cpp">
+      <Filter>Graphics\Light</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\PointShader.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
   </ItemGroup>
@@ -311,11 +326,14 @@
     <ClInclude Include="include\Graphics\TextureShader.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="include\Graphics\Light\LightShader.h">
+      <Filter>Graphics\Light</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\PointShader.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="simpleRenderInstancingVS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
     <FxCompile Include="Shader\PixelShader\PixelShaderLayout0.hlsl">
       <Filter>Shaders\PixelShader</Filter>
     </FxCompile>
@@ -369,6 +387,21 @@
     </FxCompile>
     <FxCompile Include="Shader\TextureShader\TextureVertexShader.hlsl">
       <Filter>Shaders\TextureShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\LightShader\LightPixelShader.hlsl">
+      <Filter>Shaders\LightShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\LightShader\LightVertexShader.hlsl">
+      <Filter>Shaders\LightShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PointShader\PointShader_GS.hlsl">
+      <Filter>Shaders\PointShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PointShader\PointVertexShader.hlsl">
+      <Filter>Shaders\PointShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PointShader\PointPixelShader.hlsl">
+      <Filter>Shaders\PointShader</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

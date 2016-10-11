@@ -52,7 +52,11 @@ void BufferInitialize(D3D11_BUFFER_DESC& buffer,
 namespace ursine
 {
 	CFBXRenderDX11::CFBXRenderDX11() :
-		m_pFBX(nullptr)
+		m_pFBX(nullptr),
+		m_bonevsLayout(nullptr),
+		m_boneVS(nullptr),
+		m_boneVB(nullptr),
+		m_pboneInputLayout(nullptr)
 	{
 	}
 
@@ -67,6 +71,10 @@ namespace ursine
 			meshNode.Release();
 		m_meshNodeArray.clear();
 
+		SAFE_RELEASE(m_boneVB);
+		SAFE_RELEASE(m_boneVS);
+		SAFE_RELEASE(m_bonevsLayout);
+		SAFE_RELEASE(m_pboneInputLayout);
 		SAFE_DELETE(m_pFBX);
 	}
 
@@ -83,6 +91,9 @@ namespace ursine
 
 		hr = CreateNodes(pd3dDevice);
 		FAIL_CHECK(hr);
+
+		//hr = CreatePoint(pd3dDevice);
+		//FAIL_CHECK(hr);
 
 		return hr;
 	}
@@ -131,6 +142,101 @@ namespace ursine
 			delete indices;
 		}
 		return hr;
+	}
+
+	HRESULT CFBXRenderDX11::CreatePoint(ID3D11Device* pd3dDevice)
+	{
+		if (!pd3dDevice)
+			return E_FAIL;
+
+		HRESULT hr = S_OK;
+		const ModelInfo& modelInfo = m_pFBX->GetModelInfo();
+		
+		// store bones' info - should optimize this later.
+		// currently, repeating so many unneccesary things
+		size_t boneCount = modelInfo.mBoneInfoVec.size();
+		if (0 == boneCount)
+			return S_OK;
+		
+		UINT i = 0;
+		VERTEX_DATA_LP* pVS = new VERTEX_DATA_LP[boneCount];
+		for (auto& iter : modelInfo.mBoneInfoVec)
+		{
+			XMFLOAT3 currVtx = XMFLOAT3(iter.boneSpacePosition.x, iter.boneSpacePosition.y, iter.boneSpacePosition.z);
+			pVS[i].vPos = currVtx;
+			pVS[i].vColor = XMFLOAT4(255.f, 255.f, 255.f, 255.f);
+			m_bonePtArray.push_back(*pVS);
+			++i;
+		}
+		
+		hr = CreateVertexBuffer(pd3dDevice, &m_boneVB, pVS, sizeof(VERTEX_DATA_LP), boneCount);
+		SAFE_DELETE_ARRAY(pVS);
+		
+		hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/PointShader/PointVertexShader.hlsl", "PointVertexShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
+		FAIL_CHECK_WITH_MSG(hr, "PointVertexShader.hlsl cannot be compiled.");
+		//hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/PointShader/PointPixelShader.hlsl", "PointPixelShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
+		//FAIL_CHECK_WITH_MSG(hr, "PointPixelShader.hlsl cannot be compiled.");
+		
+		LAYOUT input_layout;
+		pd3dDevice->CreateInputLayout(input_layout.LAYOUT_PT, 2,
+			m_boneVS->GetBufferPointer(),
+			m_boneVS->GetBufferSize(),
+			&m_pboneInputLayout);
+		SAFE_RELEASE(m_boneVS)
+
+		return hr;
+	}
+
+	HRESULT CFBXRenderDX11::CreateSkeletonLines(ID3D11Device* pd3dDevice)
+	{
+		if (!pd3dDevice)
+			return E_FAIL;
+
+		HRESULT hr = S_OK;
+		const ModelInfo& modelInfo = m_pFBX->GetModelInfo();
+
+		// store bones' info - should optimize this later.
+		// currently, repeating so many unneccesary things
+		size_t boneCount = modelInfo.mBoneInfoVec.size();
+		if (0 == boneCount)
+			return S_OK;
+
+		// build line first
+		UINT i = 0;
+		for (i = 0; i < boneCount-1; ++i)
+		{
+			Line newLine(m_bonePtArray[i], m_bonePtArray[i+1]);
+			m_boneLineArray.push_back( newLine );
+		}
+
+		// create buffer
+		i = 0;
+		VERTEX_DATA_LP* pVS = new VERTEX_DATA_LP[boneCount];
+		for (auto& iter : modelInfo.mBoneInfoVec)
+		{
+			XMFLOAT3 currVtx = XMFLOAT3(iter.boneSpacePosition.x, iter.boneSpacePosition.y, iter.boneSpacePosition.z);
+			pVS[i].vPos = currVtx;
+			pVS[i].vColor = XMFLOAT4(255.f, 255.f, 255.f, 255.f);
+			m_bonePtArray.push_back(*pVS);
+			++i;
+		}
+
+		hr = CreateVertexBuffer(pd3dDevice, &m_boneVB, pVS, sizeof(VERTEX_DATA_LP), boneCount);
+		SAFE_DELETE_ARRAY(pVS);
+
+		hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/PointShader/PointVertexShader.hlsl", "PointVertexShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
+		FAIL_CHECK_WITH_MSG(hr, "PointVertexShader.hlsl cannot be compiled.");
+		//hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/PointShader/PointPixelShader.hlsl", "PointPixelShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
+		//FAIL_CHECK_WITH_MSG(hr, "PointPixelShader.hlsl cannot be compiled.");
+
+		LAYOUT input_layout;
+		pd3dDevice->CreateInputLayout(input_layout.LAYOUT_PT, 2,
+			m_boneVS->GetBufferPointer(),
+			m_boneVS->GetBufferSize(),
+			&m_pboneInputLayout);
+		SAFE_RELEASE(m_boneVS)
+
+			return hr;
 	}
 
 	HRESULT CFBXRenderDX11::CreateVertexBuffer(ID3D11Device* pd3dDevice, ID3D11Buffer** pBuffer, void* pVertices, uint32_t stride, uint32_t vertexCount)
@@ -628,6 +734,51 @@ namespace ursine
 		return hr;
 	}
 
+	HRESULT CFBXRenderDX11::RenderPoint(ID3D11DeviceContext* pImmediateContext)
+	{
+		HRESULT hr = S_OK;		
+
+		const ModelInfo& modelInfo = m_pFBX->GetModelInfo();
+		size_t boneCount = modelInfo.mBoneInfoVec.size();
+		if (0 == boneCount)
+			return S_OK;
+
+		UINT offset = 0;
+		UINT stride = sizeof(VERTEX_DATA_LP);
+		pImmediateContext->IASetVertexBuffers(0, 1, &m_boneVB, &stride, &offset);
+		pImmediateContext->IASetInputLayout(m_pboneInputLayout);
+		pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+		DXGI_FORMAT indexbit = DXGI_FORMAT_R32_UINT;
+		pImmediateContext->Draw(boneCount, 0);
+
+		return hr;
+	}
+
+	// 우선 라인 하나만 그려보자
+	HRESULT CFBXRenderDX11::RenderLine(ID3D11DeviceContext* pImmediateContext)
+	{
+		HRESULT hr = S_OK;
+
+		const ModelInfo& modelInfo = m_pFBX->GetModelInfo();
+		size_t boneCount = modelInfo.mBoneInfoVec.size();
+		if (0 == boneCount)
+			return S_OK;
+		
+		UINT offset = 0;
+		UINT stride = 0;
+		pImmediateContext->IASetVertexBuffers(0, 1, &m_boneLineVB, &stride, &offset);
+		pImmediateContext->IASetInputLayout(m_pboneInputLayout);
+		pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+		
+		DXGI_FORMAT indexbit = DXGI_FORMAT_R32_UINT;
+		
+		pImmediateContext->IASetIndexBuffer(m_boneIB, indexbit, 0);
+		pImmediateContext->DrawIndexed(m_boneLineArray.size(), 0, 0);
+
+		return hr;
+	}
+
 	HRESULT CFBXRenderDX11::RenderNode(ID3D11DeviceContext* pImmediateContext, const size_t nodeId)
 	{
 		size_t nodeCount = m_meshNodeArray.size();
@@ -759,7 +910,7 @@ namespace ursine
 
 		return hr;
 	}
-
+	
 	void CFBXRenderDX11::Update(double timedelta)
 	{
 		if (m_pFBX)

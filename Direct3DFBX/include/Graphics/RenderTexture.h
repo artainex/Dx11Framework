@@ -14,10 +14,12 @@ public:
 	void SetRenderTarget(ID3D11DeviceContext* deviceContext, ID3D11DepthStencilView* depthStencilView);
 	void ClearRenderTarget(ID3D11DeviceContext* deviceContext, ID3D11DepthStencilView* depthStencilView, const float* color);
 	void ClearRenderTarget(ID3D11DeviceContext* deviceContext, ID3D11DepthStencilView* depthStencilView, float r, float g, float b, float a);
-	ID3D11ShaderResourceView* GetShaderResourceView();
+	ID3D11ShaderResourceView* GetShaderResourceView(int index);
+	ID3D11ShaderResourceView** GetShaderResourceViews();
 
 private:
-	ID3D11Texture2D* m_renderTargetTexture;
-	ID3D11RenderTargetView* m_renderTargetView;
-	ID3D11ShaderResourceView* m_shaderResourceView;
+	// pos, norm, diff, spec+shineness
+	ID3D11Texture2D* m_renderTargetTexture[RT_COUNT];
+	ID3D11RenderTargetView* m_renderTargetView[RT_COUNT];
+	ID3D11ShaderResourceView* m_shaderResourceView[RT_COUNT];
 };

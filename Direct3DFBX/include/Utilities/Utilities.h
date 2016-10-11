@@ -54,6 +54,18 @@ enum eShaderType
 	HULL_SHADER
 };
 
+// render type(render target type)
+enum eRenderType
+{
+	BASIC = -1,
+	POSITION,	// world position
+	NORMAL,		// world normal
+	DIFFUSE,	// diffuse
+	SPECULAR,	// specular with shineness
+	//DEPTH,		// depth
+	RT_COUNT
+};
+
 // layout
 enum eLayout
 {
@@ -84,6 +96,7 @@ struct LAYOUT
 	D3D11_INPUT_ELEMENT_DESC LAYOUT6[6];
 	D3D11_INPUT_ELEMENT_DESC LAYOUT7[7];
 	D3D11_INPUT_ELEMENT_DESC LAYOUT_TEX[2];
+	D3D11_INPUT_ELEMENT_DESC LAYOUT_PT[2];
 
 	// TRY OPTIMIZE THESE FORMATS 
 	LAYOUT()
@@ -135,8 +148,12 @@ struct LAYOUT
 
 		LAYOUT_TEX[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
 		LAYOUT_TEX[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+
+		LAYOUT_PT[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+		LAYOUT_PT[1] = { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
 	}
 };
+
 
 // POS NOR
 struct VERTEX_DATA_L0
@@ -221,6 +238,12 @@ struct VERTEX_DATA_LT
 	DirectX::XMFLOAT2	vTexcoord;
 };
 
+// POS NOR
+struct VERTEX_DATA_LP
+{
+	DirectX::XMFLOAT3	vPos;
+	DirectX::XMFLOAT4	vColor;
+};
 
 //--------------------------------------------------------------------------------------
 // D3D11  Utility functions

@@ -18,11 +18,29 @@
 
 namespace ursine
 {
+	struct Line
+	{
+		VERTEX_DATA_LP start;
+		VERTEX_DATA_LP end;
+		Line(VERTEX_DATA_LP st, VERTEX_DATA_LP ed) :start(st), end(ed) {}
+	};
+
 	class CFBXRenderDX11
 	{
 		CFBXLoader*		m_pFBX;
 		std::vector<FBX_DATA::MESH_NODE>	m_meshNodeArray;
+		ID3D11VertexShader*					m_bonevsLayout;
+		ID3DBlob *							m_boneVS;
+		ID3DBlob *							m_boneLineVS;
+		ID3D11Buffer*						m_boneVB;
+		ID3D11Buffer*						m_boneIB;
+		ID3D11Buffer*						m_boneLineVB;
+		ID3D11InputLayout*					m_pboneInputLayout;
+		std::vector<VERTEX_DATA_LP>			m_bonePtArray;
+		std::vector<Line>					m_boneLineArray;
 		HRESULT CreateNodes(ID3D11Device*	pd3dDevice);
+		HRESULT CreatePoint(ID3D11Device*	pd3dDevice);
+		HRESULT CreateSkeletonLines(ID3D11Device*	pd3dDevice);
 		HRESULT VertexConstructionByModel(ID3D11Device* pd3dDevice, FBX_DATA::MESH_NODE& meshNode, const MeshInfo& meshInfo);
 		HRESULT MaterialConstructionByModel(ID3D11Device* pd3dDevice, FBX_DATA::MESH_NODE& meshNode, const ModelInfo& modelInfo, const UINT& index);
 		HRESULT CreateVertexBuffer(ID3D11Device* pd3dDevice, ID3D11Buffer** pBuffer, void* pVertices, uint32_t stride, uint32_t vertexCount);
@@ -37,6 +55,8 @@ namespace ursine
 		HRESULT CreateInputLayout(ID3D11Device*	pd3dDevice, const void* pShaderBytecodeWithInputSignature, size_t BytecodeLength, D3D11_INPUT_ELEMENT_DESC* pLayout, UINT layoutSize);
 
 		HRESULT RenderAll(ID3D11DeviceContext* pImmediateContext);
+		HRESULT RenderPoint(ID3D11DeviceContext* pImmediateContext);
+		HRESULT RenderLine(ID3D11DeviceContext* pImmediateContext);
 		HRESULT RenderNode(ID3D11DeviceContext* pImmediateContext, const size_t nodeId);
 		HRESULT RenderNodeInstancing(ID3D11DeviceContext* pImmediateContext, const size_t nodeId, const uint32_t InstanceCount);
 		HRESULT RenderNodeInstancingIndirect(ID3D11DeviceContext* pImmediateContext, const size_t nodeId, ID3D11Buffer* pBufferForArgs, const uint32_t AlignedByteOffsetForArgs);

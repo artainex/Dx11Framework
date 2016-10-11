@@ -191,11 +191,6 @@ bool DebugWindow::UpdateBuffers(ID3D11DeviceContext* deviceContext, int position
 	vertices = new VERTEX_DATA_LT[m_vertexCount];
 	if (!vertices)
 		return false;
-
-	//left = -1;
-	//right = 1;
-	//bottom = -1;
-	//top = 1;
 	
 	// Load the vertex array with data.
 	// First triangle.

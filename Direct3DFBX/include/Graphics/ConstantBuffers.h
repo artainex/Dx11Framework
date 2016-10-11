@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Utilities.h>
 #include <Light.h>
 
@@ -13,6 +15,10 @@ struct MatrixBufferType
 	XMMATRIX mView;
 	XMMATRIX mProj;
 	XMMATRIX mWVP;
+	bool	bPos;
+	bool	bNor;
+	bool	bDiff;
+	bool	bSpec;
 };
 
 // Matrix Palette Constant Buffer
@@ -25,11 +31,11 @@ struct PaletteBufferType
 struct LightBufferType
 {
 	// For now, try use phong model, use ursine LightClass if I understand HDR or more (this class doesn't have HDR)
-	urColor diffuseColor;
-	urColor ambientColor;
-	urColor specularColor;
-	urColor emissiveColor;
-	ursine::SVec3 lightDirection;
+	XMFLOAT4 diffuseColor;
+	XMFLOAT4 ambientColor;
+	XMFLOAT4 specularColor;
+	XMFLOAT4 emissiveColor;
+	XMFLOAT3 lightDirection;
 	float padding;
 };
 

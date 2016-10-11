@@ -28,10 +28,22 @@ struct PS_INPUT
 	float3	Nor			: NORMAL;
 	float2	Tex			: TEXCOORD0;
 	float4	ViewDir 	: TEXCOORD1;
+	float4	WPos		: TEXCOORD2;
+	float4	WNor		: TEXCOORD3;
 };
 
-float4 PS( PS_INPUT input) : SV_Target
-{	
+struct PS_OUTPUT
+{
+	float4 Postion: SV_Target0;
+	float4 Normal: SV_Target1;
+	float4 Diffuse: SV_Target2;
+	float4 SpecularAndShine: SV_Target3;
+};
+
+PS_OUTPUT PS( PS_INPUT input)
+{
+	PS_OUTPUT output;
+
 	// texture map
 	float2 uv = float2(input.Tex.x, input.Tex.y);
 	float4 diffMap = txDiffuse.Sample(basicSampler, uv);
@@ -71,5 +83,10 @@ float4 PS( PS_INPUT input) : SV_Target
 	
 	final_Color = saturate( final_Color + fv_spec );
 
-	return float4(final_Color, m_transparency);
+	output.Postion = input.WPos;
+	output.Normal = input.WNor;
+	output.Diffuse = float4(fv_diff, m_transparency);
+	output.SpecularAndShine = float4(m_specular, m_shineness);
+
+	return output;
 }

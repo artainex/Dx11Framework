@@ -2,9 +2,12 @@
 
 RenderTexture::RenderTexture()
 {
-	m_renderTargetTexture = 0;
-	m_renderTargetView = 0;
-	m_shaderResourceView = 0;
+	for (UINT i = 0; i < RT_COUNT; ++i)
+	{
+		m_renderTargetTexture[i]	= 0;
+		m_renderTargetView[i]		= 0;
+		m_shaderResourceView[i]		= 0;
+	}
 }
 
 RenderTexture::RenderTexture(const RenderTexture& other)
@@ -42,8 +45,11 @@ bool RenderTexture::Initialize(ID3D11Device* device, int textureWidth, int textu
 	textureDesc.MiscFlags = 0;
 
 	// Create the render target texture.
-	result = device->CreateTexture2D(&textureDesc, NULL, &m_renderTargetTexture);
-	FAIL_CHECK_BOOLEAN(result);
+	for (UINT i = 0; i < RT_COUNT; ++i)
+	{
+		result = device->CreateTexture2D(&textureDesc, NULL, &m_renderTargetTexture[i]);
+		FAIL_CHECK_BOOLEAN(result);
+	}
 
 	// Setup the description of the render target view.
 	renderTargetViewDesc.Format = textureDesc.Format;
@@ -51,8 +57,11 @@ bool RenderTexture::Initialize(ID3D11Device* device, int textureWidth, int textu
 	renderTargetViewDesc.Texture2D.MipSlice = 0;
 
 	// Create the render target view.
-	result = device->CreateRenderTargetView(m_renderTargetTexture, &renderTargetViewDesc, &m_renderTargetView);
-	FAIL_CHECK_BOOLEAN(result);
+	for (UINT i = 0; i < RT_COUNT; ++i)
+	{
+		result = device->CreateRenderTargetView(m_renderTargetTexture[i], &renderTargetViewDesc, &m_renderTargetView[i]);
+		FAIL_CHECK_BOOLEAN(result);
+	}
 
 	// Setup the description of the shader resource view.
 	shaderResourceViewDesc.Format = textureDesc.Format;
@@ -61,8 +70,11 @@ bool RenderTexture::Initialize(ID3D11Device* device, int textureWidth, int textu
 	shaderResourceViewDesc.Texture2D.MipLevels = 1;
 
 	// Create the shader resource view.
-	result = device->CreateShaderResourceView(m_renderTargetTexture, &shaderResourceViewDesc, &m_shaderResourceView);
-	FAIL_CHECK_BOOLEAN(result);
+	for (UINT i = 0; i < RT_COUNT; ++i)
+	{
+		result = device->CreateShaderResourceView(m_renderTargetTexture[i], &shaderResourceViewDesc, &m_shaderResourceView[i]);
+		FAIL_CHECK_BOOLEAN(result);
+	}
 
 	return true;
 }
@@ -70,9 +82,12 @@ bool RenderTexture::Initialize(ID3D11Device* device, int textureWidth, int textu
 // Shutdown releases the three interfaces used by the RenderTextureClass.
 void RenderTexture::Shutdown()
 {
-	SAFE_RELEASE(m_shaderResourceView);
-	SAFE_RELEASE(m_renderTargetView);
-	SAFE_RELEASE(m_renderTargetTexture);
+	for (UINT i = 0; i < RT_COUNT; ++i)
+	{
+		SAFE_RELEASE(m_shaderResourceView[i]);
+		SAFE_RELEASE(m_renderTargetView[i]);
+		SAFE_RELEASE(m_renderTargetTexture[i]);
+	}
 
 	return;
 }
@@ -81,10 +96,10 @@ void RenderTexture::Shutdown()
 void RenderTexture::SetRenderTarget(ID3D11DeviceContext* deviceContext, ID3D11DepthStencilView* depthStencilView)
 {
 	// Bind the render target view and depth stencil buffer to the output render pipeline.
-	if(depthStencilView)
-		deviceContext->OMSetRenderTargets(1, &m_renderTargetView, depthStencilView);
+	if (depthStencilView)
+		deviceContext->OMSetRenderTargets(4, m_renderTargetView, depthStencilView);
 	else
-		deviceContext->OMSetRenderTargets(1, &m_renderTargetView, nullptr);
+		deviceContext->OMSetRenderTargets(4, m_renderTargetView, nullptr);
 
 	return;
 }
@@ -95,7 +110,8 @@ void RenderTexture::ClearRenderTarget(ID3D11DeviceContext* deviceContext,
 	ID3D11DepthStencilView* depthStencilView, const float* color)
 {
 	// Clear the back buffer.
-	deviceContext->ClearRenderTargetView(m_renderTargetView, color);
+	for (UINT i = 0; i < RT_COUNT; ++i)
+		deviceContext->ClearRenderTargetView(m_renderTargetView[i], color);
 
 	// Clear the depth buffer.
 	deviceContext->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -115,7 +131,10 @@ void RenderTexture::ClearRenderTarget(ID3D11DeviceContext* deviceContext,
 	color[3] = a;
 
 	// Clear the back buffer.
-	deviceContext->ClearRenderTargetView(m_renderTargetView, color);
+	for (UINT i = 0; i < RT_COUNT; ++i)
+	{
+		deviceContext->ClearRenderTargetView(m_renderTargetView[i], color);
+	}
 
 	// Clear the depth buffer.
 	deviceContext->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -125,7 +144,12 @@ void RenderTexture::ClearRenderTarget(ID3D11DeviceContext* deviceContext,
 
 // The GetShaderResourceView function returns the render to texture data as a shader resource view.This way whatever has been rendered to the render 
 // target view can be used as a texture in different shaders that call this function.Where you would normally send a texture into a shader you can instead send a call to this function in its place and the render to texture will be used.
-ID3D11ShaderResourceView* RenderTexture::GetShaderResourceView()
+ID3D11ShaderResourceView* RenderTexture::GetShaderResourceView(int index)
+{
+	return m_shaderResourceView[index];
+}
+
+ID3D11ShaderResourceView** RenderTexture::GetShaderResourceViews()
 {
 	return m_shaderResourceView;
 }

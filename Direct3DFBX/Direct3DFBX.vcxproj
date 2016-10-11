@@ -438,6 +438,8 @@
     <ClCompile Include="src\Graphics\Camera\Camera.cpp" />
     <ClCompile Include="src\Graphics\Debug Window\DebugWindow.cpp" />
     <ClCompile Include="src\Graphics\Light\Light.cpp" />
+    <ClCompile Include="src\Graphics\Light\LightShader.cpp" />
+    <ClCompile Include="src\Graphics\PointShader.cpp" />
     <ClCompile Include="src\Graphics\RenderTexture.cpp" />
     <ClCompile Include="src\Graphics\TextureShader.cpp" />
     <ClCompile Include="src\Math\Mat3.cpp" />
@@ -469,6 +471,8 @@
     <ClInclude Include="include\Graphics\ConstantBuffers.h" />
     <ClInclude Include="include\Graphics\Debug Window\DebugWindow.h" />
     <ClInclude Include="include\Graphics\Light\Light.h" />
+    <ClInclude Include="include\Graphics\Light\LightShader.h" />
+    <ClInclude Include="include\Graphics\PointShader.h" />
     <ClInclude Include="include\Graphics\RenderTexture.h" />
     <ClInclude Include="include\Graphics\TextureShader.h" />
     <ClInclude Include="include\Math\Mat3.h" />
@@ -516,6 +520,14 @@
     <ClInclude Include="include\Utilities\WholeInformation.h" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="Shader\LightShader\LightPixelShader.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shader\LightShader\LightVertexShader.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="Shader\PixelShader\PixelShaderLayout0.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -555,6 +567,18 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shader\PointShader\PointShader_GS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shader\PointShader\PointPixelShader.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shader\PointShader\PointVertexShader.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Shader\TextureShader\TexturePixelShader.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -605,11 +629,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
-    </FxCompile>
-    <FxCompile Include="simpleRenderInstancingVS.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

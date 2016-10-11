@@ -22,11 +22,23 @@ struct PS_INPUT
 {
     float4	Pos			: SV_POSITION;
 	float3	Nor			: NORMAL;
-	float4	ViewDir 	: TEXCOORD1;
+	float4	ViewDir 	: TEXCOORD0;
+	float4	WPos		: TEXCOORD1;
+	float4	WNor		: TEXCOORD2;
 };
 
-float4 PS( PS_INPUT input) : SV_Target
+struct PS_OUTPUT
 {
+	float4 Postion: SV_Target0;
+	float4 Normal: SV_Target1;
+	float4 Diffuse: SV_Target2;
+	float4 SpecularAndShine: SV_Target3;
+};
+
+PS_OUTPUT PS( PS_INPUT input)
+{
+	PS_OUTPUT output;
+
 	// phong shading 
 	// invert light direction for calculation
 	float3 fvl_direction = normalize(-l_direction.xyz);
@@ -60,5 +72,10 @@ float4 PS( PS_INPUT input) : SV_Target
 	
 	final_Color = saturate( final_Color + fv_spec );
 
-	return float4(final_Color, m_transparency);
+	output.Postion = input.WPos;
+	output.Normal = input.WNor;
+	output.Diffuse = float4(fv_diff, m_transparency);
+	output.SpecularAndShine = float4(m_specular, m_transparency);
+
+	return output;
 }
