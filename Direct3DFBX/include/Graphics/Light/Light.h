@@ -8,21 +8,20 @@ using namespace DirectX;
 
 namespace ursine
 {
+	//enum for the different types of lights
+	enum LightType
+	{
+		LIGHT_NONE = -1,
+		LIGHT_DIRECTIONAL = 0,
+		LIGHT_POINT,
+		LIGHT_SPOTLIGHT,
+		LIGHT_COUNT
+	};
+
 	///////////////////////////////////////////////////////////////
 	//// LIGHT ////////////////////////////////////////////////////
 	class Light
 	{
-	public:
-	//enum for the different types of lights
-		enum LightType
-		{
-			LIGHT_NONE = -1,
-			LIGHT_DIRECTIONAL = 0,
-			LIGHT_POINT,
-			LIGHT_SPOTLIGHT,
-			LIGHT_COUNT
-		};
-
 	public:
 		Light();
 		Light(const Light&);
@@ -31,8 +30,9 @@ namespace ursine
 		LightType GetType(void) const { return m_type; }
 		void SetType(const LightType type) { m_type = type; }
 
-		XMFLOAT4 GetPosition() const { return m_position; }
-		void SetPosition(XMFLOAT4 pos) { m_position = pos; }
+		XMFLOAT3 GetPosition() const { return m_position; }
+		void SetPosition(XMFLOAT3 pos) { m_position = pos; }
+		void SetPosition(float x, float y, float z) { m_position = XMFLOAT3(x, y, z); }
 
 		void SetDiffuseColor(float red, float green, float blue, float alpha) { m_diffuseColor = XMFLOAT4(red, green, blue, alpha); }
 		void SetAmbientColor(float red, float green, float blue, float alpha) { m_ambientColor = XMFLOAT4(red, green, blue, alpha); }
@@ -46,7 +46,7 @@ namespace ursine
 
 	private:
 		LightType m_type;
-		XMFLOAT4 m_position;
+		XMFLOAT3 m_position;
 		XMFLOAT4 m_diffuseColor;
 		XMFLOAT4 m_ambientColor;
 		XMFLOAT4 m_specularColor;

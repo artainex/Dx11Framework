@@ -2,6 +2,8 @@
 #include <FileSystem.h>
 #include <AnimationDef.h>
 
+#pragma warning (diable : 4101)
+
 TextureShader::TextureShader()
 	:
 	m_vertexShader(0), m_pixelShader(0),
@@ -112,7 +114,7 @@ bool TextureShader::InitializeShader(ID3D11Device* device, HWND hwnd, std::strin
 	hr = device->CreateInputLayout(input_layout.LAYOUT_TEX, 2,
 		vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(),
 		&m_layout);
-	FAIL_CHECK_BOOLEAN(hr);
+	FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "TextureShader input layout creation fail");
 
 	// Release the vertex shader buffer and pixel shader buffer since they are no longer needed.
 	SAFE_RELEASE(vertexShaderBuffer);
@@ -128,7 +130,7 @@ bool TextureShader::InitializeShader(ID3D11Device* device, HWND hwnd, std::strin
 
 	// Create the constant buffer pointer so we can access the vertex shader constant buffer from within this class.
 	hr = device->CreateBuffer(&matrixBufferDesc, nullptr, &m_matrixBuffer);
-	FAIL_CHECK_BOOLEAN(hr);
+	FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "MatrixBufferType buffer creation fail");
 
 	// Create Buffer - For light
 	D3D11_BUFFER_DESC lightBufferDesc;
@@ -140,7 +142,7 @@ bool TextureShader::InitializeShader(ID3D11Device* device, HWND hwnd, std::strin
 	for (UINT i = 0; i < 4; ++i)
 	{
 		hr = device->CreateBuffer(&lightBufferDesc, nullptr, &m_lightBuffer[i]);
-		FAIL_CHECK(hr);
+		FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "LightBufferType buffer creation fail");
 	}
 
 	// Create a texture sampler state description.
@@ -160,7 +162,7 @@ bool TextureShader::InitializeShader(ID3D11Device* device, HWND hwnd, std::strin
 
 	// Create the texture sampler state.
 	hr = device->CreateSamplerState(&samplerDesc, &m_sampleState);
-	FAIL_CHECK_BOOLEAN(hr);
+	FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "Sampleer state creation fail");
 
 	return true;
 }
@@ -289,7 +291,8 @@ bool TextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 			LightBufferType* lightBuffer = (LightBufferType*)mappedResource.pData;
 
 			// Copy the matrices into the constant buffer.
-			lightBuffer->lightPosition = ambiLight->GetPosition();
+			XMFLOAT3 pos = ambiLight->GetPosition();
+			lightBuffer->lightPosition = XMFLOAT4(pos.x, pos.y, pos.z, 1.f);
 			lightBuffer->ambientColor = ambiLight->GetAmbientColor();
 			lightBuffer->diffuseColor = ambiLight->GetDiffuseColor();
 			lightBuffer->specularColor = ambiLight->GetSpecularColor();
@@ -297,11 +300,6 @@ bool TextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 
 			// Unlock the constant buffer.
 			deviceContext->Unmap(m_lightBuffer[0], 0);
-
-			// Set the position of the constant buffer in the pixel shader.
-			bufferNumber = 1;
-
-			deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_lightBuffer[0]);		// setting lights
 		}
 		// global light
 		{
@@ -313,7 +311,8 @@ bool TextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 			LightBufferType* lightBuffer = (LightBufferType*)mappedResource.pData;
 
 			// Copy the matrices into the constant buffer.
-			lightBuffer->lightPosition = gloLight->GetPosition();
+			XMFLOAT3 pos = gloLight->GetPosition();
+			lightBuffer->lightPosition = XMFLOAT4(pos.x, pos.y, pos.z, 1.f);
 			lightBuffer->ambientColor = gloLight->GetAmbientColor();
 			lightBuffer->diffuseColor = gloLight->GetDiffuseColor();
 			lightBuffer->specularColor = gloLight->GetSpecularColor();
@@ -321,11 +320,6 @@ bool TextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 
 			// Unlock the constant buffer.
 			deviceContext->Unmap(m_lightBuffer[1], 0);
-
-			// Set the position of the constant buffer in the pixel shader.
-			bufferNumber = 2;
-
-			deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_lightBuffer[1]);		// setting lights
 		}
 		// local lights
 		{
@@ -337,7 +331,8 @@ bool TextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 			LightBufferType* lightBuffer = (LightBufferType*)mappedResource.pData;
 
 			// Copy the matrices into the constant buffer.
-			lightBuffer->lightPosition = locLight->GetPosition();
+			XMFLOAT3 pos = locLight->GetPosition();
+			lightBuffer->lightPosition = XMFLOAT4(pos.x, pos.y, pos.z, 1.f);
 			lightBuffer->ambientColor = locLight->GetAmbientColor();
 			lightBuffer->diffuseColor = locLight->GetDiffuseColor();
 			lightBuffer->specularColor = locLight->GetSpecularColor();
@@ -345,12 +340,11 @@ bool TextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 
 			// Unlock the constant buffer.
 			deviceContext->Unmap(m_lightBuffer[2], 0);
-
-			// Set the position of the constant buffer in the pixel shader.
-			bufferNumber = 3;
-
-			deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_lightBuffer[2]);		// setting lights
 		}
+
+		// Set the position of the constant buffer in the vertex shader.
+		bufferNumber = 1;
+		deviceContext->PSSetConstantBuffers(bufferNumber, 3, m_lightBuffer);		// setting lights
 	}
 
 	return true;

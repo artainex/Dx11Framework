@@ -2,6 +2,7 @@
 
 #include <LightShader.h>
 
+#pragma warning(disable : 4100)
 
 LightShader::LightShader()
 	:

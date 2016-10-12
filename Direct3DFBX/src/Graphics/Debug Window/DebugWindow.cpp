@@ -1,6 +1,8 @@
 #include <DebugWindow.h>
 #include <AnimationDef.h>
 
+#pragma warning (diable : 4101)
+
 DebugWindow::DebugWindow()
 {
 	m_vertexBuffer = 0;

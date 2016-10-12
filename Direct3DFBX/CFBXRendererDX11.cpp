@@ -749,7 +749,6 @@ namespace ursine
 		pImmediateContext->IASetInputLayout(m_pboneInputLayout);
 		pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
-		DXGI_FORMAT indexbit = DXGI_FORMAT_R32_UINT;
 		pImmediateContext->Draw(boneCount, 0);
 
 		return hr;

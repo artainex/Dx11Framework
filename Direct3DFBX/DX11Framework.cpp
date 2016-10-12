@@ -475,18 +475,23 @@ HRESULT InitCamera()
 //--------------------------------------------------------------------------------------
 HRESULT InitLight()
 {
-	// Init global ambient light
-	g_GlobalLight.SetAmbientColor(1.0f, 1.0f, 1.0f, 1.0f);
-	g_GlobalLight.SetDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);
-	g_GlobalLight.SetSpecularColor(1.0f, 1.0f, 1.0f, 1.0f);
-	g_GlobalLight.SetDirection(0.f, -1.f, 1.f);
+	// Init ambienet light
+	g_AmbientLight.SetAmbientColor(1.f, 1.f, 1.f, 1.f);
+	g_AmbientLight.SetDiffuseColor(1.f, 1.f, 1.f, 1.f);
+	g_AmbientLight.SetSpecularColor(1.f, 1.f, 1.f, 1.f);
+	g_AmbientLight.SetDirection(0.f, -1.f, 1.f);
+
+	// Init global light
+	g_GlobalLight.SetDiffuseColor(1.f, 0.f, 0.f, 1.f);
+	g_GlobalLight.SetSpecularColor(1.f, 0.f, 0.f, 1.f);
+	g_GlobalLight.SetDirection(-1.f, 0.f, 0.f);
+	g_GlobalLight.SetPosition(100.f, 100.f, 0.f);
 
 	// Init local lights for diffuse and specular
-	g_LocalLights[0].SetDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);
-	g_LocalLights[0].SetSpecularColor(1.0f, 1.0f, 1.0f, 1.0f);
-
-	//g_LocalLights[1].SetDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);
-	//g_LocalLights[1].SetSpecularColor(1.0f, 1.0f, 1.0f, 1.0f);
+	g_LocalLights[0].SetDiffuseColor(0.f, 1.f, 0.f, 1.f);
+	g_LocalLights[0].SetSpecularColor(0.f, 1.f, 0.f, 1.f);
+	g_LocalLights[0].SetDirection(1.f, 0.f, 0.f);
+	g_LocalLights[0].SetPosition(-100.f, 100.f, 0.f);
 
 	return S_OK;
 }
@@ -722,7 +727,7 @@ HRESULT InitApp()
 	// initialize the debug window obj.
 	if (!g_pDebugWindow->Initialize(g_pd3dDevice, 
 		SCREEN_WIDTH, SCREEN_HEIGHT, 
-		SCREEN_WIDTH/2, SCREEN_HEIGHT/2))
+		SCREEN_WIDTH, SCREEN_HEIGHT))
 	{
 		MessageBox(nullptr, "Could not initialize the debug window object.", "Error", MB_OK);
 		return false;
@@ -1171,8 +1176,7 @@ void RenderToTexture()
 	// Clear the back buffer with Color rgba
 	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	float Depth[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	float Blue[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
-	g_pRenderTexture->ClearRenderTarget(g_pImmediateContext, g_pDepthStencilView, Blue);
+	g_pRenderTexture->ClearRenderTarget(g_pImmediateContext, g_pDepthStencilView, ClearColor);
 	
 	RenderScene();
 

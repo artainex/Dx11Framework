@@ -2,6 +2,8 @@
 #include <FileSystem.h>
 #include <AnimationDef.h>
 
+#pragma warning (diable : 4101)
+
 PointShader::PointShader()
 	:
 	m_vertexShader(0), m_pixelShader(0),

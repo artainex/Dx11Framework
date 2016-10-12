@@ -15,10 +15,6 @@ struct MatrixBufferType
 	XMMATRIX mView;
 	XMMATRIX mProj;
 	XMMATRIX mWVP;
-	bool	bPos;
-	bool	bNor;
-	bool	bDiff;
-	bool	bSpec;
 };
 
 // Matrix Palette Constant Buffer
@@ -31,12 +27,13 @@ struct PaletteBufferType
 struct LightBufferType
 {
 	// For now, try use phong model, use ursine LightClass if I understand HDR or more (this class doesn't have HDR)
-	XMFLOAT4 ambientColor;
-	XMFLOAT4 diffuseColor;
-	XMFLOAT4 specularColor;
-	XMFLOAT4 lightPosition;
-	XMFLOAT3 lightDirection;
-	UINT type;
+	XMFLOAT4 ambientColor;  // 16
+	XMFLOAT4 diffuseColor;  // 32
+	XMFLOAT4 specularColor; // 48
+	XMFLOAT4 lightPosition; // 60
+	XMFLOAT3 lightDirection;// 72
+	UINT type;				// 76
+	//UINT padding;			// 80
 
 	LightBufferType()
 		:
@@ -44,7 +41,8 @@ struct LightBufferType
 		diffuseColor(0, 0, 0, 1),
 		specularColor(0, 0, 0, 1),
 		lightPosition(0, 0, 0, 1),
-		lightDirection(0, 0, 0)
+		lightDirection(0, 0, 0),
+		type(ursine::LIGHT_DIRECTIONAL)
 	{}
 };
 

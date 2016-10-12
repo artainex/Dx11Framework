@@ -56,6 +56,27 @@ cbuffer cLocLight1 : register(b3)
 //	uint	ll_type;
 //};
 
+// diffuse and specular calculation
+float4 LightCalculation(float3 dir, float4 l_diff, float4 l_spec, float4 wPos, float4 wNor, float4 m_diff, float4 m_spec)
+{
+	// phong lighting
+	float3 fvl_direction = normalize(-dir);
+	float3 fvNorm = wNor.xyz;
+	float fNdotL = max(0, dot(fvNorm, fvl_direction));
+
+	float3 fvReflect = normalize(2.0f * fNdotL * wNor.xyz - fvl_direction);
+	float3 fvViewDir = normalize(float3(0.0f, 0.f, -100.f) - wPos.xyz);
+	float  fRdotV = saturate(dot(fvReflect, fvViewDir));
+
+	//--------------------------------------------------------------------------------------
+	// With Material
+	//--------------------------------------------------------------------------------------
+	float4 fv_diff = m_diff * l_diff * fNdotL;
+	float4 fv_spec = m_spec * l_spec * pow(fRdotV, m_spec.w); // m_spec.w is shineness
+	
+	return saturate(fv_diff + fv_spec);
+}
+
 struct PixelInputType
 {
 	float4 Pos : SV_POSITION;
@@ -72,37 +93,23 @@ float4 TexturePixelShader(PixelInputType input) : SV_TARGET
 	float4 worldnor = worldNorTexture.Sample(SampleType, input.Tex);
 	float4 diff = diffuseTexture.Sample(SampleType, input.Tex);
 	float4 spec = specshineTexture.Sample(SampleType, input.Tex);
-
-	// phong shading 
-
+	
 	//--------------------------------------------------------------------------------------
 	// Ambient Light
 	//--------------------------------------------------------------------------------------
+	float4 fv_ambi = diff * al_ambient;
 
 	//--------------------------------------------------------------------------------------
 	// Global Light
 	//--------------------------------------------------------------------------------------
-	// invert light direction for calculation
-	float3 fvl_direction = normalize(-gl_direction.xyz);
-	float3 fvNorm = worldnor.xyz;
-	float fNdotL = max(0, dot(fvNorm, fvl_direction));
-	
-	float3 fvReflect = normalize(2.0f * fNdotL * worldnor.xyz - fvl_direction);
-	float3 fvViewDir = normalize(float3(0.0f, 0.f, -100.f) - worldpos.xyz);
-	float  fRdotV = saturate(dot(fvReflect, fvViewDir));
+	float4 global_Color = LightCalculation(gl_direction, gl_diffuse, gl_specular, worldpos, worldnor, diff, spec);
 	
 	//--------------------------------------------------------------------------------------
-	// With Material
+	// Local Lights
 	//--------------------------------------------------------------------------------------
-	float3 fv_ambi = (float4(diff.xyz, 1) * gl_ambient).xyz;
-	float3 fv_diff = (float4(diff.xyz, 1) * gl_diffuse * fNdotL).xyz;
-	float3 fv_spec = gl_specular * pow(fRdotV, spec.w);
+	float4 local_Color = LightCalculation(ll_direction, ll_diffuse, ll_specular, worldpos, worldnor, diff, spec);
 	
-	// Determine the final diffuse color based on the diffuse color and the amount of light intensity.
-	float3 global_Color = saturate(fv_ambi + fv_diff);
+	// to implement normal map-need TBN matrix
 	
-	// to implement normal map-need TBN matrix	
-	global_Color = saturate(global_Color + fv_spec);
-	
-	return float4(fv_diff.xyz, diff.w);
+	return saturate(fv_ambi + local_Color + global_Color);
 }

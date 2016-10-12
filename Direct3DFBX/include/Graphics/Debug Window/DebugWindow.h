@@ -10,7 +10,7 @@ private:
 
 public:
 	DebugWindow();
-	DebugWindow(const DebugWindow&);
+	DebugWindow(const DebugWindow& other);
 	~DebugWindow();
 
 	bool Initialize(ID3D11Device* device, int screenWidth, int screenHeight, int bitmapWidth, int bitmapHeight);

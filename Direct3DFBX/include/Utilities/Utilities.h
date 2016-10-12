@@ -34,6 +34,11 @@
 	MessageBox(NULL, msg, "Error", MB_OK);								\
 	return expression;													\
 }
+#define FAIL_CHECK_BOOLEAN_WITH_MSG(expression, msg) if( FAILED(expression) )	\
+{																		\
+	MessageBox(NULL, msg, "Error", MB_OK);								\
+	return false;													\
+}
 
 #define SAFE_RELEASE(pt) if( nullptr != pt )\
 { pt->Release(); pt = nullptr; }			\
