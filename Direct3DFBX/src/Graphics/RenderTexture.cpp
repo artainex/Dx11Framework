@@ -97,9 +97,9 @@ void RenderTexture::SetRenderTarget(ID3D11DeviceContext* deviceContext, ID3D11De
 {
 	// Bind the render target view and depth stencil buffer to the output render pipeline.
 	if (depthStencilView)
-		deviceContext->OMSetRenderTargets(4, m_renderTargetView, depthStencilView);
+		deviceContext->OMSetRenderTargets(RT_COUNT, m_renderTargetView, depthStencilView);
 	else
-		deviceContext->OMSetRenderTargets(4, m_renderTargetView, nullptr);
+		deviceContext->OMSetRenderTargets(RT_COUNT, m_renderTargetView, nullptr);
 
 	return;
 }
@@ -132,9 +132,7 @@ void RenderTexture::ClearRenderTarget(ID3D11DeviceContext* deviceContext,
 
 	// Clear the back buffer.
 	for (UINT i = 0; i < RT_COUNT; ++i)
-	{
 		deviceContext->ClearRenderTargetView(m_renderTargetView[i], color);
-	}
 
 	// Clear the depth buffer.
 	deviceContext->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);

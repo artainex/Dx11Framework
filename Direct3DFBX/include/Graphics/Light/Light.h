@@ -31,18 +31,25 @@ namespace ursine
 		LightType GetType(void) const { return m_type; }
 		void SetType(const LightType type) { m_type = type; }
 
+		XMFLOAT4 GetPosition() const { return m_position; }
+		void SetPosition(XMFLOAT4 pos) { m_position = pos; }
+
 		void SetDiffuseColor(float red, float green, float blue, float alpha) { m_diffuseColor = XMFLOAT4(red, green, blue, alpha); }
 		void SetAmbientColor(float red, float green, float blue, float alpha) { m_ambientColor = XMFLOAT4(red, green, blue, alpha); }
+		void SetSpecularColor(float red, float green, float blue, float alpha) { m_specularColor = XMFLOAT4(red, green, blue, alpha); }
 		void SetDirection(float x, float y, float z) { m_direction = XMFLOAT3(x, y, z); }
 
 		XMFLOAT4 GetDiffuseColor() const { return m_diffuseColor; }
 		XMFLOAT4 GetAmbientColor() const { return m_ambientColor; }
+		XMFLOAT4 GetSpecularColor() const { return m_specularColor; }
 		XMFLOAT3 GetDirection() const { return m_direction; }
 
 	private:
 		LightType m_type;
+		XMFLOAT4 m_position;
 		XMFLOAT4 m_diffuseColor;
 		XMFLOAT4 m_ambientColor;
+		XMFLOAT4 m_specularColor;
 		XMFLOAT3 m_direction;
 	};
 

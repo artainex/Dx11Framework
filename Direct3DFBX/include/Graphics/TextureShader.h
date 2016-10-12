@@ -21,7 +21,9 @@ public:
 		ID3D11ShaderResourceView* texture);
 	bool Render(ID3D11DeviceContext* deviceContext, int indexCount,
 		XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
-		ursine::Light* light,
+		ursine::Light* ambiLight,
+		ursine::Light* gloLight,
+		ursine::Light* locLight,
 		ID3D11ShaderResourceView** textures);
 
 private:
@@ -32,7 +34,9 @@ private:
 		ID3D11ShaderResourceView* texture);
 	bool SetShaderParameters(ID3D11DeviceContext* deviceContext,
 		XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
-		ursine::Light* light,
+		ursine::Light* ambiLight,
+		ursine::Light* gloLight,
+		ursine::Light* locLight,
 		ID3D11ShaderResourceView** texture);
 	void RenderShader(ID3D11DeviceContext* deviceContext, int indexCount);
 
@@ -41,6 +45,6 @@ private:
 	ID3D11PixelShader* m_pixelShader;
 	ID3D11InputLayout* m_layout;
 	ID3D11Buffer* m_matrixBuffer;
-	ID3D11Buffer* m_lightBuffer;
+	ID3D11Buffer* m_lightBuffer[4];
 	ID3D11SamplerState* m_sampleState;
 };

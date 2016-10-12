@@ -62,7 +62,7 @@ enum eRenderType
 	NORMAL,		// world normal
 	DIFFUSE,	// diffuse
 	SPECULAR,	// specular with shineness
-	//DEPTH,		// depth
+	DEPTH,		// depth
 	RT_COUNT
 };
 

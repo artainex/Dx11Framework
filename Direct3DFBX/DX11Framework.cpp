@@ -66,9 +66,11 @@ XMMATRIX							g_TRSMatrix;
 Camera								g_Camera;
 
 // Lights
-const int MAX_LIGHT = 5;
-ursine::Light						g_GlobalLight; // ambient, global
+const int MAX_LIGHT = 1;
+ursine::Light						g_AmbientLight; // global
+ursine::Light						g_GlobalLight; // global
 ursine::Light						g_LocalLights[MAX_LIGHT];
+
 
 RenderTexture*						g_pRenderTexture = nullptr; // 4 texture maps - position, color, normal, depth
 DebugWindow*						g_pDebugWindow = nullptr;
@@ -119,7 +121,6 @@ ID3D11BlendState*				g_pBlendState = nullptr;
 ID3D11RasterizerState*			g_pRS = nullptr;
 ID3D11Buffer*					g_pmtxBuffer = nullptr;
 ID3D11Buffer*					g_pmtxPaletteBuffer = nullptr;
-ID3D11Buffer*					g_plightBuffer = nullptr;
 ID3D11VertexShader*				g_pvsLayout[8] = { nullptr, };
 ID3D11ComputeShader*			g_pcsLayout[8] = { nullptr, };
 ID3D11PixelShader*              g_ppsLayout[8] = { nullptr, };
@@ -474,13 +475,18 @@ HRESULT InitCamera()
 //--------------------------------------------------------------------------------------
 HRESULT InitLight()
 {
-	g_GlobalLight.SetAmbientColor(255.f, 255.f, 255.f, 255.f);
-	g_GlobalLight.SetDiffuseColor(255.f, 255.f, 255.f, 255.f);
-	g_GlobalLight.SetDirection(0.f, 0.f, 1.f);
-	for (UINT i = 0; i < MAX_LIGHT; ++i)
-	{
-		g_LocalLights[i].SetDiffuseColor(i*10, i*30, i*50, 255.f);
-	}
+	// Init global ambient light
+	g_GlobalLight.SetAmbientColor(1.0f, 1.0f, 1.0f, 1.0f);
+	g_GlobalLight.SetDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);
+	g_GlobalLight.SetSpecularColor(1.0f, 1.0f, 1.0f, 1.0f);
+	g_GlobalLight.SetDirection(0.f, -1.f, 1.f);
+
+	// Init local lights for diffuse and specular
+	g_LocalLights[0].SetDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);
+	g_LocalLights[0].SetSpecularColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+	//g_LocalLights[1].SetDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);
+	//g_LocalLights[1].SetSpecularColor(1.0f, 1.0f, 1.0f, 1.0f);
 
 	return S_OK;
 }
@@ -686,17 +692,7 @@ HRESULT CreateBuffers()
 	mtxPaletteBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	hr = g_pd3dDevice->CreateBuffer(&mtxPaletteBufferDesc, nullptr, &g_pmtxPaletteBuffer);
 	FAIL_CHECK(hr);
-
-	// Create Buffer - For light
-	D3D11_BUFFER_DESC lightBufferDesc;
-	ZeroMemory(&lightBufferDesc, sizeof(lightBufferDesc));
-	lightBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	lightBufferDesc.ByteWidth = sizeof(LightBufferType);
-	lightBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	lightBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	hr = g_pd3dDevice->CreateBuffer(&lightBufferDesc, nullptr, &g_plightBuffer);
-	FAIL_CHECK(hr);
-
+	
 	return hr;
 }
 
@@ -724,7 +720,9 @@ HRESULT InitApp()
 		return E_FAIL;
 
 	// initialize the debug window obj.
-	if (!g_pDebugWindow->Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT, 100, 100))
+	if (!g_pDebugWindow->Initialize(g_pd3dDevice, 
+		SCREEN_WIDTH, SCREEN_HEIGHT, 
+		SCREEN_WIDTH/2, SCREEN_HEIGHT/2))
 	{
 		MessageBox(nullptr, "Could not initialize the debug window object.", "Error", MB_OK);
 		return false;
@@ -856,7 +854,6 @@ void CleanupApp()
 
 	SAFE_RELEASE(g_pmtxBuffer);
 	SAFE_RELEASE(g_pmtxPaletteBuffer);
-	SAFE_RELEASE(g_plightBuffer);
 
 	SAFE_RELEASE(g_pRS);
 	//SAFE_RELEASE(g_pvsInstancing);
@@ -1074,12 +1071,15 @@ void Render()
 		t = (dwTimeCur - dwTimeStart) / 1000.0f;
 	}
 
-	// Pass1 - Render to texture
+	// Pass1 - G Buffer Rendering. Render to texture
 	// pos, norm, diff, spec+shineness
-	RenderToTexture();
+	{
+		RenderToTexture();
 
-	// Pass2 - Render to back buffer
-	RenderScene();
+		// Just for testing if it rendered correctly
+		// render to back buffer
+		RenderScene();
+	}
 
 	// turn z buffer off
 	g_pImmediateContext->OMSetDepthStencilState(g_pDepthDisabledStencilState, 1);
@@ -1087,18 +1087,26 @@ void Render()
 	// 디버그 창을 네번 그리는 게 아니라
 	// 한번 그리는데 텍스쳐를 넷 다 쓰는거야
 	// Render the debug window using the texture shader on 0x0 posittion
-	g_pDebugWindow->Render(g_pImmediateContext, 0, 0);
-	
-	if (!g_pTextureShader->Render(g_pImmediateContext,
-		g_pDebugWindow->GetIndexCount(),
-		g_World,
-		g_Camera.GetViewMatrix(),
-		g_OrthoMatrix,
-		&g_GlobalLight,
-		g_pRenderTexture->GetShaderResourceViews()))
+
+	// Pass2 - Light Pass Rendering
 	{
-		MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
-		return;
+		g_pDebugWindow->Render(g_pImmediateContext, 0, 0);
+
+		if (!g_pTextureShader->Render(g_pImmediateContext,
+			g_pDebugWindow->GetIndexCount(),
+			g_World,
+			g_Camera.GetViewMatrix(),
+			g_OrthoMatrix,
+			&g_AmbientLight,// ambient light
+			&g_GlobalLight,	// global light
+			g_LocalLights,	// local lights
+			g_pRenderTexture->GetShaderResourceViews()))
+		{
+			MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
+			return;
+		}
+
+		// local lights
 	}
 
 	//for (UINT i = 0; i < RT_COUNT; ++i)
@@ -1276,28 +1284,6 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 
 				g_pImmediateContext->Unmap(material.pMaterialCb, 0);
 			}
-		}
-
-		//--------------------------------------------------------------------------------------
-		// light
-		//--------------------------------------------------------------------------------------
-		{
-			g_pImmediateContext->PSSetConstantBuffers(1, 1, &g_plightBuffer);		// setting lights
-			
-			hr = g_pImmediateContext->Map(g_plightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
-			LightBufferType* lightBuffer = (LightBufferType*)MappedResource.pData;
-			FAIL_CHECK_BOOLEAN(hr);
-			
-			XMFLOAT4 gambi = g_GlobalLight.GetAmbientColor();
-			XMFLOAT4 gdiff = g_GlobalLight.GetDiffuseColor();
-			XMFLOAT3 gdir = g_GlobalLight.GetDirection();
-			lightBuffer->ambientColor	= gambi;
-			lightBuffer->diffuseColor	= gdiff;
-			lightBuffer->specularColor	= gdiff;
-			lightBuffer->emissiveColor	= gdiff;
-			lightBuffer->lightDirection = gdir;
-
-			g_pImmediateContext->Unmap(g_plightBuffer, 0);
 		}
 	}
 

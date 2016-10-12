@@ -221,7 +221,7 @@ bool LightShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 	// Copy the lighting variables into the constant buffer.
 	dataPtr2->diffuseColor	= diffuseColor;
 	dataPtr2->lightDirection = XMFLOAT3(lightDirection.x, lightDirection.y, lightDirection.z);
-	dataPtr2->padding = 0.0f;
+	dataPtr2->type = 0;
 
 	// Unlock the constant buffer.
 	deviceContext->Unmap(m_lightBuffer, 0);

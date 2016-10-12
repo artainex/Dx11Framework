@@ -14,7 +14,6 @@ cbuffer cLights : register( b1 )
 	float4	l_ambient;
 	float4	l_diffuse;
 	float4	l_specular;
-	float4	l_emissive;
 	float3	l_direction;
 };
 
@@ -55,7 +54,6 @@ PS_OUTPUT PS( PS_INPUT input)
 	float3 fv_ambi = float4(m_ambient, 1)	* l_ambient;
 	float3 fv_diff = float4(m_diffuse, 1)	* l_diffuse * fNdotL;
 	float3 fv_spec = float4(m_specular, 1)	* l_specular * pow(fRdotV, m_shineness);
-	float3 fv_emit = float4(m_emissive, 1)	* l_emissive;
 
 	//--------------------------------------------------------------------------------------
 	// Without Material

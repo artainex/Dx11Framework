@@ -7,9 +7,10 @@ TextureShader::TextureShader()
 	m_vertexShader(0), m_pixelShader(0),
 	m_layout(0), 
 	m_matrixBuffer(0),
-	m_lightBuffer(0),
 	m_sampleState(0)
 {
+	for (UINT i = 0; i < 4; ++i)
+		m_lightBuffer[i] = nullptr;
 }
 
 TextureShader::TextureShader(const TextureShader& other)
@@ -54,15 +55,21 @@ bool TextureShader::Render(ID3D11DeviceContext* deviceContext, int indexCount,
 	return true;
 }
 
-bool TextureShader::Render(ID3D11DeviceContext* deviceContext, int indexCount,
+bool TextureShader::Render(ID3D11DeviceContext* deviceContext, 
+	int indexCount,
 	XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
-	ursine::Light* light,
+	ursine::Light* ambiLight,
+	ursine::Light* gloLight,
+	ursine::Light* locLight,
 	ID3D11ShaderResourceView** textures)
 {
 	bool result;
 
 	// Set the shader parameters that it will use for rendering.
-	result = SetShaderParameters(deviceContext, worldMatrix, viewMatrix, projectionMatrix, light, textures);
+	result = SetShaderParameters(deviceContext, 
+		worldMatrix, viewMatrix, projectionMatrix, 
+		ambiLight, gloLight, locLight,
+		textures);
 	FAIL_CHECK_WITH_MSG(result, "TextureShader Render Fail");
 
 	// Now render the prepared buffers with the shader.
@@ -130,8 +137,11 @@ bool TextureShader::InitializeShader(ID3D11Device* device, HWND hwnd, std::strin
 	lightBufferDesc.ByteWidth = sizeof(LightBufferType);
 	lightBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	lightBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	hr = device->CreateBuffer(&lightBufferDesc, nullptr, &m_lightBuffer);
-	FAIL_CHECK(hr);
+	for (UINT i = 0; i < 4; ++i)
+	{
+		hr = device->CreateBuffer(&lightBufferDesc, nullptr, &m_lightBuffer[i]);
+		FAIL_CHECK(hr);
+	}
 
 	// Create a texture sampler state description.
 	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -164,7 +174,8 @@ void TextureShader::ShutdownShader()
 	SAFE_RELEASE(m_matrixBuffer);
 
 	// Release the matrix constant buffer.
-	SAFE_RELEASE(m_lightBuffer);
+	for (UINT i = 0; i < 4; ++i)
+		SAFE_RELEASE(m_lightBuffer[i]);
 
 	// Release the layout.
 	SAFE_RELEASE(m_layout);
@@ -222,7 +233,9 @@ bool TextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 
 bool TextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 	XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
-	ursine::Light* light,
+	ursine::Light* ambiLight,
+	ursine::Light* gloLight,
+	ursine::Light* locLight,
 	ID3D11ShaderResourceView** textures)
 {
 	HRESULT result;
@@ -266,34 +279,79 @@ bool TextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 
 	// light
 	{
-		// Lock the constant buffer so it can be written to.
-		result = deviceContext->Map(m_lightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		FAIL_CHECK_BOOLEAN(result);
+		// ambient light
+		{
+			// Lock the constant buffer so it can be written to.
+			result = deviceContext->Map(m_lightBuffer[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+			FAIL_CHECK_BOOLEAN(result);
 
-		// Get a pointer to the data in the constant buffer.
-		LightBufferType* lightBuffer = (LightBufferType*)mappedResource.pData;
+			// Get a pointer to the data in the constant buffer.
+			LightBufferType* lightBuffer = (LightBufferType*)mappedResource.pData;
 
-		// Copy the matrices into the constant buffer.
-		XMFLOAT4 gambi = light->GetAmbientColor();
-		XMFLOAT4 gdiff = light->GetDiffuseColor();
-		XMFLOAT3 gdir = light->GetDirection();
-	
-		lightBuffer->ambientColor = gambi;
-		lightBuffer->diffuseColor = gdiff;
-		lightBuffer->specularColor = gdiff;
-		lightBuffer->emissiveColor = gdiff;
-		lightBuffer->lightDirection = gdir;
+			// Copy the matrices into the constant buffer.
+			lightBuffer->lightPosition = ambiLight->GetPosition();
+			lightBuffer->ambientColor = ambiLight->GetAmbientColor();
+			lightBuffer->diffuseColor = ambiLight->GetDiffuseColor();
+			lightBuffer->specularColor = ambiLight->GetSpecularColor();
+			lightBuffer->lightDirection = ambiLight->GetDirection();
 
-		// Unlock the constant buffer.
-		deviceContext->Unmap(m_lightBuffer, 0);
-	
-		// Set the position of the constant buffer in the pixel shader.
-		bufferNumber = 1;
-	
-		deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_lightBuffer);		// setting lights
+			// Unlock the constant buffer.
+			deviceContext->Unmap(m_lightBuffer[0], 0);
+
+			// Set the position of the constant buffer in the pixel shader.
+			bufferNumber = 1;
+
+			deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_lightBuffer[0]);		// setting lights
+		}
+		// global light
+		{
+			// Lock the constant buffer so it can be written to.
+			result = deviceContext->Map(m_lightBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+			FAIL_CHECK_BOOLEAN(result);
+
+			// Get a pointer to the data in the constant buffer.
+			LightBufferType* lightBuffer = (LightBufferType*)mappedResource.pData;
+
+			// Copy the matrices into the constant buffer.
+			lightBuffer->lightPosition = gloLight->GetPosition();
+			lightBuffer->ambientColor = gloLight->GetAmbientColor();
+			lightBuffer->diffuseColor = gloLight->GetDiffuseColor();
+			lightBuffer->specularColor = gloLight->GetSpecularColor();
+			lightBuffer->lightDirection = gloLight->GetDirection();
+
+			// Unlock the constant buffer.
+			deviceContext->Unmap(m_lightBuffer[1], 0);
+
+			// Set the position of the constant buffer in the pixel shader.
+			bufferNumber = 2;
+
+			deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_lightBuffer[1]);		// setting lights
+		}
+		// local lights
+		{
+			// Lock the constant buffer so it can be written to.
+			result = deviceContext->Map(m_lightBuffer[2], 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+			FAIL_CHECK_BOOLEAN(result);
+
+			// Get a pointer to the data in the constant buffer.
+			LightBufferType* lightBuffer = (LightBufferType*)mappedResource.pData;
+
+			// Copy the matrices into the constant buffer.
+			lightBuffer->lightPosition = locLight->GetPosition();
+			lightBuffer->ambientColor = locLight->GetAmbientColor();
+			lightBuffer->diffuseColor = locLight->GetDiffuseColor();
+			lightBuffer->specularColor = locLight->GetSpecularColor();
+			lightBuffer->lightDirection = locLight->GetDirection();
+
+			// Unlock the constant buffer.
+			deviceContext->Unmap(m_lightBuffer[2], 0);
+
+			// Set the position of the constant buffer in the pixel shader.
+			bufferNumber = 3;
+
+			deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_lightBuffer[2]);		// setting lights
+		}
 	}
-
-	//일단 해보고 옵티마이즈
 
 	return true;
 }
