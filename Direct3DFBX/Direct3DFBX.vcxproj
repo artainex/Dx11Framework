@@ -194,7 +194,7 @@
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>WIN32;_DEBUG;DEBUG;PROFILE;_WINDOWS;_WIN32_WINNT=0x0600;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(ProjectDir)include\;$(ProjectDir)include\Utilities;$(ProjectDir)include\Utilities\File System;$(ProjectDir)include\Math;$(ProjectDir)include\Math\SIMD;$(ProjectDir)dep\FBX\include;$(ProjectDir)include\Graphics;$(ProjectDir)include\Graphics\Light;$(ProjectDir)include\Graphics\Camera;$(ProjectDir)include\Graphics\Debug Window;$(ProjectDir)dep\DirectX\include;$(ProjectDir)dep\Boost\include;$(ProjectDir)Shader;$(ProjectDir)Shader\VertexShader;$(ProjectDir)Shader\PixelShader;$(ProjectDir)Shader\TextureShader</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include\;$(ProjectDir)include\Utilities;$(ProjectDir)include\Utilities\File System;$(ProjectDir)include\Math;$(ProjectDir)include\Math\SIMD;$(ProjectDir)dep\FBX\include;$(ProjectDir)include\Graphics;$(ProjectDir)include\Graphics\Light;$(ProjectDir)include\Graphics\Camera;$(ProjectDir)include\Graphics\Debug Window;$(ProjectDir)dep\DirectX\include;$(ProjectDir)dep\Boost\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
@@ -207,8 +207,7 @@
       <TargetMachine>MachineX64</TargetMachine>
       <UACExecutionLevel>AsInvoker</UACExecutionLevel>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
-      <AdditionalLibraryDirectories>
-      </AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <Manifest>
       <EnableDPIAwareness>true</EnableDPIAwareness>
@@ -521,6 +520,7 @@
   <ItemGroup>
     <FxCompile Include="Shader\InstancingVS.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Shader\LightShader\LightPixelShader.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>

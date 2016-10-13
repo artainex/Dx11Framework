@@ -19,7 +19,11 @@
 #include <TextureShader.h>
 #include <LightShader.h>
 #include "CFBXRendererDX11.h"
+
+#if DEBUG
+#else
 #include "SpriteFont.h"
+#endif
 
 using namespace DirectX;
 using namespace ursine::FBX_DATA;
@@ -102,7 +106,7 @@ void RenderModel();
 bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh_index, const eLayout& layoutType);
 UINT updateSpeed = 1;
 
-const UINT	NUMBER_OF_MODELS = 2;
+const UINT	NUMBER_OF_MODELS = 1;
 
 // Skeleton
 std::vector<XMFLOAT3>				bonePoints[NUMBER_OF_MODELS];
@@ -114,9 +118,9 @@ ursine::CFBXRenderDX11*	g_pFbxDX11[NUMBER_OF_MODELS];
 // FBX file
 char g_files[NUMBER_OF_MODELS][256] =
 {
-	"Assets/Models/dragonplane.fbx",
-	"Assets/Models/sphere.fbx"
-	//"Assets/Models/dragonsplane.fbx"
+	//"Assets/Models/sphere.fbx",
+	//"Assets/Models/dragonplane.fbx"
+	"Assets/Models/dragonsplane.fbx"
 	//"Assets/Models/Plane.fbx"
 	//"Assets/Animations/Player/Player_Win.fbx"
 };
@@ -146,9 +150,12 @@ struct SRVPerInstanceData
 HRESULT SetupTransformSRV();
 void SetMatrix();
 
-// font
-DirectX::SpriteBatch*		g_pSpriteBatch = nullptr;
-DirectX::SpriteFont*		g_pFont = nullptr;
+#if DEBUG
+#else
+	// font
+	DirectX::SpriteBatch*		g_pSpriteBatch = nullptr;
+	DirectX::SpriteFont*		g_pFont = nullptr;
+#endif
 
 //--------------------------------------------------------------------------------------
 // Entry point to the program. Initializes everything and goes into a message processing 
@@ -455,8 +462,11 @@ HRESULT InitDevice()
 	FAIL_CHECK(InitApp());
 
 	// create shader resource view
-	hr = SetupTransformSRV(); 
-	FAIL_CHECK(hr);
+	if (g_bInstancing)
+	{
+		hr = SetupTransformSRV();
+		FAIL_CHECK(hr);
+	}
 
 	return S_OK;
 }
@@ -848,10 +858,13 @@ HRESULT InitApp()
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 	g_pd3dDevice->CreateBlendState(&blendDesc, &g_pBlendState);
 
+#if DEBUG
+#else
 	// SpriteBatch
 	g_pSpriteBatch = new DirectX::SpriteBatch(g_pImmediateContext);
 	// SpriteFont
 	g_pFont = new DirectX::SpriteFont(g_pd3dDevice, L"Assets\\Arial.spritefont");
+#endif
 
 	return hr;
 }
@@ -873,19 +886,22 @@ HRESULT SetupTransformSRV()
 	bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 	bd.StructureByteStride = stride;
 
-	// create transformStructuredBuffer
-	hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pTransformStructuredBuffer);
-	FAIL_CHECK(hr);
+	if (g_bInstancing)
+	{
+		// create transformStructuredBuffer
+		hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pTransformStructuredBuffer);
+		FAIL_CHECK(hr);
 
-	// Create ShaderResourceView
-	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-	ZeroMemory(&srvDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
-	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
-	srvDesc.BufferEx.FirstElement = 0;
-	srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-	srvDesc.BufferEx.NumElements = 1;// count;
-	hr = g_pd3dDevice->CreateShaderResourceView(g_pTransformStructuredBuffer, &srvDesc, &g_pTransformSRV);
-	FAIL_CHECK(hr);
+		// Create ShaderResourceView
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+		ZeroMemory(&srvDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
+		srvDesc.BufferEx.FirstElement = 0;
+		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+		srvDesc.BufferEx.NumElements = count;
+		hr = g_pd3dDevice->CreateShaderResourceView(g_pTransformStructuredBuffer, &srvDesc, &g_pTransformSRV);
+		FAIL_CHECK(hr);
+	}
 
 	return hr;
 }
@@ -893,8 +909,11 @@ HRESULT SetupTransformSRV()
 // Clear application
 void CleanupApp()
 {
+#if DEBUG
+#else
 	SAFE_DELETE(g_pSpriteBatch);
 	SAFE_DELETE(g_pFont);
+#endif
 
 	SAFE_RELEASE(g_pTransformSRV);
 	SAFE_RELEASE(g_pTransformStructuredBuffer);
@@ -1080,13 +1099,16 @@ void RenderModel()
 			switch (layout_type)
 			{
 			case eLayout::NONE_LAYOUT:		continue;
-			case eLayout::LAYOUT0:	
-				if (mdl_idx == (NUMBER_OF_MODELS - 1) && g_bInstancing)
-					pVS = g_pvsInstancing;
-				else
-					pVS = g_pvsLayout[0];
-				pPS = g_ppsLayout[0]; break;
-			case eLayout::LAYOUT1:	pVS = g_pvsLayout[1];	pPS = g_ppsLayout[1]; break;
+			case eLayout::LAYOUT0:	pVS = g_pvsLayout[0];	pPS = g_ppsLayout[0]; break;
+			case eLayout::LAYOUT1:
+			{
+				//if (mdl_idx == 0 && g_bInstancing)
+				//	pVS = g_pvsInstancing;
+				//else
+					pVS = g_pvsLayout[1];
+				pPS = g_ppsLayout[1];
+			}
+				break;
 			case eLayout::LAYOUT2:	pVS = g_pvsLayout[2];	pPS = g_ppsLayout[2]; break;
 			case eLayout::LAYOUT3:	pVS = g_pvsLayout[3];	pPS = g_ppsLayout[3]; break;
 			case eLayout::LAYOUT4:	pVS = g_pvsLayout[4];	pPS = g_ppsLayout[4]; break;
@@ -1102,9 +1124,9 @@ void RenderModel()
 			SetShaderParameters(&currModel, mn_idx, layout_type);
 
 			// render node
-			if (mdl_idx == (NUMBER_OF_MODELS - 1) && g_bInstancing)
-				currModel->RenderNodeInstancing(g_pImmediateContext, mn_idx, g_InstanceMAX);
-			else
+			//if (mdl_idx == 0 && g_bInstancing)
+			//	currModel->RenderNodeInstancing(g_pImmediateContext, mn_idx, g_InstanceMAX);
+			//else
 				currModel->RenderNode(g_pImmediateContext, mn_idx);
 			
 			//// render bone points
@@ -1176,21 +1198,24 @@ void Render()
 	// turn z buffer on
 	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 1);
 
-	// Draw Text
-	WCHAR wstr[512];
-	g_pSpriteBatch->Begin();
-
-	// fps
-	g_pFont->DrawString(g_pSpriteBatch, L"FPS", XMFLOAT2(0, 0), DirectX::Colors::Yellow, 0, XMFLOAT2(0, 0), 0.5f);
-	swprintf_s(wstr, L"%d", frame_per_sec);
-	g_pFont->DrawString(g_pSpriteBatch, wstr, XMFLOAT2(0, 16), DirectX::Colors::Yellow, 0, XMFLOAT2(0, 0), 0.5f);
-
-	// number of lights
-	g_pFont->DrawString(g_pSpriteBatch, L"Number of Lights", XMFLOAT2(45, 0), DirectX::Colors::Yellow, 0, XMFLOAT2(0, 0), 0.5f);
-	swprintf_s(wstr, L"%d", 2 + MAX_LIGHT);
-	g_pFont->DrawString(g_pSpriteBatch, wstr, XMFLOAT2(45, 16), DirectX::Colors::Yellow, 0, XMFLOAT2(0, 0), 0.5f);
-
-	g_pSpriteBatch->End();
+#if DEBUG
+#else
+	//// Draw Text
+	//WCHAR wstr[512];
+	//g_pSpriteBatch->Begin();
+	//
+	//// fps
+	//g_pFont->DrawString(g_pSpriteBatch, L"FPS", XMFLOAT2(0, 0), DirectX::Colors::Yellow, 0, XMFLOAT2(0, 0), 0.5f);
+	//swprintf_s(wstr, L"%d", frame_per_sec);
+	//g_pFont->DrawString(g_pSpriteBatch, wstr, XMFLOAT2(0, 16), DirectX::Colors::Yellow, 0, XMFLOAT2(0, 0), 0.5f);
+	//
+	//// number of lights
+	//g_pFont->DrawString(g_pSpriteBatch, L"Number of Lights", XMFLOAT2(45, 0), DirectX::Colors::Yellow, 0, XMFLOAT2(0, 0), 0.5f);
+	//swprintf_s(wstr, L"%d", 2 + MAX_LIGHT);
+	//g_pFont->DrawString(g_pSpriteBatch, wstr, XMFLOAT2(45, 16), DirectX::Colors::Yellow, 0, XMFLOAT2(0, 0), 0.5f);
+	//
+	//g_pSpriteBatch->End();
+#endif
 
 	// Present our back buffer to our front buffer
 	g_pSwapChain->Present(0, 0);
@@ -1273,8 +1298,8 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 		g_pImmediateContext->Unmap(g_pmtxBuffer, 0);
 	}
 
-	if(g_bInstancing)
-		SetMatrix();
+	//if(g_bInstancing)
+	//	SetMatrix();
 
 	//--------------------------------------------------------------------------------------
 	// matrix palette
@@ -1298,7 +1323,11 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 		}
 	}
 
-	if (g_pTransformSRV)	g_pImmediateContext->VSSetShaderResources(0, 1, &g_pTransformSRV);
+	//--------------------------------------------------------------------------------------
+	// SRV for instancing
+	//--------------------------------------------------------------------------------------
+	//if (g_pTransformSRV && g_bInstancing)	
+	//	g_pImmediateContext->VSSetShaderResources(0, 1, &g_pTransformSRV);
 
 	//--------------------------------------------------------------------------------------
 	// Pixel Shader Parameters : materials & lights
@@ -1348,7 +1377,6 @@ void SetMatrix()
 {
 	HRESULT hr = S_OK;
 	const UINT count = g_InstanceMAX;
-	XMMATRIX mat;
 
 	D3D11_MAPPED_SUBRESOURCE MappedResource;
 	hr = g_pImmediateContext->Map(g_pTransformStructuredBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);

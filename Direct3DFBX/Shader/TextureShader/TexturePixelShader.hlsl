@@ -49,7 +49,7 @@ struct Light
 // local lights
 cbuffer cLocLights : register(b3)
 {
-	Light localLights[480];
+	Light localLights[8];
 };
 
 // diffuse and specular calculation
@@ -109,7 +109,7 @@ float4 TexturePixelShader(PixelInputType input) : SV_TARGET
 	
 	// to implement normal map-need TBN matrix
 	float4 local_Color = float4(0, 0, 0, 1.F);
-	for (uint i = 0; i < 480; ++i)
+	for (uint i = 0; i < 8; ++i)
 	{
 		local_Color = + LightCalculation(
 				localLights[i].lightDirection,
