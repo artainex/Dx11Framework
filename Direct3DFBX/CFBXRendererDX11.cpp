@@ -655,7 +655,7 @@ namespace ursine
 			hr = pd3dDevice->CreateBuffer(&mtrlBufferDesc, NULL, &currFbxMtrl.pMaterialCb);
 			FAIL_CHECK_WITH_MSG(hr, "Constant buffer is not size of multiple of 16");
 
-			currFbxMtrl.mtrlConst.ambient		= pseudodx::XMFLOAT3(0.1f, 0.1f, 0.1f);
+			currFbxMtrl.mtrlConst.ambient		= pseudodx::XMFLOAT3(1.0f, 1.0f, 1.0f);
 			currFbxMtrl.mtrlConst.diffuse		= pseudodx::XMFLOAT3(1.0f, 1.0f, 1.0f);
 			currFbxMtrl.mtrlConst.specular		= pseudodx::XMFLOAT3(1.0f, 1.0f, 1.0f);
 			currFbxMtrl.mtrlConst.emissive		= pseudodx::XMFLOAT3(0.0f, 0.0f, 0.0f);

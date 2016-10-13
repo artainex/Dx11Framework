@@ -250,9 +250,9 @@ bool TextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 	viewMatrix = XMMatrixTranspose(viewMatrix);
 	projectionMatrix = XMMatrixTranspose(projectionMatrix);
 
-	// 4 render target textures
+	// render target textures
 	// Set shader texture resources in the pixel shader.
-	deviceContext->PSSetShaderResources(0, 4, textures);
+	deviceContext->PSSetShaderResources(0, RT_COUNT, textures);
 
 	// matrices
 	{

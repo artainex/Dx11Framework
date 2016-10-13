@@ -2,6 +2,7 @@ Texture2D worldPosTexture : register(t0);
 Texture2D worldNorTexture : register(t1);
 Texture2D diffuseTexture : register(t2);
 Texture2D specshineTexture : register(t3);
+Texture2D depthTexture : register(t4);
 SamplerState SampleType : register(s0);
 
 cbuffer cbMatrices : register(b0)
@@ -13,7 +14,7 @@ cbuffer cbMatrices : register(b0)
 };
 
 // ambient light
-cbuffer cAmbiLight : register(b1)
+cbuffer cAmbiLight : register(b1)	
 {
 	float4	al_ambient;
 	float4	al_diffuse;
@@ -93,6 +94,7 @@ float4 TexturePixelShader(PixelInputType input) : SV_TARGET
 	float4 worldnor = worldNorTexture.Sample(SampleType, input.Tex);
 	float4 diff = diffuseTexture.Sample(SampleType, input.Tex);
 	float4 spec = specshineTexture.Sample(SampleType, input.Tex);
+	float4 depth = depthTexture.Sample(SampleType, input.Tex);
 	
 	//--------------------------------------------------------------------------------------
 	// Ambient Light
@@ -111,5 +113,5 @@ float4 TexturePixelShader(PixelInputType input) : SV_TARGET
 	
 	// to implement normal map-need TBN matrix
 	
-	return saturate(fv_ambi + local_Color + global_Color);
+	return diff;// depth;// saturate(fv_ambi + local_Color + global_Color);
 }

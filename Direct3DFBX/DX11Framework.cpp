@@ -42,6 +42,8 @@ using namespace ursine::FBX_DATA;
 //--------------------------------------------------------------------------------------
 const int SCREEN_WIDTH = 1600;
 const int SCREEN_HEIGHT = 900;
+const float SCREEN_NEAR = 0.01f;
+const float SCREEN_FAR = 10000.f;
 
 HINSTANCE                           g_hInst = nullptr;
 HWND                                g_hWnd = nullptr;
@@ -111,7 +113,7 @@ ursine::CFBXRenderDX11*	g_pFbxDX11[NUMBER_OF_MODELS];
 char g_files[NUMBER_OF_MODELS][256] =
 {
 	"Assets/Models/stanford_bunny.fbx",
-	"Assets/Models/Plane.fbx"
+	"Assets/Models/dragon.fbx"
 	//"Assets/Animations/Player/Player_Win.fbx"
 };
 
@@ -340,7 +342,7 @@ HRESULT InitDevice()
 	descDepth.Height = SCREEN_HEIGHT;
 	descDepth.MipLevels = 1;
 	descDepth.ArraySize = 1;
-	descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;// DXGI_FORMAT_R24G8_TYPELESS;// ;
 	descDepth.SampleDesc.Count = 1;
 	descDepth.SampleDesc.Quality = 0;
 	descDepth.Usage = D3D11_USAGE_DEFAULT;
@@ -461,9 +463,9 @@ HRESULT InitCamera()
 	g_Camera.SetViewMatrix();
 
 	// Initialize the projection matrix
-	g_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, (float)width / (float)height, 0.01f, 10000.0f);
+	g_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, (float)width / (float)height, SCREEN_NEAR, SCREEN_FAR);
 
-	g_OrthoMatrix = XMMatrixOrthographicLH(width, height, 0.01f, 10000.0f);
+	g_OrthoMatrix = XMMatrixOrthographicLH(width, height, SCREEN_NEAR, SCREEN_FAR);
 
 	g_TRSMatrix = XMMatrixIdentity();
 
@@ -899,17 +901,11 @@ void CleanupDevice()
 	{
 		g_pDebugWindow->Shutdown();
 		SAFE_DELETE(g_pDebugWindow);
-		//for (UINT i = 0; i < MAX_RENDERTARGET; ++i)
-		//	g_pRenderTexture[i].Shutdown();
-		//SAFE_DELETE_ARRAY(g_pRenderTexture);
 	}
 	if (g_pRenderTexture)
 	{
 		g_pRenderTexture->Shutdown();
 		SAFE_DELETE(g_pRenderTexture);
-		//for (UINT i = 0; i < MAX_RENDERTARGET; ++i)
-		//	g_pRenderTexture[i].Shutdown();
-		//SAFE_DELETE_ARRAY(g_pRenderTexture);
 	}
 	SAFE_RELEASE(g_pSwapChain);
 	SAFE_RELEASE(g_pImmediateContext);
@@ -1096,7 +1092,7 @@ void Render()
 	// Pass2 - Light Pass Rendering
 	{
 		g_pDebugWindow->Render(g_pImmediateContext, 0, 0);
-
+	
 		if (!g_pTextureShader->Render(g_pImmediateContext,
 			g_pDebugWindow->GetIndexCount(),
 			g_World,
@@ -1110,13 +1106,13 @@ void Render()
 			MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
 			return;
 		}
-
+	
 		// local lights
 	}
 
-	//for (UINT i = 0; i < RT_COUNT; ++i)
+	//for (UINT i = 4; i < RT_COUNT; ++i)
 	//{
-	//	g_pDebugWindow->Render(g_pImmediateContext, i * 200, 0);
+	//	g_pDebugWindow->Render(g_pImmediateContext, 0, 0);
 	//	if (!g_pTextureShader->Render(g_pImmediateContext,
 	//		g_pDebugWindow->GetIndexCount(),
 	//		g_World,
