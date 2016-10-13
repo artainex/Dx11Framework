@@ -436,7 +436,7 @@ namespace Utilities
     *  @param src FbxDouble3
     *  @return converted FbxVector4 result
     */
-    pseudodx::XMFLOAT4 FBXDouble3ToXMFLOAT4(const FbxDouble3& src);
+	pseudodx::XMFLOAT4 FBXDouble3ToXMFLOAT4(const FbxDouble3& src);
     /** @brief convert FbxVector4 to XMFLOAT3 function
     *
     *  this will convert FbxVector4 format to XMFLOAT3
@@ -444,7 +444,7 @@ namespace Utilities
     *  @param src FbxVector4
     *  @return converted XMFLOAT3 result
     */
-    pseudodx::XMFLOAT3 FBXVectorToXMFLOAT3(const FbxVector4& src);
+	pseudodx::XMFLOAT3 FBXVectorToXMFLOAT3(const FbxVector4& src);
     /** @brief convert XMFLOAT2 to FbxVector2 function
     *
     *  this will convert XMFLOAT2 format to FbxVector2
@@ -460,7 +460,7 @@ namespace Utilities
     *  @param src FbxQuaternion
     *  @return converted XMFLOAT4 result
     */
-    pseudodx::XMFLOAT4 FBXQuaternionToXMLOAT4(const FbxQuaternion& quat);
+	pseudodx::XMFLOAT4 FBXQuaternionToXMLOAT4(const FbxQuaternion& quat);
     /** @brief convert FbxVector4 to XMFLOAT3 function
     *
     *  this will convert FbxVector4 format to XMFLOAT3
@@ -468,7 +468,7 @@ namespace Utilities
     *  @param src FbxVector4
     *  @return converted XMFLOAT3 result
     */
-    pseudodx::XMFLOAT3 FBXVectorToXMFLOAT3(const FbxVector4& src);
+	pseudodx::XMFLOAT3 FBXVectorToXMFLOAT3(const FbxVector4& src);
     /** @brief convert FbxVector4 to XMFLOAT4 function
     *
     *  this will convert FbxVector4 format to XMFLOAT4
@@ -476,7 +476,7 @@ namespace Utilities
     *  @param src FbxVector4
     *  @return converted XMFLOAT4 result
     */
-    pseudodx::XMFLOAT4 FBXVectorToXMFLOAT4(const FbxVector4& src);
+	pseudodx::XMFLOAT4 FBXVectorToXMFLOAT4(const FbxVector4& src);
 
 	DirectX::XMVECTOR ConvertPseudoXMFloat3ToXMVEC(const pseudodx::XMFLOAT3& src);
 

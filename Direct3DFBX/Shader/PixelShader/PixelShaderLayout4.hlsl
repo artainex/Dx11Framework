@@ -1,12 +1,12 @@
 cbuffer cbMaterial : register( b0 )
 {
-	float m_shineness;
+	float4 m_ambient;
+	float4 m_diffuse;
+	float4 m_specular;
+	float4 m_emissive;
 	float m_transparency;
+	float m_shineness;
 	float2 m_padding;
-	float3 m_ambient;
-	float3 m_diffuse;
-	float3 m_specular;
-	float3 m_emissive;
 };
 
 struct PS_INPUT
@@ -15,6 +15,7 @@ struct PS_INPUT
 	float3	Nor			: NORMAL;
 	float4	WPos		: TEXCOORD0;
 	float4	WNor		: TEXCOORD1;
+	float4	Depth		: TEXCOORD2;
 };
 
 struct PS_OUTPUT
@@ -23,6 +24,7 @@ struct PS_OUTPUT
 	float4 Normal: SV_Target1;
 	float4 Diffuse: SV_Target2;
 	float4 SpecularAndShine: SV_Target3;
+	float4 Depth: SV_Target4;
 };
 
 PS_OUTPUT PS( PS_INPUT input)
@@ -32,7 +34,11 @@ PS_OUTPUT PS( PS_INPUT input)
 	output.Postion = input.WPos;
 	output.Normal = input.WNor;
 	output.Diffuse = float4(m_diffuse.xyz, m_transparency);
-	output.SpecularAndShine = float4(m_specular, m_shineness);
+	output.SpecularAndShine = float4(m_specular.xyz, m_shineness);
+
+	float depth;
+	depth = input.Depth.z / input.Depth.w;
+	output.Depth = float4(depth, depth, depth, depth);
 
 	return output;
 }

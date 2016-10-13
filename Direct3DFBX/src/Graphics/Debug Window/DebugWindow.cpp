@@ -1,7 +1,7 @@
 #include <DebugWindow.h>
 #include <AnimationDef.h>
 
-#pragma warning (diable : 4101)
+#pragma warning (disable : 4101)
 
 DebugWindow::DebugWindow()
 {

@@ -296,11 +296,11 @@
       <ExceptionHandling>Sync</ExceptionHandling>
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0600;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)include\;$(ProjectDir)include\Utilities;$(ProjectDir)include\Utilities\File System;$(ProjectDir)include\Math;$(ProjectDir)include\Math\SIMD;$(ProjectDir)include\Graphics;$(ProjectDir)include\Graphics\Light;$(ProjectDir)include\Graphics\Camera;$(ProjectDir)include\Graphics\Debug Window;$(ProjectDir)dep\FBX\include;$(ProjectDir)dep\DirectX\include;$(ProjectDir)dep\Boost\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\DirectXTK\Inc;$(ProjectDir)include\;$(ProjectDir)include\Utilities;$(ProjectDir)include\Utilities\File System;$(ProjectDir)include\Math;$(ProjectDir)include\Math\SIMD;$(ProjectDir)include\Graphics;$(ProjectDir)include\Graphics\Light;$(ProjectDir)include\Graphics\Camera;$(ProjectDir)include\Graphics\Debug Window;$(ProjectDir)dep\FBX\include;$(ProjectDir)dep\DirectX\include;$(ProjectDir)dep\Boost\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>d3d11.lib;d3dx11.lib;d3dcompiler.lib;dxguid.lib;winmm.lib;comctl32.lib;libfbxsdk-md.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d11.lib;d3dx11.lib;d3dcompiler.lib;dxguid.lib;winmm.lib;comctl32.lib;libfbxsdk-md.lib;DirectXTK.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -311,8 +311,7 @@
       <TargetMachine>MachineX64</TargetMachine>
       <UACExecutionLevel>AsInvoker</UACExecutionLevel>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
-      <AdditionalLibraryDirectories>
-      </AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\DirectXTK\Bin\Desktop_2013\x64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <Manifest>
       <EnableDPIAwareness>true</EnableDPIAwareness>
@@ -520,6 +519,9 @@
     <ClInclude Include="include\Utilities\WholeInformation.h" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="Shader\InstancingVS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="Shader\LightShader\LightPixelShader.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

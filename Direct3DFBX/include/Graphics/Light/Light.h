@@ -6,6 +6,8 @@
 
 using namespace DirectX;
 
+const int MAX_LIGHT = 8;
+
 namespace ursine
 {
 	//enum for the different types of lights
@@ -37,6 +39,9 @@ namespace ursine
 		void SetDiffuseColor(float red, float green, float blue, float alpha) { m_diffuseColor = XMFLOAT4(red, green, blue, alpha); }
 		void SetAmbientColor(float red, float green, float blue, float alpha) { m_ambientColor = XMFLOAT4(red, green, blue, alpha); }
 		void SetSpecularColor(float red, float green, float blue, float alpha) { m_specularColor = XMFLOAT4(red, green, blue, alpha); }
+		void SetDiffuseColor(XMFLOAT4 rgba) { m_diffuseColor = rgba; }
+		void SetAmbientColor(XMFLOAT4 rgba) { m_ambientColor = rgba; }
+		void SetSpecularColor(XMFLOAT4 rgba) { m_specularColor = rgba; }
 		void SetDirection(float x, float y, float z) { m_direction = XMFLOAT3(x, y, z); }
 
 		XMFLOAT4 GetDiffuseColor() const { return m_diffuseColor; }

@@ -35,31 +35,30 @@ cbuffer cGlobalLight : register(b2)
 	uint	gl_type;
 };
 
-//// local light1
-cbuffer cLocLight1 : register(b3)
+struct Light
 {
-	float4	ll_ambient;
-	float4	ll_diffuse;
-	float4	ll_specular;
-	float4	ll_position;
-	float3	ll_direction;
-	uint	ll_type;
+	// For now, try use phong model, use ursine LightClass if I understand HDR or more (this class doesn't have HDR)
+	float4 ambientColor;	// 16
+	float4 diffuseColor;	// 32
+	float4 specularColor;	// 48
+	float4 lightPosition;	// 64
+	float3 lightDirection;	// 76
+	uint type;				// 80
 };
 
-//// local light2
-//cbuffer cLocLight1 : register(b4)
-//{
-//	float4	ll_ambient;
-//	float4	ll_diffuse;
-//	float4	ll_specular;
-//	float4	ll_position;
-//	float3	ll_direction;
-//	uint	ll_type;
-//};
+// local lights
+cbuffer cLocLights : register(b3)
+{
+	Light localLights[480];
+};
 
 // diffuse and specular calculation
 float4 LightCalculation(float3 dir, float4 l_diff, float4 l_spec, float4 wPos, float4 wNor, float4 m_diff, float4 m_spec)
 {
+	float l_attenuation = 0.0f;
+	float q_attenuation = 0.0002f;
+	float dist_to_light = length(dir);
+
 	// phong lighting
 	float3 fvl_direction = normalize(-dir);
 	float3 fvNorm = wNor.xyz;
@@ -75,7 +74,7 @@ float4 LightCalculation(float3 dir, float4 l_diff, float4 l_spec, float4 wPos, f
 	float4 fv_diff = m_diff * l_diff * fNdotL;
 	float4 fv_spec = m_spec * l_spec * pow(fRdotV, m_spec.w); // m_spec.w is shineness
 	
-	return saturate(fv_diff + fv_spec);
+	return saturate((fv_diff + fv_spec) / (1 + l_attenuation * dist_to_light + q_attenuation * pow(dist_to_light, 2)));
 }
 
 struct PixelInputType
@@ -90,28 +89,38 @@ struct PixelInputType
 float4 TexturePixelShader(PixelInputType input) : SV_TARGET
 {
 	// Sample the pixel color from the texture using the sampler at this texture coordinate location.
-	float4 worldpos = worldPosTexture.Sample(SampleType, input.Tex);
-	float4 worldnor = worldNorTexture.Sample(SampleType, input.Tex);
-	float4 diff = diffuseTexture.Sample(SampleType, input.Tex);
-	float4 spec = specshineTexture.Sample(SampleType, input.Tex);
-	float4 depth = depthTexture.Sample(SampleType, input.Tex);
+	float2 uv = input.Tex;
+
+	float4 worldpos = worldPosTexture.Sample(SampleType, uv);
+	float4 worldnor = worldNorTexture.Sample(SampleType, uv);
+	float4 diff = diffuseTexture.Sample(SampleType, uv);
+	float4 spec = specshineTexture.Sample(SampleType, uv);
+	float4 depth = depthTexture.Sample(SampleType, uv);
 	
 	//--------------------------------------------------------------------------------------
 	// Ambient Light
 	//--------------------------------------------------------------------------------------
-	float4 fv_ambi = diff * al_ambient;
+	float4 fv_ambi = diff * al_ambient * 0.01f;
 
 	//--------------------------------------------------------------------------------------
 	// Global Light
 	//--------------------------------------------------------------------------------------
 	float4 global_Color = LightCalculation(gl_direction, gl_diffuse, gl_specular, worldpos, worldnor, diff, spec);
 	
-	//--------------------------------------------------------------------------------------
-	// Local Lights
-	//--------------------------------------------------------------------------------------
-	float4 local_Color = LightCalculation(ll_direction, ll_diffuse, ll_specular, worldpos, worldnor, diff, spec);
-	
 	// to implement normal map-need TBN matrix
+	float4 local_Color = float4(0, 0, 0, 1.F);
+	for (uint i = 0; i < 480; ++i)
+	{
+		local_Color = + LightCalculation(
+				localLights[i].lightDirection,
+				localLights[i].diffuseColor,
+				localLights[i].specularColor,
+				worldpos,
+				worldnor,
+				diff, spec);
+	}
+
+	local_Color = saturate(local_Color);
 	
-	return diff;// depth;// saturate(fv_ambi + local_Color + global_Color);
+	return saturate(fv_ambi + local_Color + global_Color);
 }

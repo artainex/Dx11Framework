@@ -30,10 +30,9 @@ struct LightBufferType
 	XMFLOAT4 ambientColor;  // 16
 	XMFLOAT4 diffuseColor;  // 32
 	XMFLOAT4 specularColor; // 48
-	XMFLOAT4 lightPosition; // 60
-	XMFLOAT3 lightDirection;// 72
-	UINT type;				// 76
-	//UINT padding;			// 80
+	XMFLOAT4 lightPosition; // 64
+	XMFLOAT3 lightDirection;// 76
+	UINT type;				// 80
 
 	LightBufferType()
 		:
@@ -46,16 +45,29 @@ struct LightBufferType
 	{}
 };
 
+struct LocalLightBufferType
+{
+	LightBufferType localLights[MAX_LIGHT];
+};
+
 // Material Constant Buffer
 struct MaterialBufferType
 {
-	float		shineness;
-	float		transparency;
-	pseudodx::XMFLOAT2	padding;
-	pseudodx::XMFLOAT3	ambient;
-	pseudodx::XMFLOAT3	diffuse;
-	pseudodx::XMFLOAT3	specular;
-	pseudodx::XMFLOAT3	emissive;
+	XMFLOAT4	ambient;		// 16
+	XMFLOAT4	diffuse;		// 32
+	XMFLOAT4	specular;		// 48
+	XMFLOAT4	emissive;		// 64
+	float		transparency;	// 68
+	float		shineness;		// 72
+	XMFLOAT2	padding;		// 80
 
-	MaterialBufferType() : transparency(1.0f) {}
+	MaterialBufferType() : 
+		ambient(XMFLOAT4(1, 1, 1, 1)),
+		diffuse(XMFLOAT4(1, 1, 1, 1)),
+		specular(XMFLOAT4(1, 1, 1, 1)),
+		emissive(XMFLOAT4(1, 1, 1, 1)),
+		transparency(1.0f),
+		shineness(0.1f),
+		padding(XMFLOAT2(0, 0))
+	{}
 };

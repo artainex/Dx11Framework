@@ -14,8 +14,8 @@
 #pragma once
 
 #include "UrsineTypes.h"
-
 #include "SVec4.h"
+#include <directxmath.h>
 
 namespace ursine
 {
@@ -203,6 +203,9 @@ namespace ursine
 
         // Converts the color to a SVec4 (r, g, b, a)
         SVec4 ToVector4(void) const;
+
+		// Converts the color to a XMFLOAT4 (r, g, b, a)
+		DirectX::XMFLOAT4 TOXMFLOAT4(void) const;
 
         // Converts the color to its hexadecimal representation
         uint32 ToHex(void) const;

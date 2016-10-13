@@ -403,5 +403,8 @@
     <FxCompile Include="Shader\PointShader\PointPixelShader.hlsl">
       <Filter>Shaders\PointShader</Filter>
     </FxCompile>
+    <FxCompile Include="Shader\InstancingVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

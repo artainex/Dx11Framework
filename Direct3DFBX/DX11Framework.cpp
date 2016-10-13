@@ -19,6 +19,7 @@
 #include <TextureShader.h>
 #include <LightShader.h>
 #include "CFBXRendererDX11.h"
+#include "SpriteFont.h"
 
 using namespace DirectX;
 using namespace ursine::FBX_DATA;
@@ -45,6 +46,9 @@ const int SCREEN_HEIGHT = 900;
 const float SCREEN_NEAR = 0.01f;
 const float SCREEN_FAR = 10000.f;
 
+UINT frame = 0;
+UINT frame_per_sec = 0;
+
 HINSTANCE                           g_hInst = nullptr;
 HWND                                g_hWnd = nullptr;
 D3D_DRIVER_TYPE                     g_driverType = D3D_DRIVER_TYPE_NULL;
@@ -68,11 +72,9 @@ XMMATRIX							g_TRSMatrix;
 Camera								g_Camera;
 
 // Lights
-const int MAX_LIGHT = 1;
-ursine::Light						g_AmbientLight; // global
+ursine::Light						g_AmbientLight; // global ambient
 ursine::Light						g_GlobalLight; // global
 ursine::Light						g_LocalLights[MAX_LIGHT];
-
 
 RenderTexture*						g_pRenderTexture = nullptr; // 4 texture maps - position, color, normal, depth
 DebugWindow*						g_pDebugWindow = nullptr;
@@ -112,8 +114,10 @@ ursine::CFBXRenderDX11*	g_pFbxDX11[NUMBER_OF_MODELS];
 // FBX file
 char g_files[NUMBER_OF_MODELS][256] =
 {
-	"Assets/Models/stanford_bunny.fbx",
-	"Assets/Models/dragon.fbx"
+	"Assets/Models/dragonplane.fbx",
+	"Assets/Models/sphere.fbx"
+	//"Assets/Models/dragonsplane.fbx"
+	//"Assets/Models/Plane.fbx"
 	//"Assets/Animations/Player/Player_Win.fbx"
 };
 
@@ -127,19 +131,24 @@ ID3D11VertexShader*				g_pvsLayout[8] = { nullptr, };
 ID3D11ComputeShader*			g_pcsLayout[8] = { nullptr, };
 ID3D11PixelShader*              g_ppsLayout[8] = { nullptr, };
 
-//// Instancing
-//bool	g_bInstancing = false;
-//const uint32_t g_InstanceMAX = 32;
-//ID3D11VertexShader*				g_pvsInstancing = nullptr;
+// Instancing
+bool	g_bInstancing = true;
+const uint32_t g_InstanceMAX = MAX_LIGHT;
+ID3D11VertexShader*				g_pvsInstancing = nullptr;
+ID3D11Buffer*					g_pTransformStructuredBuffer = nullptr;
+ID3D11ShaderResourceView*		g_pTransformSRV = nullptr;
 
 // Shader Resource View - was implemented for instancing
 struct SRVPerInstanceData
 {
 	XMMATRIX mWorld;
 };
-ID3D11Buffer*					g_pTransformStructuredBuffer = nullptr;
-ID3D11ShaderResourceView*		g_pTransformSRV = nullptr;
 HRESULT SetupTransformSRV();
+void SetMatrix();
+
+// font
+DirectX::SpriteBatch*		g_pSpriteBatch = nullptr;
+DirectX::SpriteFont*		g_pFont = nullptr;
 
 //--------------------------------------------------------------------------------------
 // Entry point to the program. Initializes everything and goes into a message processing 
@@ -150,17 +159,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	FAIL_CHECK( InitWindow(hInstance, nCmdShow) );
+	FAIL_CHECK(InitWindow(hInstance, nCmdShow));
 
-	if (FAILED( InitDevice() ))
+	if (FAILED(InitDevice()))
 	{
 		CleanupApp();
 		CleanupDevice();
 		return 0;
 	}
 
-	FAIL_CHECK( InitLight() );
-	FAIL_CHECK( InitCamera() );
+	FAIL_CHECK(InitLight());
+	FAIL_CHECK(InitCamera());
 
 	// Main message loop
 	MSG msg = { 0 };
@@ -173,17 +182,31 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 		}
 		else
 		{
+			static float timeElapsed = 0.f;
+
 			static std::clock_t start = std::clock();
 			std::clock_t timedelta = std::clock() - start;
 			float t_delta_per_msec = (timedelta * updateSpeed) / (float)(CLOCKS_PER_SEC);
+			
 			Update(t_delta_per_msec);
-
+			
 			// need to be reset on last frame's time
 			// should change this if delta time goes over the last frame, set it as 0
 			if (t_delta_per_msec >= 2.f)
 				start = std::clock();
 
+			clock_t beginFrame = std::clock();
 			Render();
+			clock_t endFrame = std::clock();
+
+			timeElapsed += (endFrame - beginFrame) / (float)(CLOCKS_PER_SEC);
+			++frame;
+			if (timeElapsed >= 1.0f)
+			{
+				timeElapsed = 0.f;
+				frame_per_sec = frame;
+				frame = 0;
+			}
 		}
 	}
 
@@ -248,7 +271,7 @@ HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow)
 HRESULT InitDevice()
 {
 	HRESULT hr = S_OK;
-	
+
 	UINT createDeviceFlags = 0;
 #ifdef _DEBUG
 	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
@@ -342,7 +365,7 @@ HRESULT InitDevice()
 	descDepth.Height = SCREEN_HEIGHT;
 	descDepth.MipLevels = 1;
 	descDepth.ArraySize = 1;
-	descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;// DXGI_FORMAT_R24G8_TYPELESS;// ;
+	descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	descDepth.SampleDesc.Count = 1;
 	descDepth.SampleDesc.Quality = 0;
 	descDepth.Usage = D3D11_USAGE_DEFAULT;
@@ -351,7 +374,7 @@ HRESULT InitDevice()
 	descDepth.MiscFlags = 0;
 	hr = g_pd3dDevice->CreateTexture2D(&descDepth, nullptr, &g_pDepthStencil);
 	FAIL_CHECK(hr);
-	
+
 	// Create the depth stencil view
 	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
 	ZeroMemory(&descDSV, sizeof(descDSV));
@@ -363,7 +386,7 @@ HRESULT InitDevice()
 
 	// setting rendertargetview & depth-stencil buffer 
 	g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
-	
+
 	// Create depth stencil state
 	D3D11_DEPTH_STENCIL_DESC descDSS;
 	ZeroMemory(&descDSS, sizeof(descDSS));
@@ -375,13 +398,13 @@ HRESULT InitDevice()
 	descDSS.StencilEnable = true;
 	descDSS.StencilReadMask = 0xFF;
 	descDSS.StencilWriteMask = 0xFF;
-	
+
 	// Stencil operations if pixel is front-facing.
 	descDSS.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
 	descDSS.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
 	descDSS.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
 	descDSS.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-	
+
 	// Stencil operations if pixel is back-facing.
 	descDSS.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
 	descDSS.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
@@ -399,13 +422,13 @@ HRESULT InitDevice()
 	descDDisabledSS.StencilEnable = true;
 	descDDisabledSS.StencilReadMask = 0xFF;
 	descDDisabledSS.StencilWriteMask = 0xFF;
-	
+
 	// Stencil operations if pixel is front-facing.
 	descDDisabledSS.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
 	descDDisabledSS.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
 	descDDisabledSS.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
 	descDDisabledSS.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-	
+
 	// Stencil operations if pixel is back-facing.
 	descDDisabledSS.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
 	descDDisabledSS.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
@@ -413,7 +436,7 @@ HRESULT InitDevice()
 	descDDisabledSS.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 	hr = g_pd3dDevice->CreateDepthStencilState(&descDDisabledSS, &g_pDepthDisabledStencilState);
 	FAIL_CHECK(hr);
-
+	
 	// Setup the viewport - topleft(0,0), bottomright(1,1)
 	D3D11_VIEWPORT vp;
 	vp.Width = (FLOAT)SCREEN_WIDTH;
@@ -431,10 +454,9 @@ HRESULT InitDevice()
 	// Init application
 	FAIL_CHECK(InitApp());
 
-	//// create shader resource view
-	//hr = SetupTransformSRV(); 
-	//if( FAILED( hr ) )
-	//    return hr;
+	// create shader resource view
+	hr = SetupTransformSRV(); 
+	FAIL_CHECK(hr);
 
 	return S_OK;
 }
@@ -455,11 +477,10 @@ HRESULT InitCamera()
 	g_World = XMMatrixIdentity();
 
 	// Initialize the view matrix
-	XMFLOAT3 initPos;
-	initPos.x = 0.f;
-	initPos.y = 0.f;
-	initPos.z = -100.f;
+	XMFLOAT3 initPos = XMFLOAT3(0.f, 0.f, -100.f);
+	XMFLOAT3 initLookAt = XMFLOAT3(0.f, 0.f, 1.f);
 	g_Camera.SetPosition(initPos);
+	g_Camera.SetLookAt(initLookAt);
 	g_Camera.SetViewMatrix();
 
 	// Initialize the projection matrix
@@ -484,16 +505,25 @@ HRESULT InitLight()
 	g_AmbientLight.SetDirection(0.f, -1.f, 1.f);
 
 	// Init global light
-	g_GlobalLight.SetDiffuseColor(1.f, 0.f, 0.f, 1.f);
-	g_GlobalLight.SetSpecularColor(1.f, 0.f, 0.f, 1.f);
-	g_GlobalLight.SetDirection(-1.f, 0.f, 0.f);
+	g_GlobalLight.SetDiffuseColor(urColor::Red.TOXMFLOAT4());
+	g_GlobalLight.SetSpecularColor(urColor::Green.TOXMFLOAT4());
+	g_GlobalLight.SetDirection(-1.f, -1.f, 0.f);
 	g_GlobalLight.SetPosition(100.f, 100.f, 0.f);
-
+	
 	// Init local lights for diffuse and specular
-	g_LocalLights[0].SetDiffuseColor(0.f, 1.f, 0.f, 1.f);
-	g_LocalLights[0].SetSpecularColor(0.f, 1.f, 0.f, 1.f);
-	g_LocalLights[0].SetDirection(1.f, 0.f, 0.f);
-	g_LocalLights[0].SetPosition(-100.f, 100.f, 0.f);
+	for (UINT i = 0; i < MAX_LIGHT; ++i)
+	{
+		double angle = i * (360.0 / MAX_LIGHT) * (XM_PI / 180.0);
+		g_LocalLights[i].SetPosition(100.f * cos(angle), 100.f * sin(angle), 10.f);
+		g_LocalLights[i].SetDirection(
+			-g_LocalLights[i].GetPosition().x,
+			-g_LocalLights[i].GetPosition().y,
+			-g_LocalLights[i].GetPosition().z
+			);
+
+		g_LocalLights[i].SetDiffuseColor(urColor::White.TOXMFLOAT4());
+		g_LocalLights[i].SetSpecularColor(urColor::White.TOXMFLOAT4());
+	}
 
 	return S_OK;
 }
@@ -515,7 +545,7 @@ HRESULT InitVertexShaders()
 		*pVSBlobL5 = nullptr,
 		*pVSBlobL6 = nullptr,
 		*pVSBlobL7 = nullptr;// ,
-		//*pVSBlobL8 = nullptr;
+							 //*pVSBlobL8 = nullptr;
 
 	for (UINT i = 0; i < 8; ++i)
 	{
@@ -534,7 +564,7 @@ HRESULT InitVertexShaders()
 		case 5: targetVS = &pVSBlobL5; break;
 		case 6: targetVS = &pVSBlobL6; break;
 		case 7: targetVS = &pVSBlobL7; break;
-		//case 8: targetVS = &pVSBlobL8; break;
+			//case 8: targetVS = &pVSBlobL8; break;
 		}
 
 		hr = CompileShaderFromFile(VERTEX_SHADER, shaderName.c_str(), "vs_main", "vs_5_0", &g_pd3dDevice, &(*targetVS), &g_pvsLayout[i]);
@@ -542,6 +572,11 @@ HRESULT InitVertexShaders()
 		FAIL_CHECK_WITH_MSG(hr, shaderName.c_str());
 	}
 
+	// instancing vertex shader
+	ID3DBlob *instanceVS = nullptr;
+	hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/InstancingVS.hlsl", "vs_main", "vs_5_0", &g_pd3dDevice, &instanceVS, &g_pvsInstancing);
+	FAIL_CHECK_WITH_MSG(hr, "InstancingVS compile failed");
+	
 	// Define the input layout
 	// after load fbx successfully, then set the layout.
 	// need to figure out which layout they are
@@ -601,11 +636,11 @@ HRESULT InitVertexShaders()
 					input_layout.LAYOUT7, 7);
 				break;
 
-			//case eLayout::LAYOUTT:
-			//	hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
-			//		pVSBlobL8->GetBufferPointer(), pVSBlobL8->GetBufferSize(),
-			//		input_layout.LAYOUT_TEX, 2);
-			//	break;
+				//case eLayout::LAYOUTT:
+				//	hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
+				//		pVSBlobL8->GetBufferPointer(), pVSBlobL8->GetBufferSize(),
+				//		input_layout.LAYOUT_TEX, 2);
+				//	break;
 			}
 		}
 	}
@@ -619,6 +654,7 @@ HRESULT InitVertexShaders()
 	SAFE_RELEASE(pVSBlobL5);
 	SAFE_RELEASE(pVSBlobL6);
 	SAFE_RELEASE(pVSBlobL7);
+	SAFE_RELEASE(instanceVS);
 
 	return hr;
 }
@@ -679,7 +715,7 @@ HRESULT InitPixelShaders()
 //--------------------------------------------------------------------------------------
 HRESULT CreateBuffers()
 {
-	HRESULT hr = S_OK; 
+	HRESULT hr = S_OK;
 
 	// Create Buffer - For Matrices
 	D3D11_BUFFER_DESC mtxBufferDesc;
@@ -699,7 +735,7 @@ HRESULT CreateBuffers()
 	mtxPaletteBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	hr = g_pd3dDevice->CreateBuffer(&mtxPaletteBufferDesc, nullptr, &g_pmtxPaletteBuffer);
 	FAIL_CHECK(hr);
-	
+
 	return hr;
 }
 
@@ -727,8 +763,8 @@ HRESULT InitApp()
 		return E_FAIL;
 
 	// initialize the debug window obj.
-	if (!g_pDebugWindow->Initialize(g_pd3dDevice, 
-		SCREEN_WIDTH, SCREEN_HEIGHT, 
+	if (!g_pDebugWindow->Initialize(g_pd3dDevice,
+		SCREEN_WIDTH, SCREEN_HEIGHT,
 		SCREEN_WIDTH, SCREEN_HEIGHT))
 	{
 		MessageBox(nullptr, "Could not initialize the debug window object.", "Error", MB_OK);
@@ -746,12 +782,12 @@ HRESULT InitApp()
 	//	MessageBox(nullptr, "Could not initialize the texture shader object.", "Error", MB_OK);
 	//	return false;
 	//}	
-	
+
 	// create texture class obj
 	g_pTextureShader = new TextureShader;
 	if (!g_pTextureShader)
 		return E_FAIL;
-	
+
 	// initialize the texture shader obj.
 	if (!g_pTextureShader->Initialize(g_pd3dDevice, g_hWnd))
 	{
@@ -781,11 +817,11 @@ HRESULT InitApp()
 	}
 
 	// Init Shaders
-	FAIL_CHECK_WITH_MSG( InitVertexShaders(), "Vertex Shader initialize failed" );
-	FAIL_CHECK_WITH_MSG( InitPixelShaders(), "Pixel Shader initialize failed" );
+	FAIL_CHECK_WITH_MSG(InitVertexShaders(), "Vertex Shader initialize failed");
+	FAIL_CHECK_WITH_MSG(InitPixelShaders(), "Pixel Shader initialize failed");
 
 	// Create Buffers
-	FAIL_CHECK_WITH_MSG( CreateBuffers(), "Buffer creation failed" );
+	FAIL_CHECK_WITH_MSG(CreateBuffers(), "Buffer creation failed");
 
 	// rasterizer
 	D3D11_RASTERIZER_DESC rsDesc;
@@ -812,6 +848,11 @@ HRESULT InitApp()
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 	g_pd3dDevice->CreateBlendState(&blendDesc, &g_pBlendState);
 
+	// SpriteBatch
+	g_pSpriteBatch = new DirectX::SpriteBatch(g_pImmediateContext);
+	// SpriteFont
+	g_pFont = new DirectX::SpriteFont(g_pd3dDevice, L"Assets\\Arial.spritefont");
+
 	return hr;
 }
 
@@ -819,14 +860,14 @@ HRESULT InitApp()
 HRESULT SetupTransformSRV()
 {
 	HRESULT hr = S_OK;
-	//const uint32_t count = g_InstanceMAX;
+	const uint32_t count = g_InstanceMAX;
 	const uint32_t stride = static_cast<uint32_t>(sizeof(SRVPerInstanceData));
 
 	// Create StructuredBuffer
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory(&bd, sizeof(bd));
 	bd.Usage = D3D11_USAGE_DYNAMIC;
-	bd.ByteWidth = stride;// *count;2
+	bd.ByteWidth = stride * count;
 	bd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
@@ -852,6 +893,9 @@ HRESULT SetupTransformSRV()
 // Clear application
 void CleanupApp()
 {
+	SAFE_DELETE(g_pSpriteBatch);
+	SAFE_DELETE(g_pFont);
+
 	SAFE_RELEASE(g_pTransformSRV);
 	SAFE_RELEASE(g_pTransformStructuredBuffer);
 	SAFE_RELEASE(g_pBlendState);
@@ -863,7 +907,7 @@ void CleanupApp()
 	SAFE_RELEASE(g_pmtxPaletteBuffer);
 
 	SAFE_RELEASE(g_pRS);
-	//SAFE_RELEASE(g_pvsInstancing);
+	SAFE_RELEASE(g_pvsInstancing);
 	for (UINT i = 0; i < 8; ++i)
 	{
 		SAFE_RELEASE(g_pvsLayout[i]);
@@ -923,7 +967,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	static float tsl_dist[3] = { 0, };
 	static float scale = 1.0f;
 	XMMATRIX tsl;
-	XMMATRIX rot;
+	XMMATRIX rotX, rotY, rotZ;
 	XMMATRIX scl;
 
 	switch (message)
@@ -951,13 +995,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			tsl_dist[0] += 5.0f;
 			break;
 
+			// y translation
+		case 'w':
+		case 'W':
+			tsl_dist[1] += 5.0f;
+			break;
+		case 's':
+		case 'S':
+			tsl_dist[1] -= 5.0f;
+			break;
+
 			// initialize
 		case VK_NUMPAD5:
 			tsl_dist[0] = tsl_dist[1] = tsl_dist[2] = 0.f;
 			rot_Angle[0] = rot_Angle[1] = rot_Angle[2] = 0.f;
 			scale = 1.0f;
 			break;
-	
+
 			// Number pad rotation "0" cw, "." ccw
 			// y-Axis rot
 		case VK_NUMPAD0:
@@ -991,10 +1045,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 
-	tsl = XMMatrixTranslation(tsl_dist[0], tsl_dist[1], tsl_dist[2]);	
-	rot = XMMatrixRotationRollPitchYaw(rot_Angle[0], rot_Angle[1], rot_Angle[2]);
+	tsl = XMMatrixTranslation(tsl_dist[0], tsl_dist[1], tsl_dist[2]);
+	rotX = XMMatrixRotationX(rot_Angle[0]);
+	rotY = XMMatrixRotationY(rot_Angle[1]);
+	rotZ = XMMatrixRotationZ(rot_Angle[2]);
 	scl = XMMatrixScaling(scale, scale, scale);
-	g_TRSMatrix = scl * rot * tsl;
+	g_TRSMatrix = scl * (rotX * rotY * rotZ) * tsl;
 
 	return 0;
 }
@@ -1011,7 +1067,7 @@ void RenderModel()
 
 		// mesh nodes count
 		size_t meshnodeCnt = currModel->GetMeshNodeCount();
-				
+
 		// for all mesh nodes
 		for (UINT mn_idx = 0; mn_idx < meshnodeCnt; ++mn_idx)
 		{
@@ -1024,7 +1080,12 @@ void RenderModel()
 			switch (layout_type)
 			{
 			case eLayout::NONE_LAYOUT:		continue;
-			case eLayout::LAYOUT0:	pVS = g_pvsLayout[0];	pPS = g_ppsLayout[0]; break;
+			case eLayout::LAYOUT0:	
+				if (mdl_idx == (NUMBER_OF_MODELS - 1) && g_bInstancing)
+					pVS = g_pvsInstancing;
+				else
+					pVS = g_pvsLayout[0];
+				pPS = g_ppsLayout[0]; break;
 			case eLayout::LAYOUT1:	pVS = g_pvsLayout[1];	pPS = g_ppsLayout[1]; break;
 			case eLayout::LAYOUT2:	pVS = g_pvsLayout[2];	pPS = g_ppsLayout[2]; break;
 			case eLayout::LAYOUT3:	pVS = g_pvsLayout[3];	pPS = g_ppsLayout[3]; break;
@@ -1032,7 +1093,6 @@ void RenderModel()
 			case eLayout::LAYOUT5:	pVS = g_pvsLayout[5];	pPS = g_ppsLayout[5]; break;
 			case eLayout::LAYOUT6:	pVS = g_pvsLayout[6];	pPS = g_ppsLayout[6]; break;
 			case eLayout::LAYOUT7:	pVS = g_pvsLayout[7];	pPS = g_ppsLayout[7]; break;
-			//case eLayout::LAYOUTT:	pVS = g_pvsLayout[8];	pPS = g_ppsLayout[8]; break;
 			}
 
 			g_pImmediateContext->VSSetShader(pVS, nullptr, 0);
@@ -1042,8 +1102,11 @@ void RenderModel()
 			SetShaderParameters(&currModel, mn_idx, layout_type);
 
 			// render node
-			currModel->RenderNode(g_pImmediateContext, mn_idx);
-
+			if (mdl_idx == (NUMBER_OF_MODELS - 1) && g_bInstancing)
+				currModel->RenderNodeInstancing(g_pImmediateContext, mn_idx, g_InstanceMAX);
+			else
+				currModel->RenderNode(g_pImmediateContext, mn_idx);
+			
 			//// render bone points
 			//currModel->RenderPoint(g_pImmediateContext);
 
@@ -1059,40 +1122,31 @@ void RenderModel()
 //--------------------------------------------------------------------------------------
 void Render()
 {
-	// Update our time
-	static float t = 0.0f;
-	if (g_driverType == D3D_DRIVER_TYPE_REFERENCE)
-		t += (float)XM_PI * 0.0125f;
-	else
-	{
-		static DWORD dwTimeStart = 0;
-		DWORD dwTimeCur = GetTickCount();
-		if (dwTimeStart == 0)
-			dwTimeStart = dwTimeCur;
-		t = (dwTimeCur - dwTimeStart) / 1000.0f;
-	}
+	//// Update our time
+	//static float t = 0.0f;
+	//if (g_driverType == D3D_DRIVER_TYPE_REFERENCE)
+	//	t += (float)XM_PI * 0.0125f;
+	//else
+	//{
+	//	static DWORD dwTimeStart = 0;
+	//	DWORD dwTimeCur = GetTickCount();
+	//	if (dwTimeStart == 0)
+	//		dwTimeStart = dwTimeCur;
+	//	t = (dwTimeCur - dwTimeStart) / 1000.0f;
+	//}
 
 	// Pass1 - G Buffer Rendering. Render to texture
-	// pos, norm, diff, spec+shineness
-	{
-		RenderToTexture();
-
-		// Just for testing if it rendered correctly
-		// render to back buffer
-		RenderScene();
-	}
+	// pos, norm, diff+transparency, spec+shineness
+	RenderToTexture();
 
 	// turn z buffer off
 	g_pImmediateContext->OMSetDepthStencilState(g_pDepthDisabledStencilState, 1);
-	
-	// 디버그 창을 네번 그리는 게 아니라
-	// 한번 그리는데 텍스쳐를 넷 다 쓰는거야
-	// Render the debug window using the texture shader on 0x0 posittion
 
+	// Render the debug window using the texture shader on 0x0 posittion
 	// Pass2 - Light Pass Rendering
 	{
 		g_pDebugWindow->Render(g_pImmediateContext, 0, 0);
-	
+
 		if (!g_pTextureShader->Render(g_pImmediateContext,
 			g_pDebugWindow->GetIndexCount(),
 			g_World,
@@ -1106,24 +1160,7 @@ void Render()
 			MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
 			return;
 		}
-	
-		// local lights
 	}
-
-	//for (UINT i = 4; i < RT_COUNT; ++i)
-	//{
-	//	g_pDebugWindow->Render(g_pImmediateContext, 0, 0);
-	//	if (!g_pTextureShader->Render(g_pImmediateContext,
-	//		g_pDebugWindow->GetIndexCount(),
-	//		g_World,
-	//		g_Camera.GetViewMatrix(),
-	//		g_OrthoMatrix,
-	//		g_pRenderTexture->GetShaderResourceView(i)))
-	//	{
-	//		MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
-	//		return;
-	//	}
-	//}
 
 	//// Render the animation debugger
 	//if (!g_pPointShader->Render(g_pImmediateContext,
@@ -1138,7 +1175,23 @@ void Render()
 
 	// turn z buffer on
 	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 1);
-	
+
+	// Draw Text
+	WCHAR wstr[512];
+	g_pSpriteBatch->Begin();
+
+	// fps
+	g_pFont->DrawString(g_pSpriteBatch, L"FPS", XMFLOAT2(0, 0), DirectX::Colors::Yellow, 0, XMFLOAT2(0, 0), 0.5f);
+	swprintf_s(wstr, L"%d", frame_per_sec);
+	g_pFont->DrawString(g_pSpriteBatch, wstr, XMFLOAT2(0, 16), DirectX::Colors::Yellow, 0, XMFLOAT2(0, 0), 0.5f);
+
+	// number of lights
+	g_pFont->DrawString(g_pSpriteBatch, L"Number of Lights", XMFLOAT2(45, 0), DirectX::Colors::Yellow, 0, XMFLOAT2(0, 0), 0.5f);
+	swprintf_s(wstr, L"%d", 2 + MAX_LIGHT);
+	g_pFont->DrawString(g_pSpriteBatch, wstr, XMFLOAT2(45, 16), DirectX::Colors::Yellow, 0, XMFLOAT2(0, 0), 0.5f);
+
+	g_pSpriteBatch->End();
+
 	// Present our back buffer to our front buffer
 	g_pSwapChain->Present(0, 0);
 }
@@ -1160,7 +1213,7 @@ void RenderScene()
 	//g_pImmediateContext->RSSetState(g_pRS);
 	//g_pImmediateContext->OMSetBlendState(g_pBlendState, blendFactors, 0xffffffff);
 	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 0);
-	
+
 	RenderModel();
 }
 
@@ -1173,7 +1226,7 @@ void RenderToTexture()
 	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	float Depth[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	g_pRenderTexture->ClearRenderTarget(g_pImmediateContext, g_pDepthStencilView, ClearColor);
-	
+
 	RenderScene();
 
 	// Reset the render target back to the original back buffer and not the render to texture anymore.
@@ -1220,6 +1273,9 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 		g_pImmediateContext->Unmap(g_pmtxBuffer, 0);
 	}
 
+	if(g_bInstancing)
+		SetMatrix();
+
 	//--------------------------------------------------------------------------------------
 	// matrix palette
 	//--------------------------------------------------------------------------------------
@@ -1227,9 +1283,9 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 		if ((*currentModel)->IsSkinned())
 			g_pImmediateContext->VSSetConstantBuffers(1, 1, &g_pmtxPaletteBuffer);	// setting matrix palettes
 
-		if (eLayout::LAYOUT4 == layoutType || 
+		if (eLayout::LAYOUT4 == layoutType ||
 			eLayout::LAYOUT5 == layoutType ||
-			eLayout::LAYOUT6 == layoutType || 
+			eLayout::LAYOUT6 == layoutType ||
 			eLayout::LAYOUT7 == layoutType)
 		{
 			hr = g_pImmediateContext->Map(g_pmtxPaletteBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
@@ -1258,13 +1314,11 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 
 			// set sampler
 			if (material.pSampler)	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler);
-			//if (material.pSampler[0])	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler[0]);
-			//if (material.pSampler[1])	g_pImmediateContext->PSSetSamplers(1, 1, &material.pSampler[1]);
 
 			// set shader resource view - for texture
 			if (material.pSRV[0])		g_pImmediateContext->PSSetShaderResources(0, 1, &material.pSRV[0]);
 			if (material.pSRV[1])		g_pImmediateContext->PSSetShaderResources(1, 1, &material.pSRV[1]);
-			
+
 			// set constant buffer for material
 			if (material.pMaterialCb)
 			{
@@ -1275,12 +1329,12 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 				MaterialBufferType* mtrlBuffer = (MaterialBufferType*)MappedResource.pData;
 				FAIL_CHECK_BOOLEAN(hr);
 
-				mtrlBuffer->ambient			= material.mtrlConst.ambient;
-				mtrlBuffer->diffuse			= material.mtrlConst.diffuse;
-				mtrlBuffer->specular		= material.mtrlConst.specular;
-				mtrlBuffer->emissive		= material.mtrlConst.emissive;
-				mtrlBuffer->shineness		= 1.0f;// = material.mtrlConst.shineness;
-				mtrlBuffer->transparency	= 1.0f;// = material.mtrlConst.transparency;
+				mtrlBuffer->shineness = material.mtrlConst.shineness;
+				mtrlBuffer->transparency = material.mtrlConst.transparency;
+				mtrlBuffer->ambient = material.mtrlConst.ambient;
+				mtrlBuffer->diffuse = material.mtrlConst.diffuse;
+				mtrlBuffer->specular = material.mtrlConst.specular;
+				mtrlBuffer->emissive = material.mtrlConst.emissive;
 
 				g_pImmediateContext->Unmap(material.pMaterialCb, 0);
 			}
@@ -1288,4 +1342,24 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 	}
 
 	return true;
+}
+
+void SetMatrix()
+{
+	HRESULT hr = S_OK;
+	const UINT count = g_InstanceMAX;
+	XMMATRIX mat;
+
+	D3D11_MAPPED_SUBRESOURCE MappedResource;
+	hr = g_pImmediateContext->Map(g_pTransformStructuredBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+
+	SRVPerInstanceData*	pSrvInstanceData = (SRVPerInstanceData*)MappedResource.pData;
+
+	for (UINT i = 0; i<count; i++)
+	{
+		XMFLOAT3 pos = g_LocalLights[i].GetPosition();
+		pSrvInstanceData[i].mWorld = XMMatrixTranslation(pos.x, pos.y, pos.z);
+	}
+
+	g_pImmediateContext->Unmap(g_pTransformStructuredBuffer, 0);
 }

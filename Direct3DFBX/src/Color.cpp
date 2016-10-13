@@ -11,9 +11,7 @@
 ** - <list in same format as author if applicable>
 ** -------------------------------------------------------------------------*/
 
-
 #include "UrsinePrecompiled.h"
-
 #include "Color.h"
 
 namespace ursine
@@ -219,6 +217,11 @@ namespace ursine
     {
         return SVec4( r, g, b, a );
     }
+
+	DirectX::XMFLOAT4 Color::TOXMFLOAT4(void) const
+	{
+		return DirectX::XMFLOAT4(r, g, b, a);
+	}
 
     uint32 Color::ToHex(void) const
     {

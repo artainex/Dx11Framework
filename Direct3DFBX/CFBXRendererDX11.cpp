@@ -599,19 +599,15 @@ namespace ursine
 				// Setting sampler as default texture
 				hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler);
 				FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
-				//hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler[0]);
-				//FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
-				//hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler[1]);
-				//FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
 
 				// currently, constant buffer creation always failed because constant buffer size should be multiple of 16
 				hr = pd3dDevice->CreateBuffer(&mtrlBufferDesc, NULL, &currFbxMtrl.pMaterialCb);
 				FAIL_CHECK_WITH_MSG(hr, "Constant buffer is not size of multiple of 16");
 
-				currFbxMtrl.mtrlConst.ambient		= currMI.ambi_mcolor;
-				currFbxMtrl.mtrlConst.diffuse		= currMI.diff_mcolor;
-				currFbxMtrl.mtrlConst.specular		= currMI.spec_mcolor;
-				currFbxMtrl.mtrlConst.emissive		= currMI.emis_mcolor;
+				currFbxMtrl.mtrlConst.ambient		= XMFLOAT4(currMI.ambi_mcolor.x, currMI.ambi_mcolor.y, currMI.ambi_mcolor.z, 1.f);
+				currFbxMtrl.mtrlConst.diffuse		= XMFLOAT4(currMI.diff_mcolor.x, currMI.diff_mcolor.y, currMI.diff_mcolor.z, 1.f);
+				currFbxMtrl.mtrlConst.specular		= XMFLOAT4(currMI.spec_mcolor.x, currMI.spec_mcolor.y, currMI.spec_mcolor.z, 1.f);
+				currFbxMtrl.mtrlConst.emissive		= XMFLOAT4(currMI.emis_mcolor.x, currMI.emis_mcolor.y, currMI.emis_mcolor.z, 1.f);
 				currFbxMtrl.mtrlConst.shineness		= currMI.shineness;
 				currFbxMtrl.mtrlConst.transparency	= currMI.transparency;
 			}
@@ -634,7 +630,11 @@ namespace ursine
 
 			// material Constant Buffer
 			D3D11_BUFFER_DESC mtrlBufferDesc;
-			BufferInitialize(mtrlBufferDesc, sizeof(MaterialBufferType), D3D11_USAGE_DYNAMIC, D3D11_BIND_CONSTANT_BUFFER, D3D11_CPU_ACCESS_WRITE);
+			BufferInitialize(mtrlBufferDesc, 
+				sizeof(MaterialBufferType), 
+				D3D11_USAGE_DYNAMIC, 
+				D3D11_BIND_CONSTANT_BUFFER, 
+				D3D11_CPU_ACCESS_WRITE);
 
 			// Create Shader Resource View from default texture and material
 			std::string path1 = "Assets/uv.png";
@@ -646,19 +646,15 @@ namespace ursine
 			// Setting sampler as default texture
 			hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler);
 			FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
-			//hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler[0]);
-			//FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
-			//hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler[1]);
-			//FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
 
 			// currently, constant buffer creation always failed because constant buffer size should be multiple of 16
 			hr = pd3dDevice->CreateBuffer(&mtrlBufferDesc, NULL, &currFbxMtrl.pMaterialCb);
 			FAIL_CHECK_WITH_MSG(hr, "Constant buffer is not size of multiple of 16");
 
-			currFbxMtrl.mtrlConst.ambient		= pseudodx::XMFLOAT3(1.0f, 1.0f, 1.0f);
-			currFbxMtrl.mtrlConst.diffuse		= pseudodx::XMFLOAT3(1.0f, 1.0f, 1.0f);
-			currFbxMtrl.mtrlConst.specular		= pseudodx::XMFLOAT3(1.0f, 1.0f, 1.0f);
-			currFbxMtrl.mtrlConst.emissive		= pseudodx::XMFLOAT3(0.0f, 0.0f, 0.0f);
+			currFbxMtrl.mtrlConst.ambient		= XMFLOAT4(1.0f, 1.0f, 1.0f, 1.f);
+			currFbxMtrl.mtrlConst.diffuse		= XMFLOAT4(1.0f, 1.0f, 1.0f, 1.f);
+			currFbxMtrl.mtrlConst.specular		= XMFLOAT4(1.0f, 1.0f, 1.0f, 1.f);
+			currFbxMtrl.mtrlConst.emissive		= XMFLOAT4(0.0f, 0.0f, 0.0f, 1.f);
 			currFbxMtrl.mtrlConst.shineness		= 0.1f;
 			currFbxMtrl.mtrlConst.transparency	= 1.0f;
 		}

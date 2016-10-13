@@ -45,6 +45,7 @@ private:
 	ID3D11PixelShader* m_pixelShader;
 	ID3D11InputLayout* m_layout;
 	ID3D11Buffer* m_matrixBuffer;
-	ID3D11Buffer* m_lightBuffer[4];
+	ID3D11Buffer* m_lightBuffer[2];
+	ID3D11Buffer* m_locallightBuffer;
 	ID3D11SamplerState* m_sampleState;
 };

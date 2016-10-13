@@ -2,7 +2,7 @@
 #include <FileSystem.h>
 #include <AnimationDef.h>
 
-#pragma warning (diable : 4101)
+#pragma warning (disable : 4101)
 
 TextureShader::TextureShader()
 	:
@@ -11,8 +11,10 @@ TextureShader::TextureShader()
 	m_matrixBuffer(0),
 	m_sampleState(0)
 {
-	for (UINT i = 0; i < 4; ++i)
+	for (UINT i = 0; i < 2; ++i)
 		m_lightBuffer[i] = nullptr;
+
+	m_locallightBuffer = nullptr;
 }
 
 TextureShader::TextureShader(const TextureShader& other)
@@ -72,6 +74,7 @@ bool TextureShader::Render(ID3D11DeviceContext* deviceContext,
 		worldMatrix, viewMatrix, projectionMatrix, 
 		ambiLight, gloLight, locLight,
 		textures);
+	
 	FAIL_CHECK_WITH_MSG(result, "TextureShader Render Fail");
 
 	// Now render the prepared buffers with the shader.
@@ -139,11 +142,21 @@ bool TextureShader::InitializeShader(ID3D11Device* device, HWND hwnd, std::strin
 	lightBufferDesc.ByteWidth = sizeof(LightBufferType);
 	lightBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	lightBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	for (UINT i = 0; i < 4; ++i)
+	for (UINT i = 0; i < 2; ++i)
 	{
 		hr = device->CreateBuffer(&lightBufferDesc, nullptr, &m_lightBuffer[i]);
 		FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "LightBufferType buffer creation fail");
 	}
+
+	// Create Buffer - For local light
+	D3D11_BUFFER_DESC locallightBufferDesc;
+	ZeroMemory(&locallightBufferDesc, sizeof(locallightBufferDesc));
+	locallightBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	locallightBufferDesc.ByteWidth = sizeof(LocalLightBufferType);
+	locallightBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	locallightBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	hr = device->CreateBuffer(&locallightBufferDesc, nullptr, &m_locallightBuffer);
+	FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "LocalLightBufferType buffer creation fail");
 
 	// Create a texture sampler state description.
 	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -175,9 +188,12 @@ void TextureShader::ShutdownShader()
 	// Release the matrix constant buffer.
 	SAFE_RELEASE(m_matrixBuffer);
 
-	// Release the matrix constant buffer.
-	for (UINT i = 0; i < 4; ++i)
+	// Release the light constant buffer.
+	for (UINT i = 0; i < 2; ++i)
 		SAFE_RELEASE(m_lightBuffer[i]);
+
+	// Release the local light constant buffer.
+	SAFE_RELEASE(m_locallightBuffer);
 
 	// Release the layout.
 	SAFE_RELEASE(m_layout);
@@ -254,6 +270,8 @@ bool TextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 	// Set shader texture resources in the pixel shader.
 	deviceContext->PSSetShaderResources(0, RT_COUNT, textures);
 
+	// Set the position of the constant buffer in the vertex shader.
+	bufferNumber = 0;
 	// matrices
 	{
 		// Lock the constant buffer so it can be written to.
@@ -272,15 +290,14 @@ bool TextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 		// Unlock the constant buffer.
 		deviceContext->Unmap(m_matrixBuffer, 0);
 
-		// Set the position of the constant buffer in the vertex shader.
-		bufferNumber = 0;
-
 		// Now set the constant buffer in the vertex shader with the updated values.
 		deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_matrixBuffer);
 	}
-
+	
+	// Set the position of the constant buffer in the vertex shader.
 	// light
 	{
+		bufferNumber = 1;
 		// ambient light
 		{
 			// Lock the constant buffer so it can be written to.
@@ -321,30 +338,34 @@ bool TextureShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 			// Unlock the constant buffer.
 			deviceContext->Unmap(m_lightBuffer[1], 0);
 		}
+		deviceContext->PSSetConstantBuffers(bufferNumber, 2, m_lightBuffer); // setting ambient light, global light
+
 		// local lights
+		bufferNumber = 3;
 		{
 			// Lock the constant buffer so it can be written to.
-			result = deviceContext->Map(m_lightBuffer[2], 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+			result = deviceContext->Map(m_locallightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 			FAIL_CHECK_BOOLEAN(result);
 
 			// Get a pointer to the data in the constant buffer.
-			LightBufferType* lightBuffer = (LightBufferType*)mappedResource.pData;
-
-			// Copy the matrices into the constant buffer.
-			XMFLOAT3 pos = locLight->GetPosition();
-			lightBuffer->lightPosition = XMFLOAT4(pos.x, pos.y, pos.z, 1.f);
-			lightBuffer->ambientColor = locLight->GetAmbientColor();
-			lightBuffer->diffuseColor = locLight->GetDiffuseColor();
-			lightBuffer->specularColor = locLight->GetSpecularColor();
-			lightBuffer->lightDirection = locLight->GetDirection();
+			LocalLightBufferType* lightBuffer = (LocalLightBufferType*)mappedResource.pData;
+			for (UINT i = 0; i < MAX_LIGHT; ++i)
+			{
+				// Copy the matrices into the constant buffer.
+				XMFLOAT3 pos = locLight->GetPosition();
+				lightBuffer->localLights[i].lightPosition	= XMFLOAT4(pos.x, pos.y, pos.z, 1.f);
+				lightBuffer->localLights[i].ambientColor	= locLight->GetAmbientColor();
+				lightBuffer->localLights[i].diffuseColor	= locLight->GetDiffuseColor();
+				lightBuffer->localLights[i].specularColor	= locLight->GetSpecularColor();
+				lightBuffer->localLights[i].lightDirection	= locLight->GetDirection();
+			}
 
 			// Unlock the constant buffer.
-			deviceContext->Unmap(m_lightBuffer[2], 0);
+			deviceContext->Unmap(m_locallightBuffer, 0);
 		}
+		deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_locallightBuffer);	// setting local lights
 
-		// Set the position of the constant buffer in the vertex shader.
-		bufferNumber = 1;
-		deviceContext->PSSetConstantBuffers(bufferNumber, 3, m_lightBuffer);		// setting lights
+		// how can I adding local lights without keep adding light buffers?
 	}
 
 	return true;
