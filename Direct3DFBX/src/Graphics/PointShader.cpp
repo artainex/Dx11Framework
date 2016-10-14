@@ -24,8 +24,8 @@ bool PointShader::Initialize(ID3D11Device* device, HWND hwnd)
 {
 	bool result;
 	
-	std::string vsshaderName = "Shader/PointShader/PointVertexShader.hlsl";
-	std::string psshaderName = "Shader/PointShader/PointPixelShader.hlsl";
+	std::string vsshaderName = "Shader/PointVertexShader.hlsl";
+	std::string psshaderName = "Shader/PointPixelShader.hlsl";
 	result = InitializeShader(device, hwnd, vsshaderName, psshaderName);
 	FAIL_CHECK_BOOLEAN(result);
 

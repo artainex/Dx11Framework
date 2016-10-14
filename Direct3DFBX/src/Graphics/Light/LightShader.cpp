@@ -24,8 +24,8 @@ bool LightShader::Initialize(ID3D11Device* device, HWND hwnd)
 {
 	bool result;
 	// Initialize the vertex and pixel shaders.
-	std::string vsshaderName = "Shader/LightShader/LightVertexShader.hlsl";
-	std::string psshaderName = "Shader/LightShader/LightPixelShader.hlsl";
+	std::string vsshaderName = "Shader/LightVertexShader.hlsl";
+	std::string psshaderName = "Shader/LightPixelShader.hlsl";
 	result = InitializeShader(device, hwnd, vsshaderName, psshaderName);
 	FAIL_CHECK_BOOLEAN(result);
 

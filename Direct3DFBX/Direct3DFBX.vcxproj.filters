@@ -60,20 +60,14 @@
     <Filter Include="Shaders\VertexShader">
       <UniqueIdentifier>{78786274-6c1e-4aec-be0d-7c85e1331d99}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Graphics\Debug Window">
-      <UniqueIdentifier>{e6ba4776-4ec2-4ce0-831a-cee6d26aa494}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\TextureShader">
-      <UniqueIdentifier>{0090f61d-1e3e-4ac2-b311-c62e8e73099b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\LightShader">
-      <UniqueIdentifier>{1ab08ad2-8e58-43c3-902a-f177afed4f9a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shaders\PointShader">
       <UniqueIdentifier>{0ae4ef30-e8f2-4123-8aff-c786c0fbb4be}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shaders\LineShader">
       <UniqueIdentifier>{2a2c317e-7b68-471a-b214-964602717a83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\RenderTarget">
+      <UniqueIdentifier>{e6ba4776-4ec2-4ce0-831a-cee6d26aa494}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -150,23 +144,26 @@
     <ClCompile Include="src\Graphics\Camera\Camera.cpp">
       <Filter>Graphics\Camera</Filter>
     </ClCompile>
-    <ClCompile Include="src\Graphics\RenderTexture.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Graphics\Debug Window\DebugWindow.cpp">
-      <Filter>Graphics\Debug Window</Filter>
-    </ClCompile>
     <ClCompile Include="src\Graphics\Light\Light.cpp">
       <Filter>Graphics\Light</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Graphics\TextureShader.cpp">
-      <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\Light\LightShader.cpp">
       <Filter>Graphics\Light</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\PointShader.cpp">
       <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\SceneRenderer.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\MultiRenderTarget.cpp">
+      <Filter>Graphics\RenderTarget</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Debug Window\DebugWindow.cpp">
+      <Filter>Graphics\RenderTarget</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\RenderTarget.cpp">
+      <Filter>Graphics\RenderTarget</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -314,17 +311,8 @@
     <ClInclude Include="include\Graphics\Camera\Camera.h">
       <Filter>Graphics\Camera</Filter>
     </ClInclude>
-    <ClInclude Include="include\Graphics\RenderTexture.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Graphics\Debug Window\DebugWindow.h">
-      <Filter>Graphics\Debug Window</Filter>
-    </ClInclude>
     <ClInclude Include="include\Graphics\Light\Light.h">
       <Filter>Graphics\Light</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Graphics\TextureShader.h">
-      <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="include\Graphics\Light\LightShader.h">
       <Filter>Graphics\Light</Filter>
@@ -332,32 +320,23 @@
     <ClInclude Include="include\Graphics\PointShader.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Setting.h">
+      <Filter>FBXLoader</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\SceneRenderer.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\MultiRenderTarget.h">
+      <Filter>Graphics\RenderTarget</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\Debug Window\DebugWindow.h">
+      <Filter>Graphics\RenderTarget</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\RenderTarget.h">
+      <Filter>Graphics\RenderTarget</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shader\PixelShader\PixelShaderLayout0.hlsl">
-      <Filter>Shaders\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PixelShader\PixelShaderLayout1.hlsl">
-      <Filter>Shaders\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PixelShader\PixelShaderLayout2.hlsl">
-      <Filter>Shaders\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PixelShader\PixelShaderLayout3.hlsl">
-      <Filter>Shaders\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PixelShader\PixelShaderLayout4.hlsl">
-      <Filter>Shaders\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PixelShader\PixelShaderLayout6.hlsl">
-      <Filter>Shaders\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PixelShader\PixelShaderLayout7.hlsl">
-      <Filter>Shaders\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PixelShader\PixelShaderLayout5.hlsl">
-      <Filter>Shaders\PixelShader</Filter>
-    </FxCompile>
     <FxCompile Include="Shader\VertexShader\VertexShaderLayout0.hlsl">
       <Filter>Shaders\VertexShader</Filter>
     </FxCompile>
@@ -382,18 +361,6 @@
     <FxCompile Include="Shader\VertexShader\VertexShaderLayout7.hlsl">
       <Filter>Shaders\VertexShader</Filter>
     </FxCompile>
-    <FxCompile Include="Shader\TextureShader\TexturePixelShader.hlsl">
-      <Filter>Shaders\TextureShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\TextureShader\TextureVertexShader.hlsl">
-      <Filter>Shaders\TextureShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\LightShader\LightPixelShader.hlsl">
-      <Filter>Shaders\LightShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\LightShader\LightVertexShader.hlsl">
-      <Filter>Shaders\LightShader</Filter>
-    </FxCompile>
     <FxCompile Include="Shader\PointShader\PointShader_GS.hlsl">
       <Filter>Shaders\PointShader</Filter>
     </FxCompile>
@@ -404,6 +371,42 @@
       <Filter>Shaders\PointShader</Filter>
     </FxCompile>
     <FxCompile Include="Shader\InstancingVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\LightShader\LightPixelShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\LightShader\LightVertexShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShader\PixelShaderLayout0.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShader\PixelShaderLayout1.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShader\PixelShaderLayout2.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShader\PixelShaderLayout3.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShader\PixelShaderLayout4.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShader\PixelShaderLayout5.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShader\PixelShaderLayout6.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShader\PixelShaderLayout7.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\ScenePixelShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\SceneVertexShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

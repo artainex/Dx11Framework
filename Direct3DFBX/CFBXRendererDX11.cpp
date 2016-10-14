@@ -172,7 +172,7 @@ namespace ursine
 		hr = CreateVertexBuffer(pd3dDevice, &m_boneVB, pVS, sizeof(VERTEX_DATA_LP), boneCount);
 		SAFE_DELETE_ARRAY(pVS);
 		
-		hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/PointShader/PointVertexShader.hlsl", "PointVertexShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
+		hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/PointVertexShader.hlsl", "PointVertexShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
 		FAIL_CHECK_WITH_MSG(hr, "PointVertexShader.hlsl cannot be compiled.");
 		//hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/PointShader/PointPixelShader.hlsl", "PointPixelShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
 		//FAIL_CHECK_WITH_MSG(hr, "PointPixelShader.hlsl cannot be compiled.");
@@ -224,7 +224,7 @@ namespace ursine
 		hr = CreateVertexBuffer(pd3dDevice, &m_boneVB, pVS, sizeof(VERTEX_DATA_LP), boneCount);
 		SAFE_DELETE_ARRAY(pVS);
 
-		hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/PointShader/PointVertexShader.hlsl", "PointVertexShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
+		hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/PointVertexShader.hlsl", "PointVertexShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
 		FAIL_CHECK_WITH_MSG(hr, "PointVertexShader.hlsl cannot be compiled.");
 		//hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/PointShader/PointPixelShader.hlsl", "PointPixelShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
 		//FAIL_CHECK_WITH_MSG(hr, "PointPixelShader.hlsl cannot be compiled.");

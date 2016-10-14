@@ -8,25 +8,7 @@
 /// 
 // *********************************************************************************************************************
 
-
-#include <WholeInformation.h>
-#include <ctime>
-#include <Camera.h>
-#include <Light.h>
-#include <RenderTexture.h>
-#include <DebugWindow.h>
-#include <PointShader.h>
-#include <TextureShader.h>
-#include <LightShader.h>
-#include "CFBXRendererDX11.h"
-
-#if DEBUG
-#else
-#include "SpriteFont.h"
-#endif
-
-using namespace DirectX;
-using namespace ursine::FBX_DATA;
+#include "Setting.h"
 
 //--------------------------------------------------------------------------------------
 // TODO list
@@ -43,50 +25,6 @@ using namespace ursine::FBX_DATA;
 // 우선 본 위치들부터 먼저 벡터에 저장해봐
 
 //--------------------------------------------------------------------------------------
-// Global Variables
-//--------------------------------------------------------------------------------------
-const int SCREEN_WIDTH = 1600;
-const int SCREEN_HEIGHT = 900;
-const float SCREEN_NEAR = 0.01f;
-const float SCREEN_FAR = 10000.f;
-
-UINT frame = 0;
-UINT frame_per_sec = 0;
-
-HINSTANCE                           g_hInst = nullptr;
-HWND                                g_hWnd = nullptr;
-D3D_DRIVER_TYPE                     g_driverType = D3D_DRIVER_TYPE_NULL;
-D3D_FEATURE_LEVEL                   g_featureLevel = D3D_FEATURE_LEVEL_11_0;
-ID3D11Device*                       g_pd3dDevice = nullptr;
-ID3D11DeviceContext*                g_pImmediateContext = nullptr;
-IDXGISwapChain*                     g_pSwapChain = nullptr;
-ID3D11RenderTargetView*				g_pRenderTargetView = nullptr;
-ID3D11Texture2D*                    g_pDepthStencil = nullptr;
-ID3D11DepthStencilView*             g_pDepthStencilView = nullptr;
-ID3D11DepthStencilState*			g_pDepthStencilState = nullptr;
-ID3D11DepthStencilState*			g_pDepthDisabledStencilState = nullptr;
-
-// Matrices
-XMMATRIX                            g_World;
-XMMATRIX                            g_Projection;
-XMMATRIX							g_OrthoMatrix;
-XMMATRIX							g_TRSMatrix;
-
-// Camera
-Camera								g_Camera;
-
-// Lights
-ursine::Light						g_AmbientLight; // global ambient
-ursine::Light						g_GlobalLight; // global
-ursine::Light						g_LocalLights[MAX_LIGHT];
-
-RenderTexture*						g_pRenderTexture = nullptr; // 4 texture maps - position, color, normal, depth
-DebugWindow*						g_pDebugWindow = nullptr;
-PointShader*						g_pPointShader = nullptr;
-TextureShader*						g_pTextureShader = nullptr;
-LightShader*						g_pLightShader = nullptr;
-
-//--------------------------------------------------------------------------------------
 // Forward declarations
 //--------------------------------------------------------------------------------------
 HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow);
@@ -95,53 +33,30 @@ HRESULT InitCamera();
 HRESULT InitLight();
 HRESULT InitVertexShaders();
 HRESULT InitPixelShaders();
-HRESULT CreateBuffers();
+HRESULT CreateGeometryBuffers();
 void CleanupDevice();
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 void Update(double deltaTime);
 void Render();
 void RenderScene();
-void RenderToTexture();
-void RenderLights();
-void RenderGeometry();
-bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh_index, const eLayout& layoutType);
-UINT updateSpeed = 1;
+void GeometryPass();
+void LightPass();
+void RenderLightModel();
+void RenderGeometryModel();
+bool SetGeometryShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh_index, const eLayout& layoutType);
+bool SetLightShaderParameters(ursine::CFBXRenderDX11** currentModel, const XMMATRIX& lightPos, const UINT& mesh_index);
 
-const UINT	NUMBER_OF_MODELS = 1;
-
-// Skeleton
-std::vector<XMFLOAT3>				bonePoints[NUMBER_OF_MODELS];
+void TurnZBufferOn();
+void TurnZBufferOff();
+void SetAlphaBlend();
+void SetNoBlend();
+void SetAdditiveBlend();
+void SetBackFaceCull(bool on);
+void SetFrontFaceCull(bool on);
 
 HRESULT InitApp();
 void CleanupApp();
 ursine::CFBXRenderDX11*	g_pFbxDX11[NUMBER_OF_MODELS];
-
-// FBX file
-char g_files[NUMBER_OF_MODELS][256] =
-{
-	"Assets/Models/sphere.fbx",
-	//"Assets/Models/dragonplane.fbx"
-	//"Assets/Models/dragonsplane.fbx"
-	//"Assets/Models/Plane.fbx"
-	//"Assets/Animations/Player/Player_Win.fbx"
-};
-
-std::vector<XMMATRIX> skin_mat;
-
-ID3D11BlendState*				g_pBlendState = nullptr;
-ID3D11RasterizerState*			g_pRS = nullptr;
-ID3D11Buffer*					g_pmtxBuffer = nullptr;
-ID3D11Buffer*					g_pmtxPaletteBuffer = nullptr;
-ID3D11VertexShader*				g_pvsLayout[8] = { nullptr, };
-ID3D11ComputeShader*			g_pcsLayout[8] = { nullptr, };
-ID3D11PixelShader*              g_ppsLayout[8] = { nullptr, };
-
-// Instancing
-bool	g_bInstancing = true;
-const uint32_t g_InstanceMAX = MAX_LIGHT;
-ID3D11VertexShader*				g_pvsInstancing = nullptr;
-ID3D11Buffer*					g_pTransformStructuredBuffer = nullptr;
-ID3D11ShaderResourceView*		g_pTransformSRV = nullptr;
 
 // Shader Resource View - was implemented for instancing
 struct SRVPerInstanceData
@@ -151,12 +66,6 @@ struct SRVPerInstanceData
 HRESULT SetupTransformSRV();
 void SetMatrix();
 
-#if DEBUG
-#else
-	// font
-	DirectX::SpriteBatch*		g_pSpriteBatch = nullptr;
-	DirectX::SpriteFont*		g_pFont = nullptr;
-#endif
 
 //--------------------------------------------------------------------------------------
 // Entry point to the program. Initializes everything and goes into a message processing 
@@ -195,9 +104,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 			static std::clock_t start = std::clock();
 			std::clock_t timedelta = std::clock() - start;
 			float t_delta_per_msec = (timedelta * updateSpeed) / (float)(CLOCKS_PER_SEC);
-			
+
 			Update(t_delta_per_msec);
-			
+
 			// need to be reset on last frame's time
 			// should change this if delta time goes over the last frame, set it as 0
 			if (t_delta_per_msec >= 2.f)
@@ -342,7 +251,7 @@ HRESULT InitDevice()
 			&g_pSwapChain, // created swapchain obj
 			&g_pd3dDevice, // created device obj
 			&g_featureLevel, // created feature lvl obj
-			&g_pImmediateContext // created device context obj
+			&g_pDeviceContext // created device context obj
 			);
 		if (SUCCEEDED(hr))
 			break;
@@ -393,7 +302,7 @@ HRESULT InitDevice()
 	FAIL_CHECK(hr);
 
 	// setting rendertargetview & depth-stencil buffer 
-	g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
+	g_pDeviceContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
 
 	// Create depth stencil state
 	D3D11_DEPTH_STENCIL_DESC descDSS;
@@ -444,7 +353,7 @@ HRESULT InitDevice()
 	descDDisabledSS.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 	hr = g_pd3dDevice->CreateDepthStencilState(&descDDisabledSS, &g_pDepthDisabledStencilState);
 	FAIL_CHECK(hr);
-	
+
 	// Setup the viewport - topleft(0,0), bottomright(1,1)
 	D3D11_VIEWPORT vp;
 	vp.Width = (FLOAT)SCREEN_WIDTH;
@@ -453,7 +362,7 @@ HRESULT InitDevice()
 	vp.MaxDepth = 1.0f;
 	vp.TopLeftX = 0;
 	vp.TopLeftY = 0;
-	g_pImmediateContext->RSSetViewports(1, // number of vp will be set
+	g_pDeviceContext->RSSetViewports(1, // number of vp will be set
 		&vp);
 
 	// Initialize the world matrices
@@ -488,18 +397,15 @@ HRESULT InitCamera()
 	g_World = XMMatrixIdentity();
 
 	// Initialize the view matrix
-	XMFLOAT3 initPos = XMFLOAT3(0.f, 0.f, -100.f);
-	XMFLOAT3 initLookAt = XMFLOAT3(0.f, 0.f, 1.f);
-	g_Camera.SetPosition(initPos);
-	g_Camera.SetLookAt(initLookAt);
-	g_Camera.SetViewMatrix();
+	g_Camera.SetPosition(tsl);
+	g_Camera.SetRotation(rot);
+	g_Camera.SetLookAt(XMFLOAT3(0.f, 0.f, 1.f));
+	g_Camera.Update();
 
 	// Initialize the projection matrix
 	g_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, (float)width / (float)height, SCREEN_NEAR, SCREEN_FAR);
 
 	g_OrthoMatrix = XMMatrixOrthographicLH(width, height, SCREEN_NEAR, SCREEN_FAR);
-
-	g_TRSMatrix = XMMatrixIdentity();
 
 	return hr;
 }
@@ -520,7 +426,7 @@ HRESULT InitLight()
 	g_GlobalLight.SetSpecularColor(urColor::Green.TOXMFLOAT4());
 	g_GlobalLight.SetDirection(0.f, -1.f, 0.f);
 	g_GlobalLight.SetPosition(0.f, 30.f, 0.f);
-	
+
 	// Init local lights for diffuse and specular
 	for (UINT i = 0; i < MAX_LIGHT; ++i)
 	{
@@ -555,39 +461,36 @@ HRESULT InitVertexShaders()
 		*pVSBlobL4 = nullptr,
 		*pVSBlobL5 = nullptr,
 		*pVSBlobL6 = nullptr,
-		*pVSBlobL7 = nullptr;// ,
-							 //*pVSBlobL8 = nullptr;
+		*pVSBlobL7 = nullptr,
+		*pVSBlobLL = nullptr;
 
-	for (UINT i = 0; i < 8; ++i)
-	{
-		std::string shaderName = "Shader/VertexShader/VertexShaderLayout";
-		shaderName += (48 + i);
-		shaderName += ".hlsl";
-
-		ID3DBlob **targetVS = nullptr;
-		switch (i)
-		{
-		case 0: targetVS = &pVSBlobL0; break;
-		case 1: targetVS = &pVSBlobL1; break;
-		case 2: targetVS = &pVSBlobL2; break;
-		case 3: targetVS = &pVSBlobL3; break;
-		case 4: targetVS = &pVSBlobL4; break;
-		case 5: targetVS = &pVSBlobL5; break;
-		case 6: targetVS = &pVSBlobL6; break;
-		case 7: targetVS = &pVSBlobL7; break;
-			//case 8: targetVS = &pVSBlobL8; break;
-		}
-
-		hr = CompileShaderFromFile(VERTEX_SHADER, shaderName.c_str(), "vs_main", "vs_5_0", &g_pd3dDevice, &(*targetVS), &g_pvsLayout[i]);
-		shaderName += " cannot be compiled.  Please run this executable from the directory that contains the FX file.";
-		FAIL_CHECK_WITH_MSG(hr, shaderName.c_str());
-	}
+	// geometry shaders
+	hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/VertexShaderLayout0.hlsl", "vs_main", "vs_5_0", &g_pd3dDevice, &pVSBlobL0, &g_pVShader[0]);
+	FAIL_CHECK_WITH_MSG(hr, "VertexShaderLayout0.hlsl compile failed.");
+	hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/VertexShaderLayout1.hlsl", "vs_main", "vs_5_0", &g_pd3dDevice, &pVSBlobL1, &g_pVShader[1]);
+	FAIL_CHECK_WITH_MSG(hr, "VertexShaderLayout1.hlsl compile failed.");
+	hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/VertexShaderLayout2.hlsl", "vs_main", "vs_5_0", &g_pd3dDevice, &pVSBlobL2, &g_pVShader[2]);
+	FAIL_CHECK_WITH_MSG(hr, "VertexShaderLayout2.hlsl compile failed.");
+	hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/VertexShaderLayout3.hlsl", "vs_main", "vs_5_0", &g_pd3dDevice, &pVSBlobL3, &g_pVShader[3]);
+	FAIL_CHECK_WITH_MSG(hr, "VertexShaderLayout3.hlsl compile failed.");
+	hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/VertexShaderLayout4.hlsl", "vs_main", "vs_5_0", &g_pd3dDevice, &pVSBlobL4, &g_pVShader[4]);
+	FAIL_CHECK_WITH_MSG(hr, "VertexShaderLayout4.hlsl compile failed.");
+	hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/VertexShaderLayout5.hlsl", "vs_main", "vs_5_0", &g_pd3dDevice, &pVSBlobL5, &g_pVShader[5]);
+	FAIL_CHECK_WITH_MSG(hr, "VertexShaderLayout5.hlsl compile failed.");
+	hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/VertexShaderLayout6.hlsl", "vs_main", "vs_5_0", &g_pd3dDevice, &pVSBlobL6, &g_pVShader[6]);
+	FAIL_CHECK_WITH_MSG(hr, "VertexShaderLayout6.hlsl compile failed.");
+	hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/VertexShaderLayout7.hlsl", "vs_main", "vs_5_0", &g_pd3dDevice, &pVSBlobL7, &g_pVShader[7]);
+	FAIL_CHECK_WITH_MSG(hr, "VertexShaderLayout7.hlsl compile failed.");
 
 	// instancing vertex shader
 	ID3DBlob *instanceVS = nullptr;
 	hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/InstancingVS.hlsl", "vs_main", "vs_5_0", &g_pd3dDevice, &instanceVS, &g_pvsInstancing);
 	FAIL_CHECK_WITH_MSG(hr, "InstancingVS compile failed");
-	
+
+	// light vertex shader - always layout1
+	hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/LightVertexShader.hlsl", "LightVertexShader", "vs_5_0", &g_pd3dDevice, &pVSBlobLL, &g_pVShader[8]);
+	FAIL_CHECK_WITH_MSG(hr, "LightVertexShader.hlsl compile failed.");
+
 	// Define the input layout
 	// after load fbx successfully, then set the layout.
 	// need to figure out which layout they are
@@ -646,16 +549,10 @@ HRESULT InitVertexShaders()
 					pVSBlobL7->GetBufferPointer(), pVSBlobL7->GetBufferSize(),
 					input_layout.LAYOUT7, 7);
 				break;
-
-				//case eLayout::LAYOUTT:
-				//	hr = g_pFbxDX11[i]->CreateInputLayout(g_pd3dDevice,
-				//		pVSBlobL8->GetBufferPointer(), pVSBlobL8->GetBufferSize(),
-				//		input_layout.LAYOUT_TEX, 2);
-				//	break;
 			}
 		}
+		FAIL_CHECK(hr);
 	}
-	FAIL_CHECK(hr);
 
 	SAFE_RELEASE(pVSBlobL0);
 	SAFE_RELEASE(pVSBlobL1);
@@ -665,6 +562,7 @@ HRESULT InitVertexShaders()
 	SAFE_RELEASE(pVSBlobL5);
 	SAFE_RELEASE(pVSBlobL6);
 	SAFE_RELEASE(pVSBlobL7);
+	SAFE_RELEASE(pVSBlobLL);
 	SAFE_RELEASE(instanceVS);
 
 	return hr;
@@ -683,31 +581,30 @@ HRESULT InitPixelShaders()
 		*pPSBlobL4 = nullptr,
 		*pPSBlobL5 = nullptr,
 		*pPSBlobL6 = nullptr,
-		*pPSBlobL7 = nullptr;
+		*pPSBlobL7 = nullptr,
+		*pPSBlobLL = nullptr;
 
-	for (UINT i = 0; i < 8; ++i)
-	{
-		std::string shaderName = "Shader/PixelShader/PixelShaderLayout";
-		shaderName += (48 + i);
-		shaderName += ".hlsl";
+	// geometry shaders
+	hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/PixelShaderLayout0.hlsl", "PS", "ps_5_0", &g_pd3dDevice, &pPSBlobL0, nullptr, &g_pPShader[0]);
+	FAIL_CHECK_WITH_MSG(hr, "PixelShaderLayout0.hlsl compile failed.");
+	hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/PixelShaderLayout1.hlsl", "PS", "ps_5_0", &g_pd3dDevice, &pPSBlobL1, nullptr, &g_pPShader[1]);
+	FAIL_CHECK_WITH_MSG(hr, "PixelShaderLayout1.hlsl compile failed.");
+	hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/PixelShaderLayout2.hlsl", "PS", "ps_5_0", &g_pd3dDevice, &pPSBlobL2, nullptr, &g_pPShader[2]);
+	FAIL_CHECK_WITH_MSG(hr, "PixelShaderLayout2.hlsl compile failed.");
+	hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/PixelShaderLayout3.hlsl", "PS", "ps_5_0", &g_pd3dDevice, &pPSBlobL3, nullptr, &g_pPShader[3]);
+	FAIL_CHECK_WITH_MSG(hr, "PixelShaderLayout3.hlsl compile failed.");
+	hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/PixelShaderLayout4.hlsl", "PS", "ps_5_0", &g_pd3dDevice, &pPSBlobL4, nullptr, &g_pPShader[4]);
+	FAIL_CHECK_WITH_MSG(hr, "PixelShaderLayout4.hlsl compile failed.");
+	hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/PixelShaderLayout5.hlsl", "PS", "ps_5_0", &g_pd3dDevice, &pPSBlobL5, nullptr, &g_pPShader[5]);
+	FAIL_CHECK_WITH_MSG(hr, "PixelShaderLayout5.hlsl compile failed.");
+	hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/PixelShaderLayout6.hlsl", "PS", "ps_5_0", &g_pd3dDevice, &pPSBlobL6, nullptr, &g_pPShader[6]);
+	FAIL_CHECK_WITH_MSG(hr, "PixelShaderLayout6.hlsl compile failed.");
+	hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/PixelShaderLayout7.hlsl", "PS", "ps_5_0", &g_pd3dDevice, &pPSBlobL7, nullptr, &g_pPShader[7]);
+	FAIL_CHECK_WITH_MSG(hr, "PixelShaderLayout7.hlsl compile failed.");
 
-		ID3DBlob **targetPS = nullptr;
-		switch (i)
-		{
-		case 0: targetPS = &pPSBlobL0; break;
-		case 1: targetPS = &pPSBlobL1; break;
-		case 2: targetPS = &pPSBlobL2; break;
-		case 3: targetPS = &pPSBlobL3; break;
-		case 4: targetPS = &pPSBlobL4; break;
-		case 5: targetPS = &pPSBlobL5; break;
-		case 6: targetPS = &pPSBlobL6; break;
-		case 7: targetPS = &pPSBlobL7; break;
-		}
-		hr = CompileShaderFromFile(PIXEL_SHADER, shaderName.c_str(), "PS", "ps_5_0", &g_pd3dDevice, &(*targetPS), nullptr, &g_ppsLayout[i]);
-		shaderName += " cannot be compiled.  Please run this executable from the directory that contains the FX file.";
-		FAIL_CHECK_WITH_MSG(hr, shaderName.c_str());
-	}
-	FAIL_CHECK(hr);
+	// light vertex shader - always layout1
+	hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/LightPixelShader.hlsl", "LightPixelShader", "ps_5_0", &g_pd3dDevice, &pPSBlobLL, nullptr, &g_pPShader[8]);
+	FAIL_CHECK_WITH_MSG(hr, "LightPixelShader.hlsl compile failed.");
 
 	SAFE_RELEASE(pPSBlobL0);
 	SAFE_RELEASE(pPSBlobL1);
@@ -717,14 +614,15 @@ HRESULT InitPixelShaders()
 	SAFE_RELEASE(pPSBlobL5);
 	SAFE_RELEASE(pPSBlobL6);
 	SAFE_RELEASE(pPSBlobL7);
+	SAFE_RELEASE(pPSBlobLL);
 
 	return hr;
 }
 
 //--------------------------------------------------------------------------------------
-// Create Buffers
+// CreateGeometryBuffers - Constant
 //--------------------------------------------------------------------------------------
-HRESULT CreateBuffers()
+HRESULT CreateGeometryBuffers()
 {
 	HRESULT hr = S_OK;
 
@@ -751,113 +649,159 @@ HRESULT CreateBuffers()
 }
 
 //--------------------------------------------------------------------------------------
+// CreateLightBuffers - Constant
+//--------------------------------------------------------------------------------------
+HRESULT CreateLightBuffers()
+{
+	HRESULT hr = S_OK;
+
+	// Create Buffer - For Matrices
+	D3D11_BUFFER_DESC lightBufferDesc;
+	ZeroMemory(&lightBufferDesc, sizeof(lightBufferDesc));
+	lightBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	lightBufferDesc.ByteWidth = sizeof(LightBufferType);
+	lightBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	lightBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	hr = g_pd3dDevice->CreateBuffer(&lightBufferDesc, nullptr, &g_pLightbuffer);
+	FAIL_CHECK(hr);
+
+	return hr;
+}
+
+//--------------------------------------------------------------------------------------
 // Load models, Init buffers, Create layouts, Compile shaders
 //--------------------------------------------------------------------------------------
 HRESULT InitApp()
 {
 	HRESULT hr = S_OK;
 
-	// create the render to texture obj
-	g_pRenderTexture = new RenderTexture;
-	if (!g_pRenderTexture)
-		return E_FAIL;
-	// initialize the render to texture obj
-	if (!g_pRenderTexture->Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT))
-	{
-		MessageBox(nullptr, "Could not initialize the render texture object.", "Error", MB_OK);
-		return E_FAIL;
-	}
-
-	// create debug window obj
-	g_pDebugWindow = new DebugWindow;
-	if (!g_pDebugWindow)
-		return E_FAIL;
-
-	// initialize the debug window obj.
-	if (!g_pDebugWindow->Initialize(g_pd3dDevice,
-		SCREEN_WIDTH, SCREEN_HEIGHT,
-		SCREEN_WIDTH, SCREEN_HEIGHT))
-	{
-		MessageBox(nullptr, "Could not initialize the debug window object.", "Error", MB_OK);
-		return false;
-	}
-	
-	//// create point class obj
-	//g_pPointShader = new PointShader;
-	//if (!g_pPointShader)
-	//	return E_FAIL;
-	//
-	//// initialize the point shader obj.
-	//if (!g_pPointShader->Initialize(g_pd3dDevice, g_hWnd))
-	//{
-	//	MessageBox(nullptr, "Could not initialize the texture shader object.", "Error", MB_OK);
-	//	return false;
-	//}	
-
-	// create texture class obj
-	g_pTextureShader = new TextureShader;
-	if (!g_pTextureShader)
-		return E_FAIL;
-
-	// initialize the texture shader obj.
-	if (!g_pTextureShader->Initialize(g_pd3dDevice, g_hWnd))
-	{
-		MessageBox(nullptr, "Could not initialize the texture shader object.", "Error", MB_OK);
-		return E_FAIL;
-	}
-
-	// create light class obj
-	g_pLightShader = new LightShader;
-	if (!g_pLightShader)
-		return E_FAIL;
-
-	// initialize the light shader obj
-	if (!g_pLightShader->Initialize(g_pd3dDevice, g_hWnd))
-	{
-		MessageBox(nullptr, "Could not initialize the light shader object.", "Error", MB_OK);
-		return E_FAIL;
-	}
-
 	// Load fbx model
 	for (DWORD i = 0; i < NUMBER_OF_MODELS; ++i)
 	{
 		// this is the place where fbx file loaded
 		g_pFbxDX11[i] = new ursine::CFBXRenderDX11;
-		hr = g_pFbxDX11[i]->LoadFBX(g_files[i], g_pd3dDevice);
+		hr = g_pFbxDX11[i]->LoadFBX(g_files[i].c_str(), g_pd3dDevice);
 		FAIL_CHECK_WITH_MSG(hr, "Load FBX Error");
 	}
 
+	// create the multi render target which covers Full Screen Quad
+	FAIL_CHECK_WITH_MSG(g_GBufferRenderTarget.Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT), "Could not initialize the G-buffer render target.");
+
+	// create the multi render target which covers Full Screen Quad
+	FAIL_CHECK_WITH_MSG(g_SceneBufferRenderTarget.Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT), "Could not initialize the G-buffer render target.");
+
+	//// create render target which covers Full Screen Quad
+	//g_pDebugWindow = new DebugWindow;
+	//if (!g_pDebugWindow) 
+	//	return E_FAIL;
+	//FAIL_CHECK_WITH_MSG(g_pDebugWindow->Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT), "Could not initialize the final render target.");
+
+	// create scene renderer
+	FAIL_CHECK_WITH_MSG(g_SceneRenderer.Initialize(g_pd3dDevice, g_hWnd), "Could not initialize the scene renderer object.");
+	
 	// Init Shaders
 	FAIL_CHECK_WITH_MSG(InitVertexShaders(), "Vertex Shader initialize failed");
 	FAIL_CHECK_WITH_MSG(InitPixelShaders(), "Pixel Shader initialize failed");
 
 	// Create Buffers
-	FAIL_CHECK_WITH_MSG(CreateBuffers(), "Buffer creation failed");
+	FAIL_CHECK_WITH_MSG(CreateGeometryBuffers(), "Geometry const buffer creation failed");
+	FAIL_CHECK_WITH_MSG(CreateLightBuffers(), "Light const buffer creation failed");
 
-	// rasterizer
-	D3D11_RASTERIZER_DESC rsDesc;
-	ZeroMemory(&rsDesc, sizeof(D3D11_RASTERIZER_DESC));
-	rsDesc.FillMode = D3D11_FILL_SOLID;
-	rsDesc.CullMode = D3D11_CULL_BACK;
-	rsDesc.FrontCounterClockwise = false;
-	rsDesc.DepthClipEnable = FALSE;
-	g_pd3dDevice->CreateRasterizerState(&rsDesc, &g_pRS);
-	g_pImmediateContext->RSSetState(g_pRS);
+	// Setup the raster description which will determine how and what polygons will be drawn.
+	D3D11_RASTERIZER_DESC rasterDesc;
+	rasterDesc.AntialiasedLineEnable = false;
+	rasterDesc.CullMode = D3D11_CULL_BACK;
+	rasterDesc.DepthBias = 0;
+	rasterDesc.DepthBiasClamp = 0.0f;
+	rasterDesc.DepthClipEnable = true;
+	rasterDesc.FillMode = D3D11_FILL_SOLID;
+	rasterDesc.FrontCounterClockwise = false;
+	rasterDesc.MultisampleEnable = false;
+	rasterDesc.ScissorEnable = false;
+	rasterDesc.SlopeScaledDepthBias = 0.0f;
 
-	// blend state
-	D3D11_BLEND_DESC blendDesc;
-	ZeroMemory(&blendDesc, sizeof(D3D11_BLEND_DESC));
-	blendDesc.AlphaToCoverageEnable = false;
-	blendDesc.IndependentBlendEnable = false;
-	blendDesc.RenderTarget[0].BlendEnable = true;
-	blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-	blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-	blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;      ///tryed D3D11_BLEND_ONE ... (and others desperate combinations ... )
-	blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;     ///tryed D3D11_BLEND_ONE ... (and others desperate combinations ... )
-	blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-	g_pd3dDevice->CreateBlendState(&blendDesc, &g_pBlendState);
+	// Create the rasterizer state from the description we just filled out.
+	hr = g_pd3dDevice->CreateRasterizerState(&rasterDesc, &g_RasterState);
+	FAIL_CHECK(hr);
+
+	// Now set the rasterizer state.
+	g_pDeviceContext->RSSetState(g_RasterState);
+
+
+	// Setup a raster description which turns on front face culling.
+	rasterDesc.AntialiasedLineEnable = false;
+	rasterDesc.CullMode = D3D11_CULL_FRONT;
+	rasterDesc.DepthBias = 0;
+	rasterDesc.DepthBiasClamp = 0.0f;
+	rasterDesc.DepthClipEnable = true;
+	rasterDesc.FillMode = D3D11_FILL_SOLID;
+	rasterDesc.FrontCounterClockwise = false;
+	rasterDesc.MultisampleEnable = false;
+	rasterDesc.ScissorEnable = false;
+	rasterDesc.SlopeScaledDepthBias = 0.0f;
+
+	// Create the rasterizer state from the description we just filled out.
+	hr = g_pd3dDevice->CreateRasterizerState(&rasterDesc, &g_FrontCullRasterState);
+	FAIL_CHECK(hr);
+
+
+	// Setup a raster description which turns off back face culling.
+	rasterDesc.AntialiasedLineEnable = false;
+	rasterDesc.CullMode = D3D11_CULL_NONE;
+	rasterDesc.DepthBias = 0;
+	rasterDesc.DepthBiasClamp = 0.0f;
+	rasterDesc.DepthClipEnable = true;
+	rasterDesc.FillMode = D3D11_FILL_SOLID;
+	rasterDesc.FrontCounterClockwise = false;
+	rasterDesc.MultisampleEnable = false;
+	rasterDesc.ScissorEnable = false;
+	rasterDesc.SlopeScaledDepthBias = 0.0f;
+
+	// Create the no culling rasterizer state.
+	hr = g_pd3dDevice->CreateRasterizerState(&rasterDesc, &g_NoCullRasterState);
+	FAIL_CHECK(hr);
+
+
+	// Blend state
+
+	D3D11_BLEND_DESC blendStateDescription;
+	// Clear the blend state description.
+	ZeroMemory(&blendStateDescription, sizeof(D3D11_BLEND_DESC));
+
+	// Create an alpha enabled blend state description.
+	blendStateDescription.RenderTarget[0].BlendEnable = TRUE;
+	blendStateDescription.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+	blendStateDescription.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	blendStateDescription.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	blendStateDescription.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	blendStateDescription.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+	blendStateDescription.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	blendStateDescription.RenderTarget[0].RenderTargetWriteMask = 0x0f;
+
+	// Create the blend state using the description.
+	hr = g_pd3dDevice->CreateBlendState(&blendStateDescription, &g_AlphaEnableBlendingState);
+	FAIL_CHECK(hr);
+
+	// Modify the description to create an alpha disabled blend state description.
+	blendStateDescription.RenderTarget[0].BlendEnable = FALSE;
+
+	// Create the second blend state using the description.
+	hr = g_pd3dDevice->CreateBlendState(&blendStateDescription, &g_AlphaDisableBlendingState);
+	FAIL_CHECK(hr);
+
+	// Create a secondary alpha blend state description.
+	blendStateDescription.RenderTarget[0].BlendEnable = TRUE;
+	blendStateDescription.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+	blendStateDescription.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+	blendStateDescription.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	blendStateDescription.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	blendStateDescription.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+	blendStateDescription.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	blendStateDescription.RenderTarget[0].RenderTargetWriteMask = 0x0f;
+
+	// Create the blend state using the description.
+	hr = g_pd3dDevice->CreateBlendState(&blendStateDescription, &g_AlphaAdditiveBlendState);
+	FAIL_CHECK(hr);
 
 #if DEBUG
 #else
@@ -908,7 +852,9 @@ HRESULT SetupTransformSRV()
 	return hr;
 }
 
-// Clear application
+//--------------------------------------------------------------------------------------
+// Clean up applications
+//--------------------------------------------------------------------------------------
 void CleanupApp()
 {
 #if DEBUG
@@ -917,9 +863,25 @@ void CleanupApp()
 	SAFE_DELETE(g_pFont);
 #endif
 
+	SAFE_RELEASE(g_pDepthDisabledStencilState);
+	SAFE_RELEASE(g_pDepthStencilState);
+	SAFE_RELEASE(g_pDepthStencil);
+	SAFE_RELEASE(g_pDepthStencilView);
+	SAFE_RELEASE(g_pRenderTargetView);
+
+	g_SceneRenderer.Shutdown();
+
+	//if (g_pDebugWindow)
+	//{
+	//	g_pDebugWindow->Shutdown();
+	//	SAFE_DELETE(g_pDebugWindow);
+	//}
+
+	g_GBufferRenderTarget.Shutdown();
+
 	SAFE_RELEASE(g_pTransformSRV);
 	SAFE_RELEASE(g_pTransformStructuredBuffer);
-	SAFE_RELEASE(g_pBlendState);
+	SAFE_RELEASE(g_pvsInstancing);
 
 	for (UINT i = 0; i < NUMBER_OF_MODELS; ++i)
 		SAFE_DELETE(g_pFbxDX11[i]);
@@ -927,12 +889,17 @@ void CleanupApp()
 	SAFE_RELEASE(g_pmtxBuffer);
 	SAFE_RELEASE(g_pmtxPaletteBuffer);
 
-	SAFE_RELEASE(g_pRS);
-	SAFE_RELEASE(g_pvsInstancing);
-	for (UINT i = 0; i < 8; ++i)
+	SAFE_RELEASE(g_RasterState);
+	SAFE_RELEASE(g_FrontCullRasterState);
+	SAFE_RELEASE(g_NoCullRasterState);
+	SAFE_RELEASE(g_AlphaEnableBlendingState);
+	SAFE_RELEASE(g_AlphaDisableBlendingState);
+	SAFE_RELEASE(g_AlphaAdditiveBlendState);
+
+	for (UINT i = 0; i < 9; ++i)
 	{
-		SAFE_RELEASE(g_pvsLayout[i]);
-		SAFE_RELEASE(g_ppsLayout[i]);
+		SAFE_RELEASE(g_pVShader[i]);
+		SAFE_RELEASE(g_pPShader[i]);
 	}
 }
 
@@ -941,39 +908,10 @@ void CleanupApp()
 //--------------------------------------------------------------------------------------
 void CleanupDevice()
 {
-	if (g_pImmediateContext) g_pImmediateContext->ClearState();
-	SAFE_RELEASE(g_pDepthDisabledStencilState);
-	SAFE_RELEASE(g_pDepthStencilState);
-	SAFE_RELEASE(g_pDepthStencil);
-	SAFE_RELEASE(g_pDepthStencilView);
-	SAFE_RELEASE(g_pRenderTargetView);
-	if (g_pLightShader)
-	{
-		g_pLightShader->Shutdown();
-		SAFE_DELETE(g_pLightShader);
-	}
-	if (g_pTextureShader)
-	{
-		g_pTextureShader->Shutdown();
-		SAFE_DELETE(g_pTextureShader);
-	}
-	if (g_pPointShader)
-	{
-		g_pPointShader->Shutdown();
-		SAFE_DELETE(g_pPointShader);
-	}
-	if (g_pDebugWindow)
-	{
-		g_pDebugWindow->Shutdown();
-		SAFE_DELETE(g_pDebugWindow);
-	}
-	if (g_pRenderTexture)
-	{
-		g_pRenderTexture->Shutdown();
-		SAFE_DELETE(g_pRenderTexture);
-	}
+	if (g_pDeviceContext) 
+		g_pDeviceContext->ClearState();
 	SAFE_RELEASE(g_pSwapChain);
-	SAFE_RELEASE(g_pImmediateContext);
+	SAFE_RELEASE(g_pDeviceContext);
 	SAFE_RELEASE(g_pd3dDevice);
 }
 
@@ -984,12 +922,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	PAINTSTRUCT ps;
 	HDC hdc;
-	static float rot_Angle[3] = { 0.0f, };
-	static float tsl_dist[3] = { 0, };
-	static float scale = 1.0f;
-	XMMATRIX tsl;
-	XMMATRIX rotX, rotY, rotZ;
-	XMMATRIX scl;
 
 	switch (message)
 	{
@@ -1004,58 +936,63 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			// xz translation
 		case VK_NUMPAD2:
-			tsl_dist[2] -= 5.0f;
+			tsl.z += 5.0f;
 			break;
 		case VK_NUMPAD8:
-			tsl_dist[2] += 5.0f;
+			tsl.z -= 5.0f;
 			break;
 		case VK_NUMPAD4:
-			tsl_dist[0] -= 5.0f;
+			tsl.x += 5.0f;
 			break;
 		case VK_NUMPAD6:
-			tsl_dist[0] += 5.0f;
+			tsl.x -= 5.0f;
 			break;
 
 			// y translation
 		case 'w':
 		case 'W':
-			tsl_dist[1] += 5.0f;
+			tsl.y -= 5.0f;
 			break;
 		case 's':
 		case 'S':
-			tsl_dist[1] -= 5.0f;
+			tsl.y += 5.0f;
 			break;
 
 			// initialize
 		case VK_NUMPAD5:
-			tsl_dist[0] = tsl_dist[1] = tsl_dist[2] = 0.f;
-			rot_Angle[0] = rot_Angle[1] = rot_Angle[2] = 0.f;
-			scale = 1.0f;
+			tsl = InitTsl;
+			rot = InitRot;
+			scl = 1.0f;
 			break;
 
 			// Number pad rotation "0" cw, "." ccw
 			// y-Axis rot
 		case VK_NUMPAD0:
-			rot_Angle[1] += 0.1f;
+			rot.y += 0.1f;
 			break;
 		case VK_DECIMAL:
-			rot_Angle[1] -= 0.1f;
+			rot.y -= 0.1f;
 			break;
 
 			// Zoom in and out
 		case VK_ADD:
-			scale += 0.1f;
+			scl += 0.1f;
 			break;
 		case VK_SUBTRACT:
-			scale -= 0.1f;
-			if (scale <= 0.f)
-				scale = 1.f;
+			scl -= 0.1f;
+			if (scl <= 0.f)
+				scl = 1.f;
 			break;
 		}
-		if (rot_Angle[0] >= 360.f)
-			rot_Angle[0] = 0.0f;
-		if (rot_Angle[1] >= 360.f)
-			rot_Angle[1] = 0.0f;
+		if (rot.x >= 360.f)
+			rot.x = 0.0f;
+		if (rot.y >= 360.f)
+			rot.y = 0.0f;
+
+		g_ScaleMatrix = XMMatrixScaling(scl, scl, scl);
+		g_Camera.SetPosition(tsl);
+		g_Camera.SetRotation(rot);
+		g_Camera.Update();
 		break;
 
 	case WM_DESTROY:
@@ -1066,79 +1003,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 
-	tsl = XMMatrixTranslation(tsl_dist[0], tsl_dist[1], tsl_dist[2]);
-	rotX = XMMatrixRotationX(rot_Angle[0]);
-	rotY = XMMatrixRotationY(rot_Angle[1]);
-	rotZ = XMMatrixRotationZ(rot_Angle[2]);
-	scl = XMMatrixScaling(scale, scale, scale);
-	g_TRSMatrix = scl * (rotX * rotY * rotZ) * tsl;
-
 	return 0;
-}
-
-//--------------------------------------------------------------------------------------
-// Render the model
-//--------------------------------------------------------------------------------------
-void RenderGeometry()
-{
-	// for all model
-	for (UINT mdl_idx = 1; mdl_idx < NUMBER_OF_MODELS; ++mdl_idx)
-	{
-		auto &currModel = g_pFbxDX11[mdl_idx];
-
-		// mesh nodes count
-		size_t meshnodeCnt = currModel->GetMeshNodeCount();
-
-		// for all mesh nodes
-		for (UINT mn_idx = 0; mn_idx < meshnodeCnt; ++mn_idx)
-		{
-			//////////////////////////////////////
-			// sort by layout later
-			//////////////////////////////////////
-			eLayout layout_type = currModel->GetLayoutType(mn_idx);
-			ID3D11VertexShader* pVS = nullptr;
-			ID3D11PixelShader* pPS = nullptr;
-			switch (layout_type)
-			{
-			case eLayout::NONE_LAYOUT:		continue;
-			case eLayout::LAYOUT0:	pVS = g_pvsLayout[0];	pPS = g_ppsLayout[0]; break;
-			case eLayout::LAYOUT1:
-			{
-				//if (mdl_idx == 0 && g_bInstancing)
-				//	pVS = g_pvsInstancing;
-				//else
-					pVS = g_pvsLayout[1];
-				pPS = g_ppsLayout[1];
-			}
-				break;
-			case eLayout::LAYOUT2:	pVS = g_pvsLayout[2];	pPS = g_ppsLayout[2]; break;
-			case eLayout::LAYOUT3:	pVS = g_pvsLayout[3];	pPS = g_ppsLayout[3]; break;
-			case eLayout::LAYOUT4:	pVS = g_pvsLayout[4];	pPS = g_ppsLayout[4]; break;
-			case eLayout::LAYOUT5:	pVS = g_pvsLayout[5];	pPS = g_ppsLayout[5]; break;
-			case eLayout::LAYOUT6:	pVS = g_pvsLayout[6];	pPS = g_ppsLayout[6]; break;
-			case eLayout::LAYOUT7:	pVS = g_pvsLayout[7];	pPS = g_ppsLayout[7]; break;
-			}
-
-			g_pImmediateContext->VSSetShader(pVS, nullptr, 0);
-			g_pImmediateContext->PSSetShader(pPS, nullptr, 0);
-
-			// set shader parameters(mapping constant buffers, matrices, resources)
-			SetShaderParameters(&currModel, mn_idx, layout_type);
-
-			// render node
-			//if (mdl_idx == 0 && g_bInstancing)
-			//	currModel->RenderNodeInstancing(g_pImmediateContext, mn_idx, g_InstanceMAX);
-			//else
-				currModel->RenderNode(g_pImmediateContext, mn_idx);
-			
-			//// render bone points
-			//currModel->RenderPoint(g_pImmediateContext);
-
-			// reset shader
-			g_pImmediateContext->VSSetShader(nullptr, nullptr, 0);
-			g_pImmediateContext->PSSetShader(nullptr, nullptr, 0);
-		}
-	}
 }
 
 //--------------------------------------------------------------------------------------
@@ -1146,30 +1011,26 @@ void RenderGeometry()
 //--------------------------------------------------------------------------------------
 void Render()
 {
-	//// Update our time
-	//static float t = 0.0f;
-	//if (g_driverType == D3D_DRIVER_TYPE_REFERENCE)
-	//	t += (float)XM_PI * 0.0125f;
-	//else
-	//{
-	//	static DWORD dwTimeStart = 0;
-	//	DWORD dwTimeCur = GetTickCount();
-	//	if (dwTimeStart == 0)
-	//		dwTimeStart = dwTimeCur;
-	//	t = (dwTimeCur - dwTimeStart) / 1000.0f;
-	//}
+	// Pass1 - G Buffer Rendering. Render to texture
+	// pos, norm, diff+transparency, spec+shineness, depth
+	// Render Scene to the texture(render target)
+	GeometryPass();
 
-	//// Render Scene to the texture(render target)
-	//RenderToTexture();
-	//
-	//// turn z buffer off
-	//g_pImmediateContext->OMSetDepthStencilState(g_pDepthDisabledStencilState, 1);
-	//
+	// Pass2 - Lighting Rendering
+	// output to screen or final render target with viewport set to its width height
+	// set blending off, depth testing off,
+	// set ambi light amount
+	// draw FSQ to invoke a pixel shader at all pixels
+	  // VS : pass the FSQ's vertex straight through. no transformation
+	  // PS : compute and output ambient light
+	LightPass();
+	
 	//// Final Result Rendering
 	//{
+	//	// Quad Renderer(left right top bottom)
 	//	g_pDebugWindow->Render(g_pImmediateContext, 0, 0);
 	//
-	//	if (!g_pTextureShader->Render(g_pImmediateContext,
+	//	if (!SceneRenderer->Render(g_pImmediateContext,
 	//		g_pDebugWindow->GetIndexCount(),
 	//		g_World,
 	//		g_Camera.GetViewMatrix(),
@@ -1177,28 +1038,14 @@ void Render()
 	//		&g_AmbientLight,// ambient light
 	//		&g_GlobalLight,	// global light
 	//		g_LocalLights,	// local lights
-	//		g_pRenderTexture->GetShaderResourceViews()))
+	//		g_pGBufferRenderTarget->GetShaderResourceViews()))
 	//	{
 	//		MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
 	//		return;
 	//	}
 	//}
-	//
-	////// Render the animation debugger
-	////if (!g_pPointShader->Render(g_pImmediateContext,
-	////	g_pPointShader->GetIndexCount(),
-	////	g_World,
-	////	g_Camera.GetViewMatrix(),
-	////	g_Projection))
-	////{
-	////	MessageBox(nullptr, "failed to render point by using Point Shader", "Error", MB_OK);
-	////	return;
-	////}
-	//
-	//// turn z buffer on
-	//g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 1);
-
-	RenderScene();
+		
+	//RenderScene();
 
 #if DEBUG
 #else
@@ -1230,100 +1077,181 @@ void RenderScene()
 {
 	// Clear the back bufferw
 	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; // red, green, blue, alpha
-	g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
+	g_pDeviceContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
 
 	// Clear the depth buffer to 1.0 (max depth)
-	g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	g_pDeviceContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	//// Set Blend Factors
 	//float blendFactors[4] = { D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO };
 	//g_pImmediateContext->RSSetState(g_pRS);
 	//g_pImmediateContext->OMSetBlendState(g_pBlendState, blendFactors, 0xffffffff);
-	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 0);
+	g_pDeviceContext->OMSetDepthStencilState(g_pDepthStencilState, 0);
 
-	// Pass 1
-	RenderGeometry();
-
-	// Pass 2
-	RenderLights();
+	RenderLightModel();		// light objects should comes first - foward rendering
+	RenderGeometryModel();
 }
 
-// Render the render targets
-void RenderToTexture()
+// Geometry Pass for deferred shading
+void GeometryPass()
 {
-	g_pRenderTexture->SetRenderTarget(g_pImmediateContext, g_pDepthStencilView);
+	// set G-buffer as render target
+	g_GBufferRenderTarget.SetRenderTarget(g_pDeviceContext, g_pDepthStencilView);
 
 	// Clear the back buffer with Color rgba
 	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	g_pRenderTexture->ClearRenderTarget(g_pImmediateContext, g_pDepthStencilView, ClearColor);
+	g_GBufferRenderTarget.ClearRenderTarget(g_pDeviceContext, g_pDepthStencilView, ClearColor);
 
-	// Pass1 - G Buffer Rendering. Render to texture
-	// pos, norm, diff+transparency, spec+shineness, depth
-	RenderGeometry();
-
-	// Pass 2 - Render Lights
-	RenderLights();
+	RenderLightModel();		// light objects should comes first
+	RenderGeometryModel();
 
 	// Reset the render target back to the original back buffer and not the render to texture anymore.
-	g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
+	g_pDeviceContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
 }
 
-// seems like debug window texture is not painted
-void RenderLights()
+// Light Pass for deferred shading
+void LightPass()
+{
+	SetAdditiveBlend();
+	TurnZBufferOff();
+	SetBackFaceCull(true);
+	// Global Light
+	{
+		// set Scene buffer as render target
+		g_SceneBufferRenderTarget.SetRenderTarget(g_pDeviceContext, g_pDepthStencilView);
+
+		// 라이트 셰이더에 텍스쳐 여럿 바인딩 할 수 있게 해야 한다.
+		// 그런데 왜 라이트 셰이더에? 최종적으로 그리는 데서 합성하면 되는 거 아냐?
+
+		// Reset the render target back to the original back buffer and not the render to texture anymore.
+		g_pDeviceContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
+	}
+	TurnZBufferOn();
+}
+
+//--------------------------------------------------------------------------------------
+// Render the light model
+//--------------------------------------------------------------------------------------
+void RenderLightModel()
 {
 	// light model(sphere)
 	if (!g_pFbxDX11[0])
 		return;
 
-	for (UINT i = 0; i < g_pFbxDX11[0]->GetMeshNodeCount(); ++i)
+	auto &currModel = g_pFbxDX11[0];
+
+	// mesh nodes count
+	size_t meshnodeCnt = currModel->GetMeshNodeCount();
+
+	// for all lights
+	// for all mesh nodes
+	g_pDeviceContext->VSSetShader(g_pVShader[1], nullptr, 0);
+	g_pDeviceContext->PSSetShader(g_pPShader[1], nullptr, 0);
+
+	for (UINT mn_idx = 0; mn_idx < meshnodeCnt; ++mn_idx)
 	{
-		// 원래는 랜더 노드로 그리는데 여기서는 그게 없으니까
-		// 인덱스 버퍼도, 버텍스 버퍼도 못받아서 안그려지는 듯
-		// 인덱스 카운트를 넘길게 아니라 아예 그냥 모델을 넘겨버리던가
-		// 메시를 넘겨버려
-
+		ursine::Light* light = nullptr;
 		// ambient light
-		g_pLightShader->Render(g_pImmediateContext,
-			g_pFbxDX11[0]->GetMeshNode(i).indexCount,
-			g_AmbientLight.GetTransformation(),
-			g_Camera.GetViewMatrix(),
-			g_Projection,
-			nullptr,
-			g_AmbientLight.GetDirection(),
-			g_AmbientLight.GetDiffuseColor()
-		);
-
-		// global light
-		g_pLightShader->Render(g_pImmediateContext, 
-			g_pFbxDX11[0]->GetMeshNode(i).indexCount,
-			g_GlobalLight.GetTransformation(), 
-			g_Camera.GetViewMatrix(), 
-			g_Projection,
-			nullptr,
-			g_GlobalLight.GetDirection(),
-			g_GlobalLight.GetDiffuseColor()
-		);
-
-		// local lights
-		for (UINT j = 0; j < MAX_LIGHT; ++j)
 		{
-			g_pLightShader->Render(g_pImmediateContext,
-				g_pFbxDX11[0]->GetMeshNode(i).indexCount,
-				g_LocalLights[j].GetTransformation(),
-				g_Camera.GetViewMatrix(),
-				g_Projection,
-				nullptr,
-				g_LocalLights[j].GetDirection(),
-				g_LocalLights[j].GetDiffuseColor()
-			);
+			light = &g_AmbientLight;
+			// set shader parameters(mapping constant buffers, matrices, resources)
+			SetLightShaderParameters(&currModel, light->GetTransformation(), mn_idx);
+			currModel->RenderNode(g_pDeviceContext, mn_idx);
+		}
+		// global light
+		{
+			light = &g_GlobalLight;
+			// set shader parameters(mapping constant buffers, matrices, resources)
+			SetLightShaderParameters(&currModel, light->GetTransformation(), mn_idx);
+			currModel->RenderNode(g_pDeviceContext, mn_idx);
+		}
+		// local lights
+		{
+			for (UINT loc = 0; loc < MAX_LIGHT; ++loc)
+			{
+				light = &g_LocalLights[loc];
+				SetLightShaderParameters(&currModel, light->GetTransformation(), mn_idx);
+				currModel->RenderNode(g_pDeviceContext, mn_idx);
+			}
+		}
+	}
+
+	// reset shader
+	g_pDeviceContext->VSSetShader(nullptr, nullptr, 0);
+	g_pDeviceContext->PSSetShader(nullptr, nullptr, 0);
+}
+
+//--------------------------------------------------------------------------------------
+// Render the geometry model
+//--------------------------------------------------------------------------------------
+void RenderGeometryModel()
+{
+	// for all model
+	for (UINT mdl_idx = 1; mdl_idx < NUMBER_OF_MODELS; ++mdl_idx)
+	{
+		auto &currModel = g_pFbxDX11[mdl_idx];
+
+		// mesh nodes count
+		size_t meshnodeCnt = currModel->GetMeshNodeCount();
+
+		// for all mesh nodes
+		for (UINT mn_idx = 0; mn_idx < meshnodeCnt; ++mn_idx)
+		{
+			//////////////////////////////////////
+			// sort by layout later
+			//////////////////////////////////////
+			eLayout layout_type = currModel->GetLayoutType(mn_idx);
+			ID3D11VertexShader* pVS = nullptr;
+			ID3D11PixelShader* pPS = nullptr;
+			switch (layout_type)
+			{
+			case eLayout::NONE_LAYOUT:		continue;
+			case eLayout::LAYOUT0:	pVS = g_pVShader[0];	pPS = g_pPShader[0]; break;
+			case eLayout::LAYOUT1:
+			{
+				if (mdl_idx == 0 && g_bInstancing)
+					pVS = g_pvsInstancing;
+				else
+				{
+					pVS = g_pVShader[1];
+					pPS = g_pPShader[1];
+				}
+			}
+			break;
+			case eLayout::LAYOUT2:	pVS = g_pVShader[2];	pPS = g_pPShader[2]; break;
+			case eLayout::LAYOUT3:	pVS = g_pVShader[3];	pPS = g_pPShader[3]; break;
+			case eLayout::LAYOUT4:	pVS = g_pVShader[4];	pPS = g_pPShader[4]; break;
+			case eLayout::LAYOUT5:	pVS = g_pVShader[5];	pPS = g_pPShader[5]; break;
+			case eLayout::LAYOUT6:	pVS = g_pVShader[6];	pPS = g_pPShader[6]; break;
+			case eLayout::LAYOUT7:	pVS = g_pVShader[7];	pPS = g_pPShader[7]; break;
+			}
+
+			g_pDeviceContext->VSSetShader(pVS, nullptr, 0);
+			g_pDeviceContext->PSSetShader(pPS, nullptr, 0);
+
+			// set shader parameters(mapping constant buffers, matrices, resources)
+			SetGeometryShaderParameters(&currModel, mn_idx, layout_type);
+
+			// render node
+			//if (mdl_idx == 0 && g_bInstancing)
+			//	currModel->RenderNodeInstancing(g_pImmediateContext, mn_idx, g_InstanceMAX);
+			//else
+			currModel->RenderNode(g_pDeviceContext, mn_idx);
+
+			//// render bone points
+			//currModel->RenderPoint(g_pImmediateContext);
+
+			// reset shader
+			g_pDeviceContext->VSSetShader(nullptr, nullptr, 0);
+			g_pDeviceContext->PSSetShader(nullptr, nullptr, 0);
 		}
 	}
 }
 
 //--------------------------------------------------------------------------------------
-// Set Shader Parameters
+// Set Shader Parameters for geometry
 //--------------------------------------------------------------------------------------
-bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh_index, const eLayout& layoutType)
+bool SetGeometryShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh_index, const eLayout& layoutType)
 {
 	D3D11_MAPPED_SUBRESOURCE MappedResource;
 
@@ -1336,28 +1264,28 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 	//--------------------------------------------------------------------------------------
 	// setting matrices
 	//--------------------------------------------------------------------------------------
-	g_pImmediateContext->VSSetConstantBuffers(0, 1, &g_pmtxBuffer);
+	g_pDeviceContext->VSSetConstantBuffers(0, 1, &g_pmtxBuffer);
 	// world, view, projection, WVP Matrices & material
 	{
 		// 이게 여기에 있어야만 하는지, 라이팅 셰이더를 이 이후에 그릴 때에 다시 이걸 세이더에 전달해줘야 하는지 궁금하군
 		// 일단 라이팅 여기에다 넣어서 되는지 확인해.
-		hr = g_pImmediateContext->Map(g_pmtxBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+		hr = g_pDeviceContext->Map(g_pmtxBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
 		FAIL_CHECK_BOOLEAN(hr);
 
 		MatrixBufferType* mtxBuffer = (MatrixBufferType*)MappedResource.pData;
 
 		// WVP
-		mtxBuffer->mWorld = XMMatrixTranspose(g_TRSMatrix * g_World);
+		mtxBuffer->mWorld = XMMatrixTranspose(g_ScaleMatrix * g_World);
 		mtxBuffer->mView = XMMatrixTranspose(g_Camera.GetViewMatrix());
 		mtxBuffer->mProj = XMMatrixTranspose(g_Projection);
 
 		// xm matrix - row major
 		// hlsl - column major
 		// that's why we should transpose this
-		mtxBuffer->mWVP = XMMatrixTranspose(g_TRSMatrix * g_World * g_Camera.GetViewMatrix() * g_Projection);
+		mtxBuffer->mWVP = XMMatrixTranspose(g_World * g_Camera.GetViewMatrix() * g_Projection);
 
 		// unmap constant buffer
-		g_pImmediateContext->Unmap(g_pmtxBuffer, 0);
+		g_pDeviceContext->Unmap(g_pmtxBuffer, 0);
 	}
 
 	//if(g_bInstancing)
@@ -1368,20 +1296,20 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 	//--------------------------------------------------------------------------------------
 	{
 		if ((*currentModel)->IsSkinned())
-			g_pImmediateContext->VSSetConstantBuffers(1, 1, &g_pmtxPaletteBuffer);	// setting matrix palettes
+			g_pDeviceContext->VSSetConstantBuffers(1, 1, &g_pmtxPaletteBuffer);	// setting matrix palettes
 
 		if (eLayout::LAYOUT4 == layoutType ||
 			eLayout::LAYOUT5 == layoutType ||
 			eLayout::LAYOUT6 == layoutType ||
 			eLayout::LAYOUT7 == layoutType)
 		{
-			hr = g_pImmediateContext->Map(g_pmtxPaletteBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+			hr = g_pDeviceContext->Map(g_pmtxPaletteBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
 			PaletteBufferType* palBuffer = (PaletteBufferType*)MappedResource.pData;
 			FAIL_CHECK_BOOLEAN(hr);
 
 			(*currentModel)->UpdateMatPal(&palBuffer->matPal[0]);
 
-			g_pImmediateContext->Unmap(g_pmtxPaletteBuffer, 0);
+			g_pDeviceContext->Unmap(g_pmtxPaletteBuffer, 0);
 		}
 	}
 
@@ -1404,19 +1332,19 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 			Material_Data material = (*currentModel)->GetNodeFbxMaterial(mesh_index);
 
 			// set sampler
-			if (material.pSampler)	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler);
+			if (material.pSampler)	g_pDeviceContext->PSSetSamplers(0, 1, &material.pSampler);
 
 			// set shader resource view - for texture
-			if (material.pSRV[0])		g_pImmediateContext->PSSetShaderResources(0, 1, &material.pSRV[0]);
-			if (material.pSRV[1])		g_pImmediateContext->PSSetShaderResources(1, 1, &material.pSRV[1]);
+			if (material.pSRV[0])		g_pDeviceContext->PSSetShaderResources(0, 1, &material.pSRV[0]);
+			if (material.pSRV[1])		g_pDeviceContext->PSSetShaderResources(1, 1, &material.pSRV[1]);
 
 			// set constant buffer for material
 			if (material.pMaterialCb)
 			{
 				//g_pImmediateContext->UpdateSubresource(material.pMaterialCb, 0, nullptr, &material.mtrlConst, 0, 0);
-				g_pImmediateContext->PSSetConstantBuffers(0, 1, &material.pMaterialCb);	// setting materials constant buffer
+				g_pDeviceContext->PSSetConstantBuffers(0, 1, &material.pMaterialCb);	// setting materials constant buffer
 
-				hr = g_pImmediateContext->Map(material.pMaterialCb, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+				hr = g_pDeviceContext->Map(material.pMaterialCb, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
 				MaterialBufferType* mtrlBuffer = (MaterialBufferType*)MappedResource.pData;
 				FAIL_CHECK_BOOLEAN(hr);
 
@@ -1427,7 +1355,7 @@ bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh
 				mtrlBuffer->specular = material.mtrlConst.specular;
 				mtrlBuffer->emissive = material.mtrlConst.emissive;
 
-				g_pImmediateContext->Unmap(material.pMaterialCb, 0);
+				g_pDeviceContext->Unmap(material.pMaterialCb, 0);
 			}
 		}
 	}
@@ -1441,15 +1369,150 @@ void SetMatrix()
 	const UINT count = g_InstanceMAX;
 
 	D3D11_MAPPED_SUBRESOURCE MappedResource;
-	hr = g_pImmediateContext->Map(g_pTransformStructuredBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+	hr = g_pDeviceContext->Map(g_pTransformStructuredBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
 
 	SRVPerInstanceData*	pSrvInstanceData = (SRVPerInstanceData*)MappedResource.pData;
 
-	for (UINT i = 0; i<count; i++)
+	for (UINT i = 0; i < count; i++)
 	{
 		XMFLOAT3 pos = g_LocalLights[i].GetPosition();
 		pSrvInstanceData[i].mWorld = XMMatrixTranslation(pos.x, pos.y, pos.z);
 	}
 
-	g_pImmediateContext->Unmap(g_pTransformStructuredBuffer, 0);
+	g_pDeviceContext->Unmap(g_pTransformStructuredBuffer, 0);
+}
+
+//--------------------------------------------------------------------------------------
+// Set Shader Parameters for geometry
+//--------------------------------------------------------------------------------------
+bool SetLightShaderParameters(ursine::CFBXRenderDX11** currentModel, const XMMATRIX& lightPos, const UINT& mesh_index)
+{
+	D3D11_MAPPED_SUBRESOURCE MappedResource;
+
+	HRESULT hr;
+
+	//--------------------------------------------------------------------------------------
+	// Vertex Shader Parameters
+	//--------------------------------------------------------------------------------------
+
+	//--------------------------------------------------------------------------------------
+	// setting matrices
+	//--------------------------------------------------------------------------------------
+	g_pDeviceContext->VSSetConstantBuffers(0, 1, &g_pmtxBuffer);
+	// world, view, projection, WVP Matrices & material
+	{
+		// 이게 여기에 있어야만 하는지, 라이팅 셰이더를 이 이후에 그릴 때에 다시 이걸 세이더에 전달해줘야 하는지 궁금하군
+		// 일단 라이팅 여기에다 넣어서 되는지 확인해.
+		hr = g_pDeviceContext->Map(g_pmtxBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+		FAIL_CHECK_BOOLEAN(hr);
+
+		MatrixBufferType* mtxBuffer = (MatrixBufferType*)MappedResource.pData;
+
+		XMMATRIX world = g_ScaleMatrix * lightPos * g_World;
+
+		// WVP
+		mtxBuffer->mWorld = XMMatrixTranspose(world);
+		mtxBuffer->mView = XMMatrixTranspose(g_Camera.GetViewMatrix());
+		mtxBuffer->mProj = XMMatrixTranspose(g_Projection);
+
+		// xm matrix - row major
+		// hlsl - column major
+		// that's why we should transpose this
+		mtxBuffer->mWVP = XMMatrixTranspose(world * g_Camera.GetViewMatrix() * g_Projection);
+
+		// unmap constant buffer
+		g_pDeviceContext->Unmap(g_pmtxBuffer, 0);
+	}
+
+	//if(g_bInstancing)
+	//	SetMatrix();
+	
+	//--------------------------------------------------------------------------------------
+	// SRV for instancing
+	//--------------------------------------------------------------------------------------
+	//if (g_pTransformSRV && g_bInstancing)	
+	//	g_pImmediateContext->VSSetShaderResources(0, 1, &g_pTransformSRV);
+
+	//--------------------------------------------------------------------------------------
+	// Pixel Shader Parameters : materials & lights
+	//--------------------------------------------------------------------------------------
+	{
+		//--------------------------------------------------------------------------------------
+		// materials
+		//--------------------------------------------------------------------------------------
+		// should be changed to get specific materials according to specific material id 
+		// to make this possible, we need to build up the structure of subsets
+		{
+			Material_Data material = (*currentModel)->GetNodeFbxMaterial(mesh_index);
+
+			// set sampler
+			if (material.pSampler)	g_pDeviceContext->PSSetSamplers(0, 1, &material.pSampler);
+
+			// set shader resource view - for texture
+			if (material.pSRV[0])		g_pDeviceContext->PSSetShaderResources(0, 1, &material.pSRV[0]);
+		}
+	}
+
+	return true;
+}
+
+void TurnZBufferOn()
+{
+	// turn z buffer on
+	g_pDeviceContext->OMSetDepthStencilState(g_pDepthStencilState, 1);
+}
+
+void TurnZBufferOff()
+{
+	// turn z buffer off(depth testing off)
+	g_pDeviceContext->OMSetDepthStencilState(g_pDepthDisabledStencilState, 1);
+}
+
+void SetAlphaBlend()
+{
+	// Set blend factor
+	float blendFactors[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+	// Turn on the alpha blending.
+	g_pDeviceContext->OMSetBlendState(g_AlphaEnableBlendingState, blendFactors, 0xffffffff);
+
+	return;
+}
+
+void SetNoBlend()
+{
+	float blendFactors[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+	// Turn off the alpha blending.
+	g_pDeviceContext->OMSetBlendState(g_AlphaDisableBlendingState, blendFactors, 0xffffffff);
+
+	return;
+}
+
+void SetAdditiveBlend()
+{
+	// Set blend factor
+	float blendFactors[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+	// Turn on the alpha blending.
+	g_pDeviceContext->OMSetBlendState(g_AlphaEnableBlendingState, blendFactors, 0xffffffff);
+	return;
+}
+
+void SetBackFaceCull(bool on)
+{
+	// Set the culling rasterizer state.
+	if (on)
+		g_pDeviceContext->RSSetState(g_RasterState);
+	else
+		g_pDeviceContext->RSSetState(g_NoCullRasterState);
+}
+
+void SetFrontFaceCull(bool on)
+{
+	// Set the culling rasterizer state.
+	if (on)
+		g_pDeviceContext->RSSetState(g_FrontCullRasterState);
+	else
+		g_pDeviceContext->RSSetState(g_NoCullRasterState);
 }

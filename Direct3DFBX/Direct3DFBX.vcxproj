@@ -438,8 +438,9 @@
     <ClCompile Include="src\Graphics\Light\Light.cpp" />
     <ClCompile Include="src\Graphics\Light\LightShader.cpp" />
     <ClCompile Include="src\Graphics\PointShader.cpp" />
-    <ClCompile Include="src\Graphics\RenderTexture.cpp" />
-    <ClCompile Include="src\Graphics\TextureShader.cpp" />
+    <ClCompile Include="src\Graphics\MultiRenderTarget.cpp" />
+    <ClCompile Include="src\Graphics\RenderTarget.cpp" />
+    <ClCompile Include="src\Graphics\SceneRenderer.cpp" />
     <ClCompile Include="src\Math\Mat3.cpp" />
     <ClCompile Include="src\Math\Mat4.cpp" />
     <ClCompile Include="src\Math\SIMD\SMat3.cpp" />
@@ -471,8 +472,9 @@
     <ClInclude Include="include\Graphics\Light\Light.h" />
     <ClInclude Include="include\Graphics\Light\LightShader.h" />
     <ClInclude Include="include\Graphics\PointShader.h" />
-    <ClInclude Include="include\Graphics\RenderTexture.h" />
-    <ClInclude Include="include\Graphics\TextureShader.h" />
+    <ClInclude Include="include\Graphics\MultiRenderTarget.h" />
+    <ClInclude Include="include\Graphics\RenderTarget.h" />
+    <ClInclude Include="include\Graphics\SceneRenderer.h" />
     <ClInclude Include="include\Math\Mat3.h" />
     <ClInclude Include="include\Math\Mat3.hpp" />
     <ClInclude Include="include\Math\Mat4.h" />
@@ -516,6 +518,7 @@
     <ClInclude Include="include\Utilities\UrsineTypes.h" />
     <ClInclude Include="include\Utilities\Utilities.h" />
     <ClInclude Include="include\Utilities\WholeInformation.h" />
+    <ClInclude Include="Setting.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\InstancingVS.hlsl">
@@ -582,15 +585,17 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="Shader\TextureShader\TexturePixelShader.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+    <FxCompile Include="Shader\ScenePixelShader.hlsl">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </DeploymentContent>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="Shader\TextureShader\TextureVertexShader.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+    <FxCompile Include="Shader\SceneVertexShader.hlsl">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </DeploymentContent>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Shader\VertexShader\VertexShaderLayout0.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
