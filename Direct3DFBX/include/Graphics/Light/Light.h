@@ -33,8 +33,8 @@ namespace ursine
 		void SetType(const LightType type) { m_type = type; }
 
 		XMFLOAT3 GetPosition() const { return m_position; }
-		void SetPosition(XMFLOAT3 pos) { m_position = pos; }
-		void SetPosition(float x, float y, float z) { m_position = XMFLOAT3(x, y, z); }
+		void SetPosition(XMFLOAT3 pos) { m_position = pos; m_transfrom = XMMatrixTranslation(m_position.x, m_position.y, m_position.z); }
+		void SetPosition(float x, float y, float z) { m_position = XMFLOAT3(x, y, z); m_transfrom = XMMatrixTranslation(m_position.x, m_position.y, m_position.z); }
 
 		void SetDiffuseColor(float red, float green, float blue, float alpha) { m_diffuseColor = XMFLOAT4(red, green, blue, alpha); }
 		void SetAmbientColor(float red, float green, float blue, float alpha) { m_ambientColor = XMFLOAT4(red, green, blue, alpha); }
@@ -49,6 +49,8 @@ namespace ursine
 		XMFLOAT4 GetSpecularColor() const { return m_specularColor; }
 		XMFLOAT3 GetDirection() const { return m_direction; }
 
+		XMMATRIX GetTransformation() const { return m_transfrom; }
+
 	private:
 		LightType m_type;
 		XMFLOAT3 m_position;
@@ -56,6 +58,7 @@ namespace ursine
 		XMFLOAT4 m_ambientColor;
 		XMFLOAT4 m_specularColor;
 		XMFLOAT3 m_direction;
+		XMMATRIX m_transfrom;
 	};
 
 	//class Light

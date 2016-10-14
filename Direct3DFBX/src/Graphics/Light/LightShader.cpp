@@ -238,6 +238,8 @@ bool LightShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 
 void LightShader::RenderShader(ID3D11DeviceContext* deviceContext, int indexCount)
 {
+	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
 	// Set the vertex input layout.
 	deviceContext->IASetInputLayout(m_layout);
 

@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Filename: light.ps
 ////////////////////////////////////////////////////////////////////////////////
-
 Texture2D shaderTexture;
 SamplerState SampleType;
 
@@ -12,7 +11,7 @@ cbuffer LightBuffer
 	float4 specularColor;
 	float4 emissiveColor;
 	float3 lightDirection;
-	float padding;
+	uint type;
 };
 
 //////////////
@@ -54,7 +53,7 @@ float4 LightPixelShader(PixelInputType input) : SV_TARGET
 	color = saturate(diffuseColor * lightIntensity);
 	
 	// Multiply the texture pixel and the final diffuse color to get the final pixel color result.
-	color = color * textureColor;
+	//color = color * textureColor;
 	
 	return color;
 }

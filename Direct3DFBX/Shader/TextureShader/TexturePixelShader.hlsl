@@ -122,5 +122,5 @@ float4 TexturePixelShader(PixelInputType input) : SV_TARGET
 
 	local_Color = saturate(local_Color);
 	
-	return saturate(fv_ambi + local_Color + global_Color);
+	return diff;// saturate(fv_ambi + local_Color + global_Color);
 }

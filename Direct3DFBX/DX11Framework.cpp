@@ -102,7 +102,8 @@ void Update(double deltaTime);
 void Render();
 void RenderScene();
 void RenderToTexture();
-void RenderModel();
+void RenderLights();
+void RenderGeometry();
 bool SetShaderParameters(ursine::CFBXRenderDX11** currentModel, const UINT& mesh_index, const eLayout& layoutType);
 UINT updateSpeed = 1;
 
@@ -118,9 +119,9 @@ ursine::CFBXRenderDX11*	g_pFbxDX11[NUMBER_OF_MODELS];
 // FBX file
 char g_files[NUMBER_OF_MODELS][256] =
 {
-	//"Assets/Models/sphere.fbx",
+	"Assets/Models/sphere.fbx",
 	//"Assets/Models/dragonplane.fbx"
-	"Assets/Models/dragonsplane.fbx"
+	//"Assets/Models/dragonsplane.fbx"
 	//"Assets/Models/Plane.fbx"
 	//"Assets/Animations/Player/Player_Win.fbx"
 };
@@ -517,14 +518,14 @@ HRESULT InitLight()
 	// Init global light
 	g_GlobalLight.SetDiffuseColor(urColor::Red.TOXMFLOAT4());
 	g_GlobalLight.SetSpecularColor(urColor::Green.TOXMFLOAT4());
-	g_GlobalLight.SetDirection(-1.f, -1.f, 0.f);
-	g_GlobalLight.SetPosition(100.f, 100.f, 0.f);
+	g_GlobalLight.SetDirection(0.f, -1.f, 0.f);
+	g_GlobalLight.SetPosition(0.f, 30.f, 0.f);
 	
 	// Init local lights for diffuse and specular
 	for (UINT i = 0; i < MAX_LIGHT; ++i)
 	{
 		double angle = i * (360.0 / MAX_LIGHT) * (XM_PI / 180.0);
-		g_LocalLights[i].SetPosition(100.f * cos(angle), 100.f * sin(angle), 10.f);
+		g_LocalLights[i].SetPosition(100.f * cos(angle), 10.f, 100.f * sin(angle));
 		g_LocalLights[i].SetDirection(
 			-g_LocalLights[i].GetPosition().x,
 			-g_LocalLights[i].GetPosition().y,
@@ -780,7 +781,7 @@ HRESULT InitApp()
 		MessageBox(nullptr, "Could not initialize the debug window object.", "Error", MB_OK);
 		return false;
 	}
-
+	
 	//// create point class obj
 	//g_pPointShader = new PointShader;
 	//if (!g_pPointShader)
@@ -862,6 +863,7 @@ HRESULT InitApp()
 #else
 	// SpriteBatch
 	g_pSpriteBatch = new DirectX::SpriteBatch(g_pImmediateContext);
+
 	// SpriteFont
 	g_pFont = new DirectX::SpriteFont(g_pd3dDevice, L"Assets\\Arial.spritefont");
 #endif
@@ -1077,10 +1079,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 //--------------------------------------------------------------------------------------
 // Render the model
 //--------------------------------------------------------------------------------------
-void RenderModel()
+void RenderGeometry()
 {
 	// for all model
-	for (UINT mdl_idx = 0; mdl_idx < NUMBER_OF_MODELS; ++mdl_idx)
+	for (UINT mdl_idx = 1; mdl_idx < NUMBER_OF_MODELS; ++mdl_idx)
 	{
 		auto &currModel = g_pFbxDX11[mdl_idx];
 
@@ -1157,46 +1159,46 @@ void Render()
 	//	t = (dwTimeCur - dwTimeStart) / 1000.0f;
 	//}
 
-	// Pass1 - G Buffer Rendering. Render to texture
-	// pos, norm, diff+transparency, spec+shineness
-	RenderToTexture();
-
-	// turn z buffer off
-	g_pImmediateContext->OMSetDepthStencilState(g_pDepthDisabledStencilState, 1);
-
-	// Render the debug window using the texture shader on 0x0 posittion
-	// Pass2 - Light Pass Rendering
-	{
-		g_pDebugWindow->Render(g_pImmediateContext, 0, 0);
-
-		if (!g_pTextureShader->Render(g_pImmediateContext,
-			g_pDebugWindow->GetIndexCount(),
-			g_World,
-			g_Camera.GetViewMatrix(),
-			g_OrthoMatrix,
-			&g_AmbientLight,// ambient light
-			&g_GlobalLight,	// global light
-			g_LocalLights,	// local lights
-			g_pRenderTexture->GetShaderResourceViews()))
-		{
-			MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
-			return;
-		}
-	}
-
-	//// Render the animation debugger
-	//if (!g_pPointShader->Render(g_pImmediateContext,
-	//	g_pPointShader->GetIndexCount(),
-	//	g_World,
-	//	g_Camera.GetViewMatrix(),
-	//	g_Projection))
+	//// Render Scene to the texture(render target)
+	//RenderToTexture();
+	//
+	//// turn z buffer off
+	//g_pImmediateContext->OMSetDepthStencilState(g_pDepthDisabledStencilState, 1);
+	//
+	//// Final Result Rendering
 	//{
-	//	MessageBox(nullptr, "failed to render point by using Point Shader", "Error", MB_OK);
-	//	return;
+	//	g_pDebugWindow->Render(g_pImmediateContext, 0, 0);
+	//
+	//	if (!g_pTextureShader->Render(g_pImmediateContext,
+	//		g_pDebugWindow->GetIndexCount(),
+	//		g_World,
+	//		g_Camera.GetViewMatrix(),
+	//		g_OrthoMatrix,
+	//		&g_AmbientLight,// ambient light
+	//		&g_GlobalLight,	// global light
+	//		g_LocalLights,	// local lights
+	//		g_pRenderTexture->GetShaderResourceViews()))
+	//	{
+	//		MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
+	//		return;
+	//	}
 	//}
+	//
+	////// Render the animation debugger
+	////if (!g_pPointShader->Render(g_pImmediateContext,
+	////	g_pPointShader->GetIndexCount(),
+	////	g_World,
+	////	g_Camera.GetViewMatrix(),
+	////	g_Projection))
+	////{
+	////	MessageBox(nullptr, "failed to render point by using Point Shader", "Error", MB_OK);
+	////	return;
+	////}
+	//
+	//// turn z buffer on
+	//g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 1);
 
-	// turn z buffer on
-	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 1);
+	RenderScene();
 
 #if DEBUG
 #else
@@ -1239,23 +1241,83 @@ void RenderScene()
 	//g_pImmediateContext->OMSetBlendState(g_pBlendState, blendFactors, 0xffffffff);
 	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 0);
 
-	RenderModel();
+	// Pass 1
+	RenderGeometry();
+
+	// Pass 2
+	RenderLights();
 }
 
-// seems like debug window texture is not painted
+// Render the render targets
 void RenderToTexture()
 {
 	g_pRenderTexture->SetRenderTarget(g_pImmediateContext, g_pDepthStencilView);
 
 	// Clear the back buffer with Color rgba
 	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	float Depth[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	g_pRenderTexture->ClearRenderTarget(g_pImmediateContext, g_pDepthStencilView, ClearColor);
 
-	RenderScene();
+	// Pass1 - G Buffer Rendering. Render to texture
+	// pos, norm, diff+transparency, spec+shineness, depth
+	RenderGeometry();
+
+	// Pass 2 - Render Lights
+	RenderLights();
 
 	// Reset the render target back to the original back buffer and not the render to texture anymore.
 	g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
+}
+
+// seems like debug window texture is not painted
+void RenderLights()
+{
+	// light model(sphere)
+	if (!g_pFbxDX11[0])
+		return;
+
+	for (UINT i = 0; i < g_pFbxDX11[0]->GetMeshNodeCount(); ++i)
+	{
+		// 원래는 랜더 노드로 그리는데 여기서는 그게 없으니까
+		// 인덱스 버퍼도, 버텍스 버퍼도 못받아서 안그려지는 듯
+		// 인덱스 카운트를 넘길게 아니라 아예 그냥 모델을 넘겨버리던가
+		// 메시를 넘겨버려
+
+		// ambient light
+		g_pLightShader->Render(g_pImmediateContext,
+			g_pFbxDX11[0]->GetMeshNode(i).indexCount,
+			g_AmbientLight.GetTransformation(),
+			g_Camera.GetViewMatrix(),
+			g_Projection,
+			nullptr,
+			g_AmbientLight.GetDirection(),
+			g_AmbientLight.GetDiffuseColor()
+		);
+
+		// global light
+		g_pLightShader->Render(g_pImmediateContext, 
+			g_pFbxDX11[0]->GetMeshNode(i).indexCount,
+			g_GlobalLight.GetTransformation(), 
+			g_Camera.GetViewMatrix(), 
+			g_Projection,
+			nullptr,
+			g_GlobalLight.GetDirection(),
+			g_GlobalLight.GetDiffuseColor()
+		);
+
+		// local lights
+		for (UINT j = 0; j < MAX_LIGHT; ++j)
+		{
+			g_pLightShader->Render(g_pImmediateContext,
+				g_pFbxDX11[0]->GetMeshNode(i).indexCount,
+				g_LocalLights[j].GetTransformation(),
+				g_Camera.GetViewMatrix(),
+				g_Projection,
+				nullptr,
+				g_LocalLights[j].GetDirection(),
+				g_LocalLights[j].GetDiffuseColor()
+			);
+		}
+	}
 }
 
 //--------------------------------------------------------------------------------------
