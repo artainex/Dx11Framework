@@ -90,13 +90,13 @@ DirectX::SpriteBatch*			g_pSpriteBatch = nullptr;
 DirectX::SpriteFont*			g_pFont = nullptr;
 #endif
 
-ID3D11RasterizerState *			mRasterState;
-ID3D11RasterizerState *			mFrontCullRasterState;
-ID3D11RasterizerState *			mNoCullRasterState;
-ID3D11BlendState *				mAlphaEnableBlendingState;
-ID3D11BlendState *				mAlphaDisableBlendingState;
-ID3D11BlendState *				mAlphaAdditiveBlendState;
-ID3D11RasterizerState*			g_pRS = nullptr;
+ID3D11RasterizerState *			g_RasterState;
+ID3D11RasterizerState *			g_FrontCullRasterState;
+ID3D11RasterizerState *			g_NoCullRasterState;
+ID3D11BlendState *				g_AlphaEnableBlendingState;
+ID3D11BlendState *				g_AlphaDisableBlendingState;
+ID3D11BlendState *				g_AlphaAdditiveBlendState;
+
 ID3D11Buffer*					g_pmtxBuffer = nullptr;
 ID3D11Buffer*					g_pmtxPaletteBuffer = nullptr;
 

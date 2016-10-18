@@ -69,6 +69,9 @@
     <Filter Include="Graphics\RenderTarget">
       <UniqueIdentifier>{e6ba4776-4ec2-4ce0-831a-cee6d26aa494}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graphics\Texture">
+      <UniqueIdentifier>{7336a2c7-7cbd-4ddf-91a6-c0e8ca521a11}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CFBXRendererDX11.cpp">
@@ -159,11 +162,17 @@
     <ClCompile Include="src\Graphics\MultiRenderTarget.cpp">
       <Filter>Graphics\RenderTarget</Filter>
     </ClCompile>
-    <ClCompile Include="src\Graphics\Debug Window\DebugWindow.cpp">
-      <Filter>Graphics\RenderTarget</Filter>
-    </ClCompile>
     <ClCompile Include="src\Graphics\RenderTarget.cpp">
       <Filter>Graphics\RenderTarget</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Shader.cpp">
+      <Filter>Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Debug Window\DebugWindow.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Texture.cpp">
+      <Filter>Graphics\Texture</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -329,11 +338,17 @@
     <ClInclude Include="include\Graphics\MultiRenderTarget.h">
       <Filter>Graphics\RenderTarget</Filter>
     </ClInclude>
-    <ClInclude Include="include\Graphics\Debug Window\DebugWindow.h">
-      <Filter>Graphics\RenderTarget</Filter>
-    </ClInclude>
     <ClInclude Include="include\Graphics\RenderTarget.h">
       <Filter>Graphics\RenderTarget</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\Shader.h">
+      <Filter>Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\Debug Window\DebugWindow.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\Texture.h">
+      <Filter>Graphics\Texture</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

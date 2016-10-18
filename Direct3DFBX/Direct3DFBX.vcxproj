@@ -194,7 +194,7 @@
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>WIN32;_DEBUG;DEBUG;PROFILE;_WINDOWS;_WIN32_WINNT=0x0600;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(ProjectDir)include\;$(ProjectDir)include\Utilities;$(ProjectDir)include\Utilities\File System;$(ProjectDir)include\Math;$(ProjectDir)include\Math\SIMD;$(ProjectDir)dep\FBX\include;$(ProjectDir)include\Graphics;$(ProjectDir)include\Graphics\Light;$(ProjectDir)include\Graphics\Camera;$(ProjectDir)include\Graphics\Debug Window;$(ProjectDir)dep\DirectX\include;$(ProjectDir)dep\Boost\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include\;$(ProjectDir)include\Utilities;$(ProjectDir)include\Utilities\File System;$(ProjectDir)include\Math;$(ProjectDir)include\Math\SIMD;$(ProjectDir)dep\FBX\include;$(ProjectDir)include\Graphics;$(ProjectDir)include\Graphics\Light;$(ProjectDir)include\Graphics\Camera;$(ProjectDir)include\Graphics\Shader;$(ProjectDir)include\Graphics\Debug Window;$(ProjectDir)dep\DirectX\include;$(ProjectDir)dep\Boost\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
@@ -441,6 +441,8 @@
     <ClCompile Include="src\Graphics\MultiRenderTarget.cpp" />
     <ClCompile Include="src\Graphics\RenderTarget.cpp" />
     <ClCompile Include="src\Graphics\SceneRenderer.cpp" />
+    <ClCompile Include="src\Graphics\Shader.cpp" />
+    <ClCompile Include="src\Graphics\Texture.cpp" />
     <ClCompile Include="src\Math\Mat3.cpp" />
     <ClCompile Include="src\Math\Mat4.cpp" />
     <ClCompile Include="src\Math\SIMD\SMat3.cpp" />
@@ -475,6 +477,8 @@
     <ClInclude Include="include\Graphics\MultiRenderTarget.h" />
     <ClInclude Include="include\Graphics\RenderTarget.h" />
     <ClInclude Include="include\Graphics\SceneRenderer.h" />
+    <ClInclude Include="include\Graphics\Shader.h" />
+    <ClInclude Include="include\Graphics\Texture.h" />
     <ClInclude Include="include\Math\Mat3.h" />
     <ClInclude Include="include\Math\Mat3.hpp" />
     <ClInclude Include="include\Math\Mat4.h" />

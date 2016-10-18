@@ -32,6 +32,7 @@ private:
 	bool InitializeShader(ID3D11Device* device, HWND hwnd, string vsFilename, string psFilename);
 	void ShutdownShader();
 
+	bool SetTexture(ShaderType shaderType, u32 texNum, const MultiRenderTarget * mrt, u32 rtIndex);
 	bool SetShaderParameters(ID3D11DeviceContext*, XMMATRIX, XMMATRIX, XMMATRIX, ID3D11ShaderResourceView*, XMFLOAT3, XMFLOAT4);
 	void RenderShader(ID3D11DeviceContext*, int);
 

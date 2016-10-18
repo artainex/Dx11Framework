@@ -18,7 +18,11 @@ public:
 
 private:
 	// pos, norm, diff, spec+shineness
+
+public:
 	ID3D11Texture2D* m_renderTargetTexture;
 	ID3D11RenderTargetView* m_renderTargetView;
 	ID3D11ShaderResourceView* m_shaderResourceView;
+
+	friend class Shader;
 };
