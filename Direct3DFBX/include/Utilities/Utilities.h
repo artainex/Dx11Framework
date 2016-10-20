@@ -79,8 +79,7 @@ enum eShaderType
 // render type(render target type)
 enum eRenderType
 {
-	NONE_RENDERTYPE = -1,
-	BASIC,
+	BASIC = -1,
 	POSITION,	// world position
 	NORMAL,		// world normal
 	DIFFUSE,	// diffuse

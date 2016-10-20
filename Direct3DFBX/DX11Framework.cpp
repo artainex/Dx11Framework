@@ -1039,12 +1039,6 @@ void RenderScene()
 	RenderGeometryModel();
 }
 
-// 생각해봐
-// 모델에 대한 셰이더는 가능해. 버텍스를 모델 기준으로 넘기고 있기 때문이지
-// 쿼드 전체를 셰이더에 넘긴다면 쿼드 전체에 셰이더 연산을 해줄 수 있을 터.
-// 즉 필요해지는 버텍스는 디버그 윈도우 할 때 썼던 텍스쳐 셰이더를 참고하면 될거야
-// 하지만 우선 앞으로를 위해서 모듈화를 좀 해두는게 낫겠어
-
 // Geometry Pass for deferred shading
 void GeometryPass()
 {

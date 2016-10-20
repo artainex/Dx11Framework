@@ -11,7 +11,6 @@ SceneRenderer::SceneRenderer()
 	m_layout(0), 
 	m_matrixBuffer(0),
 	m_rendermodeBuffer(0),
-	m_lightBuffer(0),
 	m_sampleState(0),
 	m_renderType(POSITION)
 {
@@ -62,8 +61,6 @@ bool SceneRenderer::Render(ID3D11DeviceContext* deviceContext, int indexCount,
 bool SceneRenderer::Render(ID3D11DeviceContext* deviceContext, 
 	int indexCount,
 	XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
-	const ursine::Light& light,
-	const ID3D11ShaderResourceView* light_texture,
 	const std::vector<ID3D11ShaderResourceView*>& textures)
 {
 	bool result;
@@ -71,8 +68,6 @@ bool SceneRenderer::Render(ID3D11DeviceContext* deviceContext,
 	// Set the shader parameters that it will use for rendering.
 	result = SetShaderParameters(deviceContext, 
 		worldMatrix, viewMatrix, projectionMatrix,
-		light,
-		light_texture,
 		textures);
 	
 	FAIL_CHECK_WITH_MSG(result, "SceneRenderer Render Fail");
@@ -145,16 +140,6 @@ bool SceneRenderer::InitializeShader(ID3D11Device* device, HWND hwnd, std::strin
 	hr = device->CreateBuffer(&rendermodeBufferDesc, nullptr, &m_rendermodeBuffer);
 	FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "RenderBufferType buffer creation fail");
 
-	// Setup the description of the dynamic render type constant buffer that is in the vertex shader.
-	BufferInitialize(lightBufferDesc, sizeof(LightBufferType),
-		D3D11_USAGE_DYNAMIC,
-		D3D11_BIND_CONSTANT_BUFFER,
-		D3D11_CPU_ACCESS_WRITE);
-
-	// Create the constant buffer pointer so we can access the vertex shader constant buffer from within this class.
-	hr = device->CreateBuffer(&lightBufferDesc, nullptr, &m_lightBuffer);
-	FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "LightBufferType buffer creation fail");
-
 	SamplerInitialize(samplerDesc,
 		D3D11_FILTER_MIN_MAG_MIP_LINEAR,
 		D3D11_TEXTURE_ADDRESS_WRAP,
@@ -190,9 +175,6 @@ void SceneRenderer::ShutdownShader()
 	// Release the render mode constant buffer.
 	SAFE_RELEASE(m_rendermodeBuffer);
 
-	// Release the light constant buffer.
-	SAFE_RELEASE(m_lightBuffer);
-
 	// Release the layout.
 	SAFE_RELEASE(m_layout);
 
@@ -217,9 +199,7 @@ bool SceneRenderer::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 	viewMatrix = XMMatrixTranspose(viewMatrix);
 	projectionMatrix = XMMatrixTranspose(projectionMatrix);
 
-	// Set the position of the constant buffer in the vertex shader.
 	unsigned int bufferNumber = 0;
-
 	// Set the position of the constant buffer in the vertex shader.
 	// matrices
 	{

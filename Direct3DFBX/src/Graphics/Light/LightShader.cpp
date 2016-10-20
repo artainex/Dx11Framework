@@ -138,6 +138,16 @@ bool LightShader::InitializeShader(ID3D11Device* device, HWND hwnd, string vsFil
 	hr = device->CreateBuffer(&matrixBufferDesc, NULL, &m_matrixBuffer);
 	FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "LightShader matrix buffer creation failed");
 	
+	// Setup the description of the dynamic render type constant buffer that is in the vertex shader.
+	BufferInitialize(lightBufferDesc, sizeof(LightBufferType),
+		D3D11_USAGE_DYNAMIC,
+		D3D11_BIND_CONSTANT_BUFFER,
+		D3D11_CPU_ACCESS_WRITE);
+
+	// Create the constant buffer pointer so we can access the vertex shader constant buffer from within this class.
+	hr = device->CreateBuffer(&lightBufferDesc, nullptr, &m_lightBuffer);
+	FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "LightBufferType buffer creation fail");
+
 	// Create a texture sampler state description.
 	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;

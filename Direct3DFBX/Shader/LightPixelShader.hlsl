@@ -6,6 +6,7 @@ Texture2D worldNorTexture : register(t1);
 Texture2D diffuseTexture : register(t2);
 Texture2D specshineTexture : register(t3);
 Texture2D depthTexture : register(t4);
+
 SamplerState SampleType : register(s0);
 
 //////////////
@@ -26,7 +27,7 @@ struct PixelInputType
 {
 	float4 Pos		: SV_POSITION;
 	float2 Tex		: TEXCOORD0;
-	float4 WPos		: TEXCOORD1
+	float4 WPos		: TEXCOORD1;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -57,6 +58,12 @@ float4 LightPixelShader(PixelInputType input) : SV_Target
 	float roughness = spec.w;
 	float4 depth = depthTexture.Sample(SampleType, uv);
 
+	float3 lVector = normalize(lightPos - worldpos.xyz);
+	float3 norm = worldNorTexture.Sample(SampleType, uv).xyz;
+	float3 view = normalize(eyePos - worldpos.xyz);
+	float3 reflectVector = -reflect(lVector, norm);
+	float3 halfVector = normalize(lVector + view);
+
 	float lightDistance = length(lightPos - worldpos.xyz);
 
 	// Attenuation
@@ -65,5 +72,7 @@ float4 LightPixelShader(PixelInputType input) : SV_Target
 	//float4 lighting = max( dot( n, l ), 0.0f ) * diffuse * color + pow( max( dot( h, n ), 0.0f ), roughness ) * specular;
 	float3 lighting = BRDF(l, v, h, n, diffuse.xyz, specular.xyz, roughness, color);
 
-	return lightIntensity * shadow * float4(lighting.xyz, 1.0f);
+	//return lightIntensity * shadow * float4(lighting.xyz, 1.0f);
+
+	return float4(1,1,1,1);
 }

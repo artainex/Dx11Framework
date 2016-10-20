@@ -19,7 +19,7 @@ struct PixelInputType
 {
 	float4	Pos		: SV_POSITION;
 	float2	Tex		: TEXCOORD0;
-	float4	WPos	: TEXCOORD1
+	float4	WPos	: TEXCOORD1;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

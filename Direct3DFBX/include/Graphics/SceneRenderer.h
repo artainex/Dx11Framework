@@ -21,8 +21,6 @@ public:
 		ID3D11ShaderResourceView* texture);
 	bool Render(ID3D11DeviceContext* deviceContext, int indexCount,
 		XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
-		const ursine::Light& light,
-		const ID3D11ShaderResourceView* light_texture,
 		const std::vector<ID3D11ShaderResourceView*>& textures);
 	void RenderMode(ID3D11DeviceContext* deviceContext, int rendertype);
 
