@@ -17,7 +17,6 @@ public:
 	ID3D11ShaderResourceView* GetShaderResourceView();
 
 private:
-	// pos, norm, diff, spec+shineness
 
 public:
 	ID3D11Texture2D* m_renderTargetTexture;

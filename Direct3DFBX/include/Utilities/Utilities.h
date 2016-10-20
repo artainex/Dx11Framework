@@ -49,6 +49,23 @@
 #define SAFE_DELETE_ARRAY(pt) if( nullptr != pt )	\
 { delete [] pt; pt = nullptr; }				\
 
+void SamplerInitialize(D3D11_SAMPLER_DESC &sampler,
+	D3D11_FILTER Filter,
+	D3D11_TEXTURE_ADDRESS_MODE AddressU,
+	D3D11_TEXTURE_ADDRESS_MODE AddressV,
+	D3D11_TEXTURE_ADDRESS_MODE AddressW,
+	D3D11_COMPARISON_FUNC ComparisonFunc,
+	FLOAT MinLOD,
+	FLOAT MaxLOD);
+
+void BufferInitialize(D3D11_BUFFER_DESC& buffer,
+	UINT byteWidth = 0,
+	D3D11_USAGE usage = D3D11_USAGE_DEFAULT,
+	UINT bindFlags = 0,
+	UINT cpuAccFlags = 0,
+	UINT miscFlags = 0,
+	UINT stride = 0);
+
 // shader type
 enum eShaderType
 {
@@ -62,7 +79,8 @@ enum eShaderType
 // render type(render target type)
 enum eRenderType
 {
-	BASIC = -1,
+	NONE_RENDERTYPE = -1,
+	BASIC,
 	POSITION,	// world position
 	NORMAL,		// world normal
 	DIFFUSE,	// diffuse
@@ -159,7 +177,6 @@ struct LAYOUT
 		LAYOUT_PT[1] = { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
 	}
 };
-
 
 // POS NOR
 struct VERTEX_DATA_L0

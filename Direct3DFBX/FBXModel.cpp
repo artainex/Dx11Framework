@@ -1,6 +1,6 @@
 // *********************************************************************************************************************
 /// 
-/// @file 		CFBXRendererDX11.cpp
+/// @file 		FBXModel.cpp
 /// @brief		FBX Rnderer
 /// 
 /// @author 	Park Hyung Jun
@@ -11,74 +11,38 @@
 
 #include < locale.h >
 #include "CFBXLoader.h"
-#include "CFBXRendererDX11.h"
-
-void SamplerInitialize(D3D11_SAMPLER_DESC &sampler,
-	D3D11_FILTER Filter,
-	D3D11_TEXTURE_ADDRESS_MODE AddressU,
-	D3D11_TEXTURE_ADDRESS_MODE AddressV,
-	D3D11_TEXTURE_ADDRESS_MODE AddressW,
-	D3D11_COMPARISON_FUNC ComparisonFunc,
-	FLOAT MinLOD,
-	FLOAT MaxLOD)
-{
-	ZeroMemory(&sampler, sizeof(sampler));
-	sampler.Filter = Filter;
-	sampler.AddressU = AddressU;
-	sampler.AddressV = AddressV;
-	sampler.AddressW = AddressW;
-	sampler.ComparisonFunc = ComparisonFunc;
-	sampler.MinLOD = MinLOD;
-	sampler.MaxLOD = MaxLOD;
-}
-
-void BufferInitialize(D3D11_BUFFER_DESC& buffer,
-	UINT byteWidth = 0,
-	D3D11_USAGE usage = D3D11_USAGE_DEFAULT,
-	UINT bindFlags = 0,
-	UINT cpuAccFlags = 0,
-	UINT miscFlags = 0,
-	UINT stride = 0)
-{
-	ZeroMemory(&buffer, sizeof(buffer));
-	buffer.ByteWidth = byteWidth;
-	buffer.Usage = usage;
-	buffer.BindFlags = bindFlags;
-	buffer.CPUAccessFlags = cpuAccFlags;
-	buffer.MiscFlags = miscFlags;
-	buffer.StructureByteStride = stride;
-}
+#include "FBXModel.h"
 
 namespace ursine
 {
-	CFBXRenderDX11::CFBXRenderDX11() :
-		m_pFBX(nullptr),
-		m_bonevsLayout(nullptr),
-		m_boneVS(nullptr),
-		m_boneVB(nullptr),
-		m_pboneInputLayout(nullptr)
+	FBXModel::FBXModel() :
+		m_pFBX(nullptr)
+		//m_bonevsLayout(nullptr),
+		//m_pboneInputLayout(nullptr),
+		//m_boneVS(nullptr),
+		//m_boneVB(nullptr)
 	{
 	}
 
-	CFBXRenderDX11::~CFBXRenderDX11()
+	FBXModel::~FBXModel()
 	{
 		Release();
 	}
 
-	void CFBXRenderDX11::Release()
+	void FBXModel::Release()
 	{
 		for (auto &meshNode : m_meshNodeArray)
 			meshNode.Release();
 		m_meshNodeArray.clear();
 
-		SAFE_RELEASE(m_boneVB);
-		SAFE_RELEASE(m_boneVS);
-		SAFE_RELEASE(m_bonevsLayout);
-		SAFE_RELEASE(m_pboneInputLayout);
+		//SAFE_RELEASE(m_boneVB);
+		//SAFE_RELEASE(m_boneVS);
+		//SAFE_RELEASE(m_pboneInputLayout);
+		//SAFE_RELEASE(m_bonevsLayout);
 		SAFE_DELETE(m_pFBX);
 	}
 
-	HRESULT CFBXRenderDX11::LoadFBX(const char* filename, ID3D11Device*	pd3dDevice)
+	HRESULT FBXModel::LoadFBX(const char* filename, ID3D11Device*	pd3dDevice)
 	{
 		if (!filename || !pd3dDevice)
 			return E_FAIL;
@@ -98,7 +62,7 @@ namespace ursine
 		return hr;
 	}
 
-	HRESULT CFBXRenderDX11::CreateNodes(ID3D11Device* pd3dDevice)
+	HRESULT FBXModel::CreateNodes(ID3D11Device* pd3dDevice)
 	{
 		if (!pd3dDevice) 
 			return E_FAIL;
@@ -137,109 +101,120 @@ namespace ursine
 
 			// constructing materials 
 			MaterialConstructionByModel(pd3dDevice, meshNode, modelInfo, i);
-			m_meshNodeArray.push_back(meshNode);
 
+			// constructing mesh color buffer
+			D3D11_BUFFER_DESC meshBufferDesc;
+			BufferInitialize(meshBufferDesc,
+				sizeof(MeshBufferType),
+				D3D11_USAGE_DYNAMIC,
+				D3D11_BIND_CONSTANT_BUFFER,
+				D3D11_CPU_ACCESS_WRITE);
+			
+			hr = pd3dDevice->CreateBuffer(&meshBufferDesc, nullptr, &meshNode.m_meshColorBuffer);
+			FAIL_CHECK_WITH_MSG(hr, "MeshBuffer creation failed");
+
+			m_meshNodeArray.push_back(meshNode);
 			delete indices;
 		}
 		return hr;
 	}
 
-	HRESULT CFBXRenderDX11::CreatePoint(ID3D11Device* pd3dDevice)
+	HRESULT FBXModel::CreatePoint(ID3D11Device* pd3dDevice)
 	{
 		if (!pd3dDevice)
 			return E_FAIL;
 
 		HRESULT hr = S_OK;
-		const ModelInfo& modelInfo = m_pFBX->GetModelInfo();
-		
-		// store bones' info - should optimize this later.
-		// currently, repeating so many unneccesary things
-		size_t boneCount = modelInfo.mBoneInfoVec.size();
-		if (0 == boneCount)
-			return S_OK;
-		
-		UINT i = 0;
-		VERTEX_DATA_LP* pVS = new VERTEX_DATA_LP[boneCount];
-		for (auto& iter : modelInfo.mBoneInfoVec)
-		{
-			XMFLOAT3 currVtx = XMFLOAT3(iter.boneSpacePosition.x, iter.boneSpacePosition.y, iter.boneSpacePosition.z);
-			pVS[i].vPos = currVtx;
-			pVS[i].vColor = XMFLOAT4(255.f, 255.f, 255.f, 255.f);
-			m_bonePtArray.push_back(*pVS);
-			++i;
-		}
-		
-		hr = CreateVertexBuffer(pd3dDevice, &m_boneVB, pVS, sizeof(VERTEX_DATA_LP), boneCount);
-		SAFE_DELETE_ARRAY(pVS);
-		
-		hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/PointVertexShader.hlsl", "PointVertexShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
-		FAIL_CHECK_WITH_MSG(hr, "PointVertexShader.hlsl cannot be compiled.");
-		//hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/PointShader/PointPixelShader.hlsl", "PointPixelShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
-		//FAIL_CHECK_WITH_MSG(hr, "PointPixelShader.hlsl cannot be compiled.");
-		
-		LAYOUT input_layout;
-		pd3dDevice->CreateInputLayout(input_layout.LAYOUT_PT, 2,
-			m_boneVS->GetBufferPointer(),
-			m_boneVS->GetBufferSize(),
-			&m_pboneInputLayout);
-		SAFE_RELEASE(m_boneVS)
+		//const ModelInfo& modelInfo = m_pFBX->GetModelInfo();
+		//
+		//// store bones' info - should optimize this later.
+		//// currently, repeating so many unneccesary things
+		//size_t boneCount = modelInfo.mBoneInfoVec.size();
+		//if (0 == boneCount)
+		//	return S_OK;
+		//
+		//UINT i = 0;
+		//VERTEX_DATA_LP* pVS = new VERTEX_DATA_LP[boneCount];
+		//for (auto& iter : modelInfo.mBoneInfoVec)
+		//{
+		//	XMFLOAT3 currVtx = XMFLOAT3(iter.boneSpacePosition.x, iter.boneSpacePosition.y, iter.boneSpacePosition.z);
+		//	pVS[i].vPos = currVtx;
+		//	pVS[i].vColor = XMFLOAT4(255.f, 255.f, 255.f, 255.f);
+		//	m_bonePtArray.push_back(*pVS);
+		//	++i;
+		//}
+		//
+		//hr = CreateVertexBuffer(pd3dDevice, &m_boneVB, pVS, sizeof(VERTEX_DATA_LP), boneCount);
+		//SAFE_DELETE_ARRAY(pVS);
+		//
+		//hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/PointVertexShader.hlsl", "PointVertexShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
+		//FAIL_CHECK_WITH_MSG(hr, "PointVertexShader.hlsl cannot be compiled.");
+		////hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/PointShader/PointPixelShader.hlsl", "PointPixelShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
+		////FAIL_CHECK_WITH_MSG(hr, "PointPixelShader.hlsl cannot be compiled.");
+		//
+		//LAYOUT input_layout;
+		//pd3dDevice->CreateInputLayout(input_layout.LAYOUT_PT, 2,
+		//	m_boneVS->GetBufferPointer(),
+		//	m_boneVS->GetBufferSize(),
+		//	&m_pboneInputLayout);
+		//SAFE_RELEASE(m_boneVS)
 
 		return hr;
 	}
 
-	HRESULT CFBXRenderDX11::CreateSkeletonLines(ID3D11Device* pd3dDevice)
+	HRESULT FBXModel::CreateSkeletonLines(ID3D11Device* pd3dDevice)
 	{
 		if (!pd3dDevice)
 			return E_FAIL;
 
 		HRESULT hr = S_OK;
-		const ModelInfo& modelInfo = m_pFBX->GetModelInfo();
+		//const ModelInfo& modelInfo = m_pFBX->GetModelInfo();
+		//
+		//// store bones' info - should optimize this later.
+		//// currently, repeating so many unneccesary things
+		//size_t boneCount = modelInfo.mBoneInfoVec.size();
+		//if (0 == boneCount)
+		//	return S_OK;
+		//
+		//// build line first
+		//UINT i = 0;
+		//for (i = 0; i < boneCount-1; ++i)
+		//{
+		//	Line newLine(m_bonePtArray[i], m_bonePtArray[i+1]);
+		//	m_boneLineArray.push_back( newLine );
+		//}
+		//
+		//// create buffer
+		//i = 0;
+		//VERTEX_DATA_LP* pVS = new VERTEX_DATA_LP[boneCount];
+		//for (auto& iter : modelInfo.mBoneInfoVec)
+		//{
+		//	XMFLOAT3 currVtx = XMFLOAT3(iter.boneSpacePosition.x, iter.boneSpacePosition.y, iter.boneSpacePosition.z);
+		//	pVS[i].vPos = currVtx;
+		//	pVS[i].vColor = XMFLOAT4(255.f, 255.f, 255.f, 255.f);
+		//	m_bonePtArray.push_back(*pVS);
+		//	++i;
+		//}
+		//
+		//hr = CreateVertexBuffer(pd3dDevice, &m_boneVB, pVS, sizeof(VERTEX_DATA_LP), boneCount);
+		//SAFE_DELETE_ARRAY(pVS);
+		//
+		//hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/PointVertexShader.hlsl", "PointVertexShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
+		//FAIL_CHECK_WITH_MSG(hr, "PointVertexShader.hlsl cannot be compiled.");
+		////hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/PointShader/PointPixelShader.hlsl", "PointPixelShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
+		////FAIL_CHECK_WITH_MSG(hr, "PointPixelShader.hlsl cannot be compiled.");
+		//
+		//LAYOUT input_layout;
+		//pd3dDevice->CreateInputLayout(input_layout.LAYOUT_PT, 2,
+		//	m_boneVS->GetBufferPointer(),
+		//	m_boneVS->GetBufferSize(),
+		//	&m_pboneInputLayout);
+		//SAFE_RELEASE(m_boneVS)
 
-		// store bones' info - should optimize this later.
-		// currently, repeating so many unneccesary things
-		size_t boneCount = modelInfo.mBoneInfoVec.size();
-		if (0 == boneCount)
-			return S_OK;
-
-		// build line first
-		UINT i = 0;
-		for (i = 0; i < boneCount-1; ++i)
-		{
-			Line newLine(m_bonePtArray[i], m_bonePtArray[i+1]);
-			m_boneLineArray.push_back( newLine );
-		}
-
-		// create buffer
-		i = 0;
-		VERTEX_DATA_LP* pVS = new VERTEX_DATA_LP[boneCount];
-		for (auto& iter : modelInfo.mBoneInfoVec)
-		{
-			XMFLOAT3 currVtx = XMFLOAT3(iter.boneSpacePosition.x, iter.boneSpacePosition.y, iter.boneSpacePosition.z);
-			pVS[i].vPos = currVtx;
-			pVS[i].vColor = XMFLOAT4(255.f, 255.f, 255.f, 255.f);
-			m_bonePtArray.push_back(*pVS);
-			++i;
-		}
-
-		hr = CreateVertexBuffer(pd3dDevice, &m_boneVB, pVS, sizeof(VERTEX_DATA_LP), boneCount);
-		SAFE_DELETE_ARRAY(pVS);
-
-		hr = CompileShaderFromFile(VERTEX_SHADER, "Shader/PointVertexShader.hlsl", "PointVertexShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
-		FAIL_CHECK_WITH_MSG(hr, "PointVertexShader.hlsl cannot be compiled.");
-		//hr = CompileShaderFromFile(PIXEL_SHADER, "Shader/PointShader/PointPixelShader.hlsl", "PointPixelShader", "vs_5_0", &pd3dDevice, &m_boneVS, &m_bonevsLayout);
-		//FAIL_CHECK_WITH_MSG(hr, "PointPixelShader.hlsl cannot be compiled.");
-
-		LAYOUT input_layout;
-		pd3dDevice->CreateInputLayout(input_layout.LAYOUT_PT, 2,
-			m_boneVS->GetBufferPointer(),
-			m_boneVS->GetBufferSize(),
-			&m_pboneInputLayout);
-		SAFE_RELEASE(m_boneVS)
-
-			return hr;
+		return hr;
 	}
 
-	HRESULT CFBXRenderDX11::CreateVertexBuffer(ID3D11Device* pd3dDevice, ID3D11Buffer** pBuffer, void* pVertices, uint32_t stride, uint32_t vertexCount)
+	HRESULT FBXModel::CreateVertexBuffer(ID3D11Device* pd3dDevice, ID3D11Buffer** pBuffer, void* pVertices, uint32_t stride, uint32_t vertexCount)
 	{
 		if (!pd3dDevice || stride == 0 || vertexCount == 0)
 			return E_FAIL;
@@ -247,11 +222,11 @@ namespace ursine
 		HRESULT hr = S_OK;
 
 		D3D11_BUFFER_DESC bd;
-		ZeroMemory(&bd, sizeof(bd));
-		bd.Usage = D3D11_USAGE_DEFAULT;
-		bd.ByteWidth = stride * vertexCount;
-		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bd.CPUAccessFlags = 0;
+		BufferInitialize(bd, 
+			stride * vertexCount,
+			D3D11_USAGE_DEFAULT,
+			D3D11_BIND_VERTEX_BUFFER);
+
 		D3D11_SUBRESOURCE_DATA InitData;
 		ZeroMemory(&InitData, sizeof(InitData));
 
@@ -262,7 +237,7 @@ namespace ursine
 		return hr;
 	}
 
-	HRESULT CFBXRenderDX11::CreateIndexBuffer(ID3D11Device*	pd3dDevice, ID3D11Buffer** pBuffer, void* pIndices, uint32_t indexCount)
+	HRESULT FBXModel::CreateIndexBuffer(ID3D11Device* pd3dDevice, ID3D11Buffer** pBuffer, void* pIndices, uint32_t indexCount)
 	{
 		if (!pd3dDevice || indexCount == 0)
 			return E_FAIL;
@@ -271,11 +246,10 @@ namespace ursine
 		size_t stride = sizeof(UINT);
 
 		D3D11_BUFFER_DESC bd;
-		ZeroMemory(&bd, sizeof(bd));
-		bd.Usage = D3D11_USAGE_DEFAULT;
-		bd.ByteWidth = static_cast<uint32_t>(stride*indexCount);
-		bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-		bd.CPUAccessFlags = 0;
+		BufferInitialize(bd,
+			static_cast<uint32_t>(stride*indexCount),
+			D3D11_USAGE_DEFAULT,
+			D3D11_BIND_INDEX_BUFFER);
 
 		D3D11_SUBRESOURCE_DATA InitData;
 		ZeroMemory(&InitData, sizeof(InitData));
@@ -288,7 +262,7 @@ namespace ursine
 		return hr;
 	}
 
-	HRESULT CFBXRenderDX11::VertexConstructionByModel(ID3D11Device* pd3dDevice, FBX_DATA::MESH_NODE& meshNode, const MeshInfo& meshInfo)
+	HRESULT FBXModel::VertexConstructionByModel(ID3D11Device* pd3dDevice, FBX_DATA::MESH_NODE& meshNode, const MeshInfo& meshInfo)
 	{
 		const MeshInfo& currMI = meshInfo;
 		meshNode.vertexCount = static_cast<DWORD>(currMI.meshVtxInfoCount);
@@ -533,7 +507,7 @@ namespace ursine
 		return hr;
 	}
 
-	HRESULT CFBXRenderDX11::MaterialConstructionByModel(ID3D11Device* pd3dDevice,
+	HRESULT FBXModel::MaterialConstructionByModel(ID3D11Device* pd3dDevice,
 		FBX_DATA::MESH_NODE& meshNode, const ModelInfo& modelInfo, const UINT& index)
 	{
 		const MaterialInfo& currMI = modelInfo.mMtrlInfoVec[index];
@@ -582,26 +556,26 @@ namespace ursine
 							std::string path1 = "Assets/";
 							std::string folder = currMI.diff_texNames[j];
 							path1 += folder;
-							D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path1.c_str(), NULL, NULL, &currFbxMtrl.pSRV[0], NULL);
+							D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path1.c_str(), nullptr, nullptr, &currFbxMtrl.pSRV[0], nullptr);
 						}
 					}
 				}
 				// if there's no texture, just use default texture
 				else {
 					std::string path1 = "Assets/uv.png";
-					D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path1.c_str(), NULL, NULL, &currFbxMtrl.pSRV[0], NULL);
+					D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path1.c_str(), nullptr, nullptr, &currFbxMtrl.pSRV[0], nullptr);
 				}
 
 				// for default normal map
 				std::string path2 = "Assets/norm.png";
-				D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path2.c_str(), NULL, NULL, &currFbxMtrl.pSRV[1], NULL);
+				D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path2.c_str(), nullptr, nullptr, &currFbxMtrl.pSRV[1], nullptr);
 
 				// Setting sampler as default texture
 				hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler);
 				FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
 
 				// currently, constant buffer creation always failed because constant buffer size should be multiple of 16
-				hr = pd3dDevice->CreateBuffer(&mtrlBufferDesc, NULL, &currFbxMtrl.pMaterialCb);
+				hr = pd3dDevice->CreateBuffer(&mtrlBufferDesc, nullptr, &currFbxMtrl.pMaterialCb);
 				FAIL_CHECK_WITH_MSG(hr, "Constant buffer is not size of multiple of 16");
 
 				currFbxMtrl.mtrlConst.ambient		= XMFLOAT4(currMI.ambi_mcolor.x, currMI.ambi_mcolor.y, currMI.ambi_mcolor.z, 1.f);
@@ -638,17 +612,17 @@ namespace ursine
 
 			// Create Shader Resource View from default texture and material
 			std::string path1 = "Assets/uv.png";
-			D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path1.c_str(), NULL, NULL, &currFbxMtrl.pSRV[0], NULL);
+			D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path1.c_str(), nullptr, nullptr, &currFbxMtrl.pSRV[0], nullptr);
 			// for default normal map
 			std::string path2 = "Assets/norm.png";
-			D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path2.c_str(), NULL, NULL, &currFbxMtrl.pSRV[1], NULL);
+			D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path2.c_str(), nullptr, nullptr, &currFbxMtrl.pSRV[1], nullptr);
 
 			// Setting sampler as default texture
 			hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler);
 			FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
 
 			// currently, constant buffer creation always failed because constant buffer size should be multiple of 16
-			hr = pd3dDevice->CreateBuffer(&mtrlBufferDesc, NULL, &currFbxMtrl.pMaterialCb);
+			hr = pd3dDevice->CreateBuffer(&mtrlBufferDesc, nullptr, &currFbxMtrl.pMaterialCb);
 			FAIL_CHECK_WITH_MSG(hr, "Constant buffer is not size of multiple of 16");
 
 			currFbxMtrl.mtrlConst.ambient		= XMFLOAT4(1.0f, 1.0f, 1.0f, 1.f);
@@ -664,7 +638,7 @@ namespace ursine
 		return S_OK;
 	}
 
-	HRESULT CFBXRenderDX11::CreateInputLayout(ID3D11Device*	pd3dDevice,
+	HRESULT FBXModel::CreateInputLayout(ID3D11Device*	pd3dDevice,
 		const void* pShaderBytecodeWithInputSignature,
 		size_t BytecodeLength,
 		D3D11_INPUT_ELEMENT_DESC* pLayout, 
@@ -688,7 +662,7 @@ namespace ursine
 		return hr;
 	}
 
-	HRESULT CFBXRenderDX11::RenderAll(ID3D11DeviceContext* pImmediateContext)
+	HRESULT FBXModel::RenderAll(ID3D11DeviceContext* pImmediateContext)
 	{
 		size_t nodeCount = m_meshNodeArray.size();
 		if (nodeCount == 0)
@@ -730,51 +704,51 @@ namespace ursine
 		return hr;
 	}
 
-	HRESULT CFBXRenderDX11::RenderPoint(ID3D11DeviceContext* pImmediateContext)
+	HRESULT FBXModel::RenderPoint(ID3D11DeviceContext* pImmediateContext)
 	{
 		HRESULT hr = S_OK;		
 
-		const ModelInfo& modelInfo = m_pFBX->GetModelInfo();
-		size_t boneCount = modelInfo.mBoneInfoVec.size();
-		if (0 == boneCount)
-			return S_OK;
-
-		UINT offset = 0;
-		UINT stride = sizeof(VERTEX_DATA_LP);
-		pImmediateContext->IASetVertexBuffers(0, 1, &m_boneVB, &stride, &offset);
-		pImmediateContext->IASetInputLayout(m_pboneInputLayout);
-		pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-
-		pImmediateContext->Draw(boneCount, 0);
+		//const ModelInfo& modelInfo = m_pFBX->GetModelInfo();
+		//size_t boneCount = modelInfo.mBoneInfoVec.size();
+		//if (0 == boneCount)
+		//	return S_OK;
+		//
+		//UINT offset = 0;
+		//UINT stride = sizeof(VERTEX_DATA_LP);
+		//pImmediateContext->IASetVertexBuffers(0, 1, &m_boneVB, &stride, &offset);
+		//pImmediateContext->IASetInputLayout(m_pboneInputLayout);
+		//pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+		//
+		//pImmediateContext->Draw(boneCount, 0);
 
 		return hr;
 	}
 
 	// 우선 라인 하나만 그려보자
-	HRESULT CFBXRenderDX11::RenderLine(ID3D11DeviceContext* pImmediateContext)
+	HRESULT FBXModel::RenderLine(ID3D11DeviceContext* pImmediateContext)
 	{
 		HRESULT hr = S_OK;
 
-		const ModelInfo& modelInfo = m_pFBX->GetModelInfo();
-		size_t boneCount = modelInfo.mBoneInfoVec.size();
-		if (0 == boneCount)
-			return S_OK;
-		
-		UINT offset = 0;
-		UINT stride = 0;
-		pImmediateContext->IASetVertexBuffers(0, 1, &m_boneLineVB, &stride, &offset);
-		pImmediateContext->IASetInputLayout(m_pboneInputLayout);
-		pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-		
-		DXGI_FORMAT indexbit = DXGI_FORMAT_R32_UINT;
-		
-		pImmediateContext->IASetIndexBuffer(m_boneIB, indexbit, 0);
-		pImmediateContext->DrawIndexed(m_boneLineArray.size(), 0, 0);
+		//const ModelInfo& modelInfo = m_pFBX->GetModelInfo();
+		//size_t boneCount = modelInfo.mBoneInfoVec.size();
+		//if (0 == boneCount)
+		//	return S_OK;
+		//
+		//UINT offset = 0;
+		//UINT stride = 0;
+		//pImmediateContext->IASetVertexBuffers(0, 1, &m_boneLineVB, &stride, &offset);
+		//pImmediateContext->IASetInputLayout(m_pboneInputLayout);
+		//pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+		//
+		//DXGI_FORMAT indexbit = DXGI_FORMAT_R32_UINT;
+		//
+		//pImmediateContext->IASetIndexBuffer(m_boneIB, indexbit, 0);
+		//pImmediateContext->DrawIndexed(m_boneLineArray.size(), 0, 0);
 
 		return hr;
 	}
 
-	HRESULT CFBXRenderDX11::RenderNode(ID3D11DeviceContext* pImmediateContext, const size_t nodeId)
+	HRESULT FBXModel::RenderNode(ID3D11DeviceContext* pImmediateContext, const size_t nodeId)
 	{
 		size_t nodeCount = m_meshNodeArray.size();
 		if (nodeCount == 0 || nodeCount <= nodeId)
@@ -796,7 +770,6 @@ namespace ursine
 		case LAYOUT5: stride = sizeof(VERTEX_DATA_L5); break;
 		case LAYOUT6: stride = sizeof(VERTEX_DATA_L6); break;
 		case LAYOUT7: stride = sizeof(VERTEX_DATA_L7); break;
-		//case FBX_DATA::LAYOUTT: stride = sizeof(FBX_DATA::VERTEX_DATA_LT); break;
 		}
 
 		UINT offset = 0;
@@ -817,7 +790,7 @@ namespace ursine
 		return hr;
 	}
 
-	HRESULT CFBXRenderDX11::RenderNodeInstancing(ID3D11DeviceContext* pImmediateContext, const size_t nodeId, const uint32_t InstanceCount)
+	HRESULT FBXModel::RenderNodeInstancing(ID3D11DeviceContext* pImmediateContext, const size_t nodeId, const uint32_t InstanceCount)
 	{
 		size_t nodeCount = m_meshNodeArray.size();
 		if (nodeCount == 0 || nodeCount <= nodeId || InstanceCount == 0)
@@ -862,7 +835,7 @@ namespace ursine
 		return hr;
 	}
 
-	HRESULT CFBXRenderDX11::RenderNodeInstancingIndirect(ID3D11DeviceContext* pImmediateContext, const size_t nodeId, ID3D11Buffer* pBufferForArgs, const uint32_t AlignedByteOffsetForArgs)
+	HRESULT FBXModel::RenderNodeInstancingIndirect(ID3D11DeviceContext* pImmediateContext, const size_t nodeId, ID3D11Buffer* pBufferForArgs, const uint32_t AlignedByteOffsetForArgs)
 	{
 		size_t nodeCount = m_meshNodeArray.size();
 		if (nodeCount == 0 || nodeCount <= nodeId)
@@ -906,19 +879,19 @@ namespace ursine
 		return hr;
 	}
 	
-	void CFBXRenderDX11::Update(double timedelta)
+	void FBXModel::Update(double timedelta)
 	{
 		if (m_pFBX)
 			m_pFBX->Update(timedelta);
 	}
 
-	void CFBXRenderDX11::UpdateMatPal(XMMATRIX* matPal)
+	void FBXModel::UpdateMatPal(XMMATRIX* matPal)
 	{
 		if (m_pFBX)
 			m_pFBX->UpdateMatPal(matPal);
 	}
 
-	void CFBXRenderDX11::SetNodeMtxPal(XMMATRIX* matPal, FBX_DATA::MESH_NODE* pMesh)
+	void FBXModel::SetNodeMtxPal(XMMATRIX* matPal, FBX_DATA::MESH_NODE* pMesh)
 	{
 		if (!matPal || !pMesh)
 			return;
@@ -931,7 +904,7 @@ namespace ursine
 		}
 	}
 
-	bool CFBXRenderDX11::IsSkinned()
+	bool FBXModel::IsSkinned()
 	{
 		return m_pFBX->IsSkinned();
 	}

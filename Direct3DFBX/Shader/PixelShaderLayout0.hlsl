@@ -9,6 +9,11 @@ cbuffer cbMaterial : register( b0 )
 	float2 m_padding;
 };
 
+cbuffer cbMesh : register(b1)
+{
+	float4 mesh_color;
+}
+
 struct PS_INPUT
 {
     float4	Pos			: SV_POSITION;
@@ -33,7 +38,7 @@ PS_OUTPUT PS(PS_INPUT input)
 	
 	output.Postion	= input.WPos;
 	output.Normal	= input.WNor;
-	output.Diffuse	= float4(m_diffuse.xyz, m_transparency);
+	output.Diffuse	= float4(mesh_color.xyz * m_diffuse.xyz, m_transparency);
 	output.SpecularAndShine = float4(m_specular.xyz, m_shineness);
 
 	float depth;

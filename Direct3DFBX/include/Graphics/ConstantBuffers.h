@@ -27,27 +27,39 @@ struct PaletteBufferType
 struct LightBufferType
 {
 	// For now, try use phong model, use ursine LightClass if I understand HDR or more (this class doesn't have HDR)
-	XMFLOAT4 ambientColor;  // 16
-	XMFLOAT4 diffuseColor;  // 32
-	XMFLOAT4 specularColor; // 48
-	XMFLOAT4 lightPosition; // 64
-	XMFLOAT3 lightDirection;// 76
-	UINT type;				// 80
+	XMFLOAT4 color;			// 16
+	XMFLOAT3 eyePosition;	// 28
+	XMFLOAT3 lightPosition; // 40
+	float lightRange;		// 44
+	UINT type;				// 48
 
 	LightBufferType()
 		:
-		ambientColor(0, 0, 0, 1),
-		diffuseColor(0, 0, 0, 1),
-		specularColor(0, 0, 0, 1),
-		lightPosition(0, 0, 0, 1),
-		lightDirection(0, 0, 0),
+		color(0, 0, 0, 1),
+		eyePosition(0, 0, 0),
+		lightPosition(0, 0, 0),
+		lightRange(1000.f),
 		type(ursine::LIGHT_DIRECTIONAL)
 	{}
 };
 
-struct LocalLightBufferType
+struct MeshBufferType
 {
-	LightBufferType localLights[MAX_LIGHT];
+	XMFLOAT4	color;			//16
+
+	MeshBufferType() :
+		color(XMFLOAT4(1, 1, 1, 1))
+	{}
+};
+
+struct RenderBufferType
+{
+	UINT	type;				// 4
+	XMFLOAT3 padding;			// 16
+
+	RenderBufferType() 
+		: type(0)
+	{}
 };
 
 // Material Constant Buffer

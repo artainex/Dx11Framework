@@ -107,7 +107,8 @@ namespace ursine
 			ID3D11Buffer*				pMaterialCb;
 
 			Material_Data()
-				:pSampler(nullptr), pMaterialCb(nullptr)
+				:pSampler(nullptr), 
+				pMaterialCb(nullptr)
 			{
 				pSRV[0] = nullptr;
 				pSRV[1] = nullptr;
@@ -116,17 +117,7 @@ namespace ursine
 				//pSampler[1] = nullptr;
 			}
 
-			void Release()
-			{
-				SAFE_RELEASE(pMaterialCb);
-				for (UINT i = 0; i < 2; ++i)
-				{
-					SAFE_RELEASE(pSRV[i]);
-					//SAFE_RELEASE(pSampler[i]);
-					//SAFE_RELEASE(pSRV);
-				}
-				SAFE_RELEASE(pSampler);
-			}
+			void Release();
 		};
 
 		struct FbxMaterial
@@ -153,33 +144,15 @@ namespace ursine
 			float TransparencyFactor;
 
 			FbxMaterial()
-				:name(""), type(Type_None),
-				shineness(0), TransparencyFactor(0)
+				:name(""),
+				type(Type_None),
+				shineness(0), 
+				TransparencyFactor(0)
 			{}
 
-			void Release()
-			{
-				ambient.Release();
-				diffuse.Release();
-				emissive.Release();
-				specular.Release();
-			}
+			void Release();
 
-			FbxMaterial& operator=(const FbxMaterial& rhs)
-			{
-				if (this == &rhs)
-					return *this;
-
-				name = rhs.name;
-				type = rhs.type;
-				ambient = rhs.ambient;
-				diffuse = rhs.diffuse;
-				emissive = rhs.emissive;
-				specular = rhs.specular;
-				shineness = rhs.shineness;
-				TransparencyFactor = rhs.TransparencyFactor;
-				return *this;
-			}
+			FbxMaterial& operator=(const FbxMaterial& rhs);
 		};
 
 		struct KeyFrame
@@ -192,8 +165,7 @@ namespace ursine
 			KeyFrame() :
 			time(0.f), 
 			trans(0.f, 0.f, 0.f), rot(0.f, 0.f, 0.f, 1.f), scl(1.f, 1.f, 1.f)
-			{
-			}
+			{}
 		};
 
 		struct BoneAnimation
@@ -376,6 +348,8 @@ namespace ursine
 			std::vector<XMMATRIX>	m_meshMtxPal;
 			DWORD					vertexCount;
 			DWORD					indexCount;
+			XMFLOAT4				m_meshColor;
+			ID3D11Buffer*			m_meshColorBuffer;
 			eLayout					m_Layout;
 
 			std::vector<FBX_DATA::Material_Data> fbxmtrlData;
@@ -392,21 +366,23 @@ namespace ursine
 
 			MESH_NODE()
 				: 
-				m_pVB(nullptr), m_pIB(nullptr), m_pInputLayout(nullptr),
-				m_indexBit(INDEX_NOINDEX), vertexCount(0), indexCount(0),
+				m_pVB(nullptr), m_pIB(nullptr), 
+				m_pInputLayout(nullptr),
+				m_indexBit(INDEX_NOINDEX), 
+				vertexCount(0), 
+				indexCount(0),
+				m_meshColor(XMFLOAT4(1,1,1,1)),
+				m_meshColorBuffer(nullptr),
 				m_meshTM( DirectX::XMMatrixIdentity() )
-			{}
-
-			void Release()
 			{
-				for (UINT i = 0; i < fbxmtrlData.size(); ++i)
-					fbxmtrlData[i].Release();
-				fbxmtrlData.clear();
-
-				SAFE_RELEASE(m_pInputLayout);
-				SAFE_RELEASE(m_pIB);
-				SAFE_RELEASE(m_pVB);
 			}
+
+			void Release();
+
+			XMFLOAT4 GetMeshColor() { return m_meshColor; }
+			void SetMeshColor(const float& r, const float& g, const float& b, const float& a) { m_meshColor = XMFLOAT4(r, g, b, a); }
+			void SetMeshColor(const XMFLOAT4& color) { m_meshColor = color; }
+			FBX_DATA::Material_Data& GetNodeFbxMaterial(const int& mtrl_id = 0) { return fbxmtrlData[mtrl_id]; };
 
 			void SetIndexBit(const size_t indexCount)
 			{

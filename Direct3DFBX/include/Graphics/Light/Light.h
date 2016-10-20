@@ -14,9 +14,11 @@ namespace ursine
 	enum LightType
 	{
 		LIGHT_NONE = -1,
-		LIGHT_DIRECTIONAL = 0,
+		LIGHT_AMBIENT = 0,
+		LIGHT_DIRECTIONAL,
 		LIGHT_POINT,
 		LIGHT_SPOTLIGHT,
+
 		LIGHT_COUNT
 	};
 
@@ -36,17 +38,11 @@ namespace ursine
 		void SetPosition(XMFLOAT3 pos) { m_position = pos; m_transfrom = XMMatrixTranslation(m_position.x, m_position.y, m_position.z); }
 		void SetPosition(float x, float y, float z) { m_position = XMFLOAT3(x, y, z); m_transfrom = XMMatrixTranslation(m_position.x, m_position.y, m_position.z); }
 
-		void SetDiffuseColor(float red, float green, float blue, float alpha) { m_diffuseColor = XMFLOAT4(red, green, blue, alpha); }
-		void SetAmbientColor(float red, float green, float blue, float alpha) { m_ambientColor = XMFLOAT4(red, green, blue, alpha); }
-		void SetSpecularColor(float red, float green, float blue, float alpha) { m_specularColor = XMFLOAT4(red, green, blue, alpha); }
-		void SetDiffuseColor(XMFLOAT4 rgba) { m_diffuseColor = rgba; }
-		void SetAmbientColor(XMFLOAT4 rgba) { m_ambientColor = rgba; }
-		void SetSpecularColor(XMFLOAT4 rgba) { m_specularColor = rgba; }
+		void SetColor(float red, float green, float blue, float alpha) { m_color = XMFLOAT4(red, green, blue, alpha); }
+		void SetColor(XMFLOAT4 rgba) { m_color = rgba; }
 		void SetDirection(float x, float y, float z) { m_direction = XMFLOAT3(x, y, z); }
 
-		XMFLOAT4 GetDiffuseColor() const { return m_diffuseColor; }
-		XMFLOAT4 GetAmbientColor() const { return m_ambientColor; }
-		XMFLOAT4 GetSpecularColor() const { return m_specularColor; }
+		XMFLOAT4 GetColor() const { return m_color; }
 		XMFLOAT3 GetDirection() const { return m_direction; }
 
 		XMMATRIX GetTransformation() const { return m_transfrom; }
@@ -54,9 +50,7 @@ namespace ursine
 	private:
 		LightType m_type;
 		XMFLOAT3 m_position;
-		XMFLOAT4 m_diffuseColor;
-		XMFLOAT4 m_ambientColor;
-		XMFLOAT4 m_specularColor;
+		XMFLOAT4 m_color;
 		XMFLOAT3 m_direction;
 		XMMATRIX m_transfrom;
 	};

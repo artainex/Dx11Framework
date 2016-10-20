@@ -54,8 +54,7 @@ bool DebugWindow::Render(ID3D11DeviceContext* deviceContext, int positionX, int 
 	
 	// Re-build the dynamic vertex buffer for rendering to possibly a different location on the screen.
 	result = UpdateBuffers(deviceContext, positionX, positionY);
-	if (!result)
-		return false;
+	FAIL_CHECK_BOOLEAN(result);
 
 	// Put the vertex and index buffers on the graphics pipeline to prepare them for drawing.
 	RenderBuffers(deviceContext);

@@ -21,10 +21,10 @@ public:
 		ID3D11ShaderResourceView* texture);
 	bool Render(ID3D11DeviceContext* deviceContext, int indexCount,
 		XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
-		ursine::Light* ambiLight,
-		ursine::Light* gloLight,
-		ursine::Light* locLight,
-		ID3D11ShaderResourceView** textures);
+		const ursine::Light& light,
+		const ID3D11ShaderResourceView* light_texture,
+		const std::vector<ID3D11ShaderResourceView*>& textures);
+	void RenderMode(ID3D11DeviceContext* deviceContext, int rendertype);
 
 private:
 	bool InitializeShader(ID3D11Device* device, HWND hwnd, std::string vsFilename, std::string psFilename);
@@ -34,10 +34,7 @@ private:
 		ID3D11ShaderResourceView* texture);
 	bool SetShaderParameters(ID3D11DeviceContext* deviceContext,
 		XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
-		ursine::Light* ambiLight,
-		ursine::Light* gloLight,
-		ursine::Light* locLight,
-		ID3D11ShaderResourceView** texture);
+		const std::vector<ID3D11ShaderResourceView*>& texture);
 	void RenderShader(ID3D11DeviceContext* deviceContext, int indexCount);
 
 private:
@@ -45,7 +42,7 @@ private:
 	ID3D11PixelShader* m_pixelShader;
 	ID3D11InputLayout* m_layout;
 	ID3D11Buffer* m_matrixBuffer;
-	ID3D11Buffer* m_lightBuffer[2];
-	ID3D11Buffer* m_locallightBuffer;
+	ID3D11Buffer* m_rendermodeBuffer;
 	ID3D11SamplerState* m_sampleState;
+	eRenderType m_renderType;
 };

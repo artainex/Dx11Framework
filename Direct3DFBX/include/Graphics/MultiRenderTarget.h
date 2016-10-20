@@ -20,7 +20,7 @@ public:
 	int GetRenderTargetsCount() const { return m_renderTargetTextures.size(); }
 
 	ID3D11ShaderResourceView* GetShaderResourceView(int index);
-	ID3D11ShaderResourceView** GetShaderResourceViews();
+	const std::vector<ID3D11ShaderResourceView*>& GetShaderResourceViews() const;
 
 private:
 

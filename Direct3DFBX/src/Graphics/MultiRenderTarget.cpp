@@ -38,24 +38,30 @@ bool MultiRenderTarget::Initialize(ID3D11Device* device, int textureWidth, int t
 	textureDesc.CPUAccessFlags = 0;
 	textureDesc.MiscFlags = 0;
 
-	//// Create the render target texture.
-	//for (UINT i = 0; i < RT_COUNT; ++i)
-	//{
-	//	result = device->CreateTexture2D(&textureDesc, NULL, &m_renderTargetTexture[i]);
-	//	FAIL_CHECK_BOOLEAN(result);
-	//}
+	// Initialize render target textures, views, resource views
+	// should modulize this and make them can be dynamcially allocated
+	m_renderTargetTextures.resize(RT_COUNT);
+	m_renderTargetViews.resize(RT_COUNT);
+	m_shaderResourceViews.resize(RT_COUNT);
+	
+	// Create the render target texture.
+	for (UINT i = 0; i < RT_COUNT; ++i)
+	{
+		result = device->CreateTexture2D(&textureDesc, NULL, &m_renderTargetTextures[i]);
+		FAIL_CHECK_BOOLEAN(result);
+	}
 
 	// Setup the description of the render target view.
 	renderTargetViewDesc.Format = textureDesc.Format;
 	renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 	renderTargetViewDesc.Texture2D.MipSlice = 0;
 
-	//// Create the render target view.
-	//for (UINT i = 0; i < RT_COUNT; ++i)
-	//{
-	//	result = device->CreateRenderTargetView(m_renderTargetTexture[i], &renderTargetViewDesc, &m_renderTargetView[i]);
-	//	FAIL_CHECK_BOOLEAN(result);
-	//}
+	// Create the render target view.
+	for (UINT i = 0; i < RT_COUNT; ++i)
+	{
+		result = device->CreateRenderTargetView(m_renderTargetTextures[i], &renderTargetViewDesc, &m_renderTargetViews[i]);
+		FAIL_CHECK_BOOLEAN(result);
+	}
 
 	// Setup the description of the shader resource view.
 	shaderResourceViewDesc.Format = textureDesc.Format;
@@ -63,12 +69,12 @@ bool MultiRenderTarget::Initialize(ID3D11Device* device, int textureWidth, int t
 	shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
 	shaderResourceViewDesc.Texture2D.MipLevels = 1;
 
-	//// Create the shader resource view.
-	//for (UINT i = 0; i < RT_COUNT; ++i)
-	//{
-	//	result = device->CreateShaderResourceView(m_renderTargetTexture[i], &shaderResourceViewDesc, &m_shaderResourceView[i]);
-	//	FAIL_CHECK_BOOLEAN(result);
-	//}
+	// Create the shader resource view.
+	for (UINT i = 0; i < RT_COUNT; ++i)
+	{
+		result = device->CreateShaderResourceView(m_renderTargetTextures[i], &shaderResourceViewDesc, &m_shaderResourceViews[i]);
+		FAIL_CHECK_BOOLEAN(result);
+	}
 
 	return true;
 }
@@ -80,10 +86,14 @@ void MultiRenderTarget::Shutdown()
 		SAFE_RELEASE(iter);
 
 	for (auto &iter : m_renderTargetViews)
-		SAFE_RELEASE(m_renderTargetViews);
+		SAFE_RELEASE(iter);
 
 	for (auto &iter : m_renderTargetTextures)
-		SAFE_RELEASE(m_renderTargetTextures);
+		SAFE_RELEASE(iter);
+
+	m_shaderResourceViews.clear();
+	m_renderTargetViews.clear();
+	m_renderTargetTextures.clear();
 
 	return;
 }
@@ -91,11 +101,11 @@ void MultiRenderTarget::Shutdown()
 // The SetRenderTarget function sets the render target view in this class as the current rendering location for all graphics to be rendered to.
 void MultiRenderTarget::SetRenderTarget(ID3D11DeviceContext* deviceContext, ID3D11DepthStencilView* depthStencilView)
 {
-	//// Bind the render target view and depth stencil buffer to the output render pipeline.
-	//if (depthStencilView)
-	//	deviceContext->OMSetRenderTargets(1, m_renderTargetViews, depthStencilView);
-	//else
-	//	deviceContext->OMSetRenderTargets(1, m_renderTargetView, nullptr);
+	// Bind the render target view and depth stencil buffer to the output render pipeline.
+	if (depthStencilView)
+		deviceContext->OMSetRenderTargets(m_renderTargetViews.size(), m_renderTargetViews.data(), depthStencilView);
+	else
+		deviceContext->OMSetRenderTargets(m_renderTargetViews.size(), m_renderTargetViews.data(), nullptr);
 
 	return;
 }
@@ -140,10 +150,12 @@ void MultiRenderTarget::ClearRenderTarget(ID3D11DeviceContext* deviceContext,
 // target view can be used as a texture in different shaders that call this function.Where you would normally send a texture into a shader you can instead send a call to this function in its place and the render to texture will be used.
 ID3D11ShaderResourceView* MultiRenderTarget::GetShaderResourceView(int index)
 {
+	if (index > m_shaderResourceViews.size())
+		return nullptr;
 	return m_shaderResourceViews[index];
 }
 
-ID3D11ShaderResourceView** MultiRenderTarget::GetShaderResourceViews()
+const std::vector<ID3D11ShaderResourceView*>& MultiRenderTarget::GetShaderResourceViews() const
 {
 	return m_shaderResourceViews;
 }

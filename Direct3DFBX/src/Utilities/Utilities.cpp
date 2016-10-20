@@ -18,6 +18,42 @@
 //
 // With VS 11, we could load up prebuilt .cso files instead...
 //--------------------------------------------------------------------------------------
+void SamplerInitialize(D3D11_SAMPLER_DESC &sampler,
+	D3D11_FILTER Filter,
+	D3D11_TEXTURE_ADDRESS_MODE AddressU,
+	D3D11_TEXTURE_ADDRESS_MODE AddressV,
+	D3D11_TEXTURE_ADDRESS_MODE AddressW,
+	D3D11_COMPARISON_FUNC ComparisonFunc,
+	FLOAT MinLOD,
+	FLOAT MaxLOD)
+{
+	ZeroMemory(&sampler, sizeof(sampler));
+	sampler.Filter = Filter;
+	sampler.AddressU = AddressU;
+	sampler.AddressV = AddressV;
+	sampler.AddressW = AddressW;
+	sampler.ComparisonFunc = ComparisonFunc;
+	sampler.MinLOD = MinLOD;
+	sampler.MaxLOD = MaxLOD;
+};
+
+void BufferInitialize(D3D11_BUFFER_DESC& buffer,
+	UINT byteWidth,
+	D3D11_USAGE usage,
+	UINT bindFlag,
+	UINT cpuAccFlags,
+	UINT miscFlags,
+	UINT stride )
+{
+	ZeroMemory(&buffer, sizeof(buffer));
+	buffer.ByteWidth = byteWidth;
+	buffer.Usage = usage;
+	buffer.BindFlags = bindFlag;
+	buffer.CPUAccessFlags = cpuAccFlags;
+	buffer.MiscFlags = miscFlags;
+	buffer.StructureByteStride = stride;
+}
+
 HRESULT CompileShaderFromFile(eShaderType shaderType,
 	LPCTSTR szFileName,
 	LPCSTR szEntryPoint,
