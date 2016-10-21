@@ -11,11 +11,11 @@ cbuffer cbMatrices : register(b0)
 	matrix	WVP;
 };
 
-cbuffer cbRenderMode : register(b1)
-{
-	uint renderMode;
-	float3 padding;
-}
+//cbuffer cbRenderMode : register(b1)
+//{
+//	uint renderMode;
+//	float3 padding;
+//}
 
 struct PixelInputType
 {

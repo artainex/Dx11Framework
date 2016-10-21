@@ -28,6 +28,7 @@ public:
 	bool Render(ID3D11DeviceContext* deviceContext, int indexCount,
 		XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
 		const std::vector<ID3D11ShaderResourceView*>& textures,
+		ID3D11ShaderResourceView* depthtexture,
 		const ursine::Light& light,
 		const XMFLOAT3& eyePos);
 
@@ -39,6 +40,7 @@ private:
 	bool SetShaderParameters(ID3D11DeviceContext* deviceContext,
 		XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
 		const std::vector<ID3D11ShaderResourceView*>& textures,
+		ID3D11ShaderResourceView* depthtexture,
 		const ursine::Light& light,
 		const XMFLOAT3& eyePos);
 	void RenderShader(ID3D11DeviceContext* deviceContext, int indexCount);

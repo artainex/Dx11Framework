@@ -103,10 +103,18 @@ void MultiRenderTarget::SetRenderTarget(ID3D11DeviceContext* deviceContext, ID3D
 {
 	// Bind the render target view and depth stencil buffer to the output render pipeline.
 	if (depthStencilView)
-		deviceContext->OMSetRenderTargets(m_renderTargetViews.size(), m_renderTargetViews.data(), depthStencilView);
+		deviceContext->OMSetRenderTargets((UINT)m_renderTargetViews.size(), m_renderTargetViews.data(), depthStencilView);
 	else
-		deviceContext->OMSetRenderTargets(m_renderTargetViews.size(), m_renderTargetViews.data(), nullptr);
+		deviceContext->OMSetRenderTargets((UINT)m_renderTargetViews.size(), m_renderTargetViews.data(), nullptr);
 
+	return;
+}
+
+void MultiRenderTarget::ReleaseRenderTarget(ID3D11DeviceContext* deviceContext)
+{
+	ID3D11ShaderResourceView* pSRV = nullptr;
+	for (UINT i = 0; i < m_renderTargetViews.size(); ++i)
+		deviceContext->PSSetShaderResources(i, 1, &pSRV);
 	return;
 }
 

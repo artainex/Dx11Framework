@@ -13,6 +13,7 @@
 
 #include <PointShader.h>
 #include <LightShader.h>
+#include <DepthShader.h>
 #include <SceneRenderer.h>
 #include "FBXModel.h"
 
@@ -61,13 +62,16 @@ ID3D11BlendState *					g_AlphaAdditiveBlendState;
 XMMATRIX                            g_World;
 XMMATRIX                            g_Projection;
 XMMATRIX							g_OrthoMatrix;
+XMMATRIX                            g_lightView;
 XMMATRIX							g_ScaleMatrix = XMMatrixIdentity();
+XMMATRIX							g_RotationMatrix = XMMatrixIdentity();
 
 // Camera
 XMFLOAT3 InitTsl = XMFLOAT3(0.f, 0.f, -100.f);
 XMFLOAT3 InitRot = XMFLOAT3(0, 0, 0);
 static XMFLOAT3 tsl = InitTsl;
 static XMFLOAT3 rot = InitRot;
+static XMFLOAT3 rot2 = InitRot;
 static float scl = 1.0f;
 Camera								g_Camera;
 
@@ -85,10 +89,11 @@ ursine::Light						g_LocalLights[MAX_LIGHT];
 // 그러니까 g_SceneBufferRenderTarget에 블랜딩 켠 상태로 라이팅 계산을 하는 것 같아.
 // 우선 앰비언트만 해보자.
 RenderTarget						g_SceneBufferRenderTarget;
-RenderTarget						g_LBufferRenderTarget;	// light buffer - FQS
 MultiRenderTarget					g_GBufferRenderTarget;	// geometry buffer - Model only
+RenderTarget						g_DepthBufferRenderTarget;	// depth buffer - FQS
 DebugWindow							g_DebugWindow;
 LightShader							g_LightShader;
+DepthShader							g_DepthShader;
 SceneRenderer						g_SceneRenderer;
 
 UINT updateSpeed = 1;

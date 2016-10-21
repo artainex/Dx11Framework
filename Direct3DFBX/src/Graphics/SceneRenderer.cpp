@@ -10,7 +10,7 @@ SceneRenderer::SceneRenderer()
 	m_pixelShader(0),
 	m_layout(0), 
 	m_matrixBuffer(0),
-	m_rendermodeBuffer(0),
+	//m_rendermodeBuffer(0),
 	m_sampleState(0),
 	m_renderType(POSITION)
 {
@@ -58,18 +58,14 @@ bool SceneRenderer::Render(ID3D11DeviceContext* deviceContext, int indexCount,
 	return true;
 }
 
-bool SceneRenderer::Render(ID3D11DeviceContext* deviceContext, 
-	int indexCount,
+bool SceneRenderer::Render(ID3D11DeviceContext* deviceContext, int indexCount,
 	XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
 	const std::vector<ID3D11ShaderResourceView*>& textures)
 {
 	bool result;
 
 	// Set the shader parameters that it will use for rendering.
-	result = SetShaderParameters(deviceContext, 
-		worldMatrix, viewMatrix, projectionMatrix,
-		textures);
-	
+	result = SetShaderParameters(deviceContext, worldMatrix, viewMatrix, projectionMatrix, textures);
 	FAIL_CHECK_WITH_MSG(result, "SceneRenderer Render Fail");
 
 	// Now render the prepared buffers with the shader.
@@ -85,7 +81,7 @@ bool SceneRenderer::InitializeShader(ID3D11Device* device, HWND hwnd, std::strin
 	ID3DBlob* vertexShaderBuffer;
 	ID3DBlob* pixelShaderBuffer;
 
-	D3D11_BUFFER_DESC matrixBufferDesc, rendermodeBufferDesc, lightBufferDesc;
+	D3D11_BUFFER_DESC matrixBufferDesc;// , rendermodeBufferDesc;
 	D3D11_SAMPLER_DESC samplerDesc;
 
 	// Initialize the pointers this function will use to null.
@@ -130,16 +126,17 @@ bool SceneRenderer::InitializeShader(ID3D11Device* device, HWND hwnd, std::strin
 	hr = device->CreateBuffer(&matrixBufferDesc, nullptr, &m_matrixBuffer);
 	FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "MatrixBufferType buffer creation fail");
 
-	// Setup the description of the dynamic render type constant buffer that is in the vertex shader.
-	BufferInitialize(rendermodeBufferDesc, sizeof(RenderBufferType),
-		D3D11_USAGE_DYNAMIC,
-		D3D11_BIND_CONSTANT_BUFFER,
-		D3D11_CPU_ACCESS_WRITE);
+	//// Setup the description of the dynamic render type constant buffer that is in the vertex shader.
+	//BufferInitialize(rendermodeBufferDesc, sizeof(RenderBufferType),
+	//	D3D11_USAGE_DYNAMIC,
+	//	D3D11_BIND_CONSTANT_BUFFER,
+	//	D3D11_CPU_ACCESS_WRITE);
+	//
+	//// Create the constant buffer pointer so we can access the vertex shader constant buffer from within this class.
+	//hr = device->CreateBuffer(&rendermodeBufferDesc, nullptr, &m_rendermodeBuffer);
+	//FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "RenderBufferType buffer creation fail");
 
-	// Create the constant buffer pointer so we can access the vertex shader constant buffer from within this class.
-	hr = device->CreateBuffer(&rendermodeBufferDesc, nullptr, &m_rendermodeBuffer);
-	FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "RenderBufferType buffer creation fail");
-
+	// Create a texture sampler state description.
 	SamplerInitialize(samplerDesc,
 		D3D11_FILTER_MIN_MAG_MIP_LINEAR,
 		D3D11_TEXTURE_ADDRESS_WRAP,
@@ -148,8 +145,6 @@ bool SceneRenderer::InitializeShader(ID3D11Device* device, HWND hwnd, std::strin
 		D3D11_COMPARISON_ALWAYS,
 		0,
 		D3D11_FLOAT32_MAX);
-
-	// Create a texture sampler state description.
 	samplerDesc.MipLODBias = 0.0f;
 	samplerDesc.MaxAnisotropy = 1;
 	samplerDesc.BorderColor[0] = 0;
@@ -172,8 +167,8 @@ void SceneRenderer::ShutdownShader()
 	// Release the matrix constant buffer.
 	SAFE_RELEASE(m_matrixBuffer);
 
-	// Release the render mode constant buffer.
-	SAFE_RELEASE(m_rendermodeBuffer);
+	//// Release the render mode constant buffer.
+	//SAFE_RELEASE(m_rendermodeBuffer);
 
 	// Release the layout.
 	SAFE_RELEASE(m_layout);
@@ -195,6 +190,7 @@ bool SceneRenderer::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 	D3D11_MAPPED_SUBRESOURCE mappedResource;	
 	
 	// Transpose the matrices to prepare them for the shader.
+	XMMATRIX WVP = worldMatrix * viewMatrix * projectionMatrix;
 	worldMatrix = XMMatrixTranspose(worldMatrix);
 	viewMatrix = XMMatrixTranspose(viewMatrix);
 	projectionMatrix = XMMatrixTranspose(projectionMatrix);
@@ -214,7 +210,7 @@ bool SceneRenderer::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 		dataPtr->mWorld = worldMatrix;
 		dataPtr->mView = viewMatrix;
 		dataPtr->mProj = projectionMatrix;
-		dataPtr->mWVP = worldMatrix * viewMatrix * projectionMatrix;
+		dataPtr->mWVP = XMMatrixTranspose(WVP);
 
 		// Unlock the constant buffer.
 		deviceContext->Unmap(m_matrixBuffer, 0);
@@ -273,47 +269,47 @@ bool SceneRenderer::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 		deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_matrixBuffer);
 	}
 
-	bufferNumber = 1;
-	// render mode
-	{
-		result = deviceContext->Map(m_rendermodeBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		FAIL_CHECK_BOOLEAN(result);
-
-		RenderBufferType* rmBuffer = (RenderBufferType*)mappedResource.pData;
-
-		rmBuffer->type = m_renderType;
-
-		// unmap constant buffer
-		deviceContext->Unmap(m_rendermodeBuffer, 0);
-
-		deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_rendermodeBuffer);
-	}
+	//bufferNumber = 1;
+	//// render mode
+	//{
+	//	result = deviceContext->Map(m_rendermodeBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+	//	FAIL_CHECK_BOOLEAN(result);
+	//
+	//	RenderBufferType* rmBuffer = (RenderBufferType*)mappedResource.pData;
+	//
+	//	rmBuffer->type = m_renderType;
+	//
+	//	// unmap constant buffer
+	//	deviceContext->Unmap(m_rendermodeBuffer, 0);
+	//
+	//	deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_rendermodeBuffer);
+	//}
 
 	return true;
 }
 
-void SceneRenderer::RenderMode(ID3D11DeviceContext* deviceContext, int renderType)
-{
-	D3D11_MAPPED_SUBRESOURCE MappedResource;
-	deviceContext->Map(m_rendermodeBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
-	RenderBufferType* rmBuffer = (RenderBufferType*)MappedResource.pData;
-
-	switch (renderType)
-	{
-	case 1: m_renderType = POSITION;	break;
-	case 2:	m_renderType = NORMAL;		break;
-	case 3:	m_renderType = DIFFUSE;		break;
-	case 4:	m_renderType = SPECULAR;	break;
-	case 5:	m_renderType = DEPTH;		break;
-	}
-	
-	rmBuffer->type = m_renderType;
-
-	// unmap constant buffer
-	deviceContext->Unmap(m_rendermodeBuffer, 0);
-
-	deviceContext->PSSetConstantBuffers(1, 1, &m_rendermodeBuffer);
-}
+//void SceneRenderer::RenderMode(ID3D11DeviceContext* deviceContext, int renderType)
+//{
+//	D3D11_MAPPED_SUBRESOURCE MappedResource;
+//	deviceContext->Map(m_rendermodeBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+//	RenderBufferType* rmBuffer = (RenderBufferType*)MappedResource.pData;
+//
+//	switch (renderType)
+//	{
+//	case 1: m_renderType = POSITION;	break;
+//	case 2:	m_renderType = NORMAL;		break;
+//	case 3:	m_renderType = DIFFUSE;		break;
+//	case 4:	m_renderType = SPECULAR;	break;
+//	case 5:	m_renderType = DEPTH;		break;
+//	}
+//	
+//	rmBuffer->type = m_renderType;
+//
+//	// unmap constant buffer
+//	deviceContext->Unmap(m_rendermodeBuffer, 0);
+//
+//	deviceContext->PSSetConstantBuffers(1, 1, &m_rendermodeBuffer);
+//}
 
 void SceneRenderer::RenderShader(ID3D11DeviceContext* deviceContext, int indexCount)
 {

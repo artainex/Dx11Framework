@@ -20,7 +20,7 @@ struct PS_INPUT
 	float3	Nor			: NORMAL;
 	float4	WPos		: TEXCOORD0;
 	float4	WNor		: TEXCOORD1;
-	float4	Depth		: TEXCOORD2;
+	//float4	Depth		: TEXCOORD2;
 };
 
 struct PS_OUTPUT
@@ -29,7 +29,7 @@ struct PS_OUTPUT
 	float4 Normal: SV_Target1;
 	float4 Diffuse: SV_Target2;
 	float4 SpecularAndShine: SV_Target3;
-	float4 Depth: SV_Target4;
+	//float4 Depth: SV_Target4;
 };
 
 PS_OUTPUT PS( PS_INPUT input)
@@ -41,9 +41,9 @@ PS_OUTPUT PS( PS_INPUT input)
 	output.Diffuse = float4(mesh_color.xyz * m_diffuse.xyz, m_transparency);
 	output.SpecularAndShine = float4(m_specular.xyz, m_shineness);
 
-	float depth;
-	depth = input.Depth.z / input.Depth.w;
-	output.Depth = float4(depth, depth, depth, depth);
+	//float depth;
+	//depth = input.Depth.z / input.Depth.w;
+	//output.Depth = float4(depth, depth, depth, depth);
 
 	return output;
 }

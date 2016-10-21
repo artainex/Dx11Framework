@@ -36,6 +36,8 @@ PixelInputType SceneVertexShader(VertexInputType input)
 	output.Pos = mul(output.Pos, View);
 	output.Pos = mul(output.Pos, Projection);
 
+	//output.Pos = mul(float4(input.Pos, 1.f), WVP);
+
 	// Store the texture coordinates for the pixel shader.
 	output.Tex = input.Tex;
 

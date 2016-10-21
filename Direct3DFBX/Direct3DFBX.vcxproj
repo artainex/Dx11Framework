@@ -436,6 +436,7 @@
     <ClCompile Include="src\Color.cpp" />
     <ClCompile Include="src\Graphics\Camera\Camera.cpp" />
     <ClCompile Include="src\Graphics\Debug Window\DebugWindow.cpp" />
+    <ClCompile Include="src\Graphics\DepthShader.cpp" />
     <ClCompile Include="src\Graphics\Light\Light.cpp" />
     <ClCompile Include="src\Graphics\Light\LightShader.cpp" />
     <ClCompile Include="src\Graphics\PointShader.cpp" />
@@ -443,7 +444,6 @@
     <ClCompile Include="src\Graphics\RenderTarget.cpp" />
     <ClCompile Include="src\Graphics\SceneRenderer.cpp" />
     <ClCompile Include="src\Graphics\Shader.cpp" />
-    <ClCompile Include="src\Graphics\Texture.cpp" />
     <ClCompile Include="src\Math\Mat3.cpp" />
     <ClCompile Include="src\Math\Mat4.cpp" />
     <ClCompile Include="src\Math\SIMD\SMat3.cpp" />
@@ -472,6 +472,7 @@
     <ClInclude Include="include\Graphics\Camera\Camera.h" />
     <ClInclude Include="include\Graphics\ConstantBuffers.h" />
     <ClInclude Include="include\Graphics\Debug Window\DebugWindow.h" />
+    <ClInclude Include="include\Graphics\DepthShader.h" />
     <ClInclude Include="include\Graphics\Light\Light.h" />
     <ClInclude Include="include\Graphics\Light\LightShader.h" />
     <ClInclude Include="include\Graphics\PointShader.h" />
@@ -479,7 +480,6 @@
     <ClInclude Include="include\Graphics\RenderTarget.h" />
     <ClInclude Include="include\Graphics\SceneRenderer.h" />
     <ClInclude Include="include\Graphics\Shader.h" />
-    <ClInclude Include="include\Graphics\Texture.h" />
     <ClInclude Include="include\Math\Mat3.h" />
     <ClInclude Include="include\Math\Mat3.hpp" />
     <ClInclude Include="include\Math\Mat4.h" />
@@ -526,6 +526,14 @@
     <ClInclude Include="Setting.h" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="Shader\DepthPixelShader.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shader\DepthVertexShader.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="Shader\InstancingVS.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -533,6 +541,7 @@
     <FxCompile Include="Shader\LightPixelShader.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <EnableDebuggingInformation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</EnableDebuggingInformation>
     </FxCompile>
     <FxCompile Include="Shader\LightVertexShader.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>

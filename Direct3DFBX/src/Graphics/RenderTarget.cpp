@@ -90,6 +90,13 @@ void RenderTarget::SetRenderTarget(ID3D11DeviceContext* deviceContext, ID3D11Dep
 	return;
 }
 
+void RenderTarget::ReleaseRenderTarget(ID3D11DeviceContext* deviceContext)
+{
+	ID3D11ShaderResourceView* pSRV = nullptr;
+	deviceContext->PSSetShaderResources(0, 1, &pSRV);
+	return;
+}
+
 // ClearRenderTarget mimics the functionality of the D3DClass::BeginScene function except for that it operates on the render target view 
 // within this class.This should be called each frame before rendering to this render target view.
 void RenderTarget::ClearRenderTarget(ID3D11DeviceContext* deviceContext,

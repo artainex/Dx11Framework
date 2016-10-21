@@ -101,13 +101,11 @@ bool DebugWindow::InitializeBuffers(ID3D11Device* device)
 
 	// Set up the description of the static vertex buffer.
 	D3D11_BUFFER_DESC vertexBufferDesc;
-	ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
-	vertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	vertexBufferDesc.ByteWidth = stride * m_vertexCount;
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	vertexBufferDesc.MiscFlags = 0;
-	vertexBufferDesc.StructureByteStride = 0;
+	BufferInitialize(vertexBufferDesc,
+		stride * m_vertexCount,
+		D3D11_USAGE_DYNAMIC,
+		D3D11_BIND_VERTEX_BUFFER,
+		D3D11_CPU_ACCESS_WRITE);
 
 	// Give the subresource structure a pointer to the vertex data.
 	D3D11_SUBRESOURCE_DATA vertexData;
@@ -122,14 +120,13 @@ bool DebugWindow::InitializeBuffers(ID3D11Device* device)
 
 	// Set up the description of the static index buffer.
 	stride = sizeof(UINT);
+
 	D3D11_BUFFER_DESC indexBufferDesc;
-	ZeroMemory(&indexBufferDesc, sizeof(indexBufferDesc));
-	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	indexBufferDesc.ByteWidth = static_cast<uint32_t>(stride * m_indexCount);
-	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	indexBufferDesc.CPUAccessFlags = 0;
-	indexBufferDesc.MiscFlags = 0;
-	indexBufferDesc.StructureByteStride = 0;
+	BufferInitialize(indexBufferDesc,
+		static_cast<uint32_t>(stride * m_indexCount),
+		D3D11_USAGE_DEFAULT,
+		D3D11_BIND_INDEX_BUFFER,
+		0);
 
 	// Give the subresource structure a pointer to the index data.
 	D3D11_SUBRESOURCE_DATA indexData;
