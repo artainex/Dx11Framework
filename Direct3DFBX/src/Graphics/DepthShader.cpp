@@ -107,7 +107,7 @@ bool DepthShader::InitializeShader(ID3D11Device* device, HWND hwnd, string vsFil
 	// Create the constant buffer pointer so we can access the vertex shader constant buffer from within this class.
 	hr = device->CreateBuffer(&matrixBufferDesc, nullptr, &m_matrixBuffer);
 	FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "DepthShader matrix buffer creation failed");
-
+	
 	return true;
 }
 
@@ -115,7 +115,7 @@ void DepthShader::ShutdownShader()
 {
 	// Release the matrix constant buffer.
 	SAFE_RELEASE(m_matrixBuffer);
-	
+		
 	// Release the layout.
 	SAFE_RELEASE(m_layout);
 

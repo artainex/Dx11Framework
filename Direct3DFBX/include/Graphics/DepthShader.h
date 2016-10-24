@@ -27,13 +27,17 @@ public:
 	bool Render(ID3D11DeviceContext* deviceContext, int indexCount,
 		XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix);
 
+	ID3D11VertexShader* GetVertexShader() const { return m_vertexShader; }
+	ID3D11PixelShader* GetPixelShader() const { return m_pixelShader; }
+	ID3D11InputLayout* GetDepthLayout() const { return m_layout; }
+	bool SetShaderParameters(ID3D11DeviceContext* deviceContext,
+		XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix);
+
 private:
 	bool InitializeShader(ID3D11Device* device, HWND hwnd, string vsFilename, string psFilename);
 	void ShutdownShader();
 
 	//bool SetTexture(ShaderType shaderType, u32 texNum, const MultiRenderTarget * mrt, u32 rtIndex);
-	bool SetShaderParameters(ID3D11DeviceContext* deviceContext,
-		XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix);
 	void RenderShader(ID3D11DeviceContext* deviceContext, int indexCount);
 
 private:

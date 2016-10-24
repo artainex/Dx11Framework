@@ -43,12 +43,14 @@ void RenderScene();
 void GeometryPass();
 void LightPass();
 void DepthPass(const XMFLOAT3 & lightPos,
+	const XMFLOAT3 & lightDir,
 	XMMATRIX & viewLight,
 	XMMATRIX & perspLight,
 	float& lightNear, float& lightFar);
 void Render();
 void RenderLightModel();
 void RenderGeometryModel();
+void RenderGeometryModelDepth();
 void SetMatrix();
 bool SetGeometryShaderParameters(ursine::FBXModel** currentModel, const UINT& mesh_index, const eLayout& layoutType);
 bool SetLightShaderParameters(ursine::FBXModel** currentModel, const ursine::Light& light, const UINT& mesh_index);
@@ -57,8 +59,8 @@ void SetZBuffer(bool on);
 void SetAlphaBlend();
 void SetNoBlend();
 void SetAdditiveBlend();
-void SetBackFaceCull(bool on);
 void SetFrontFaceCull(bool on);
+void SetBackFaceCull(bool on);
 
 HRESULT InitApp();
 HRESULT InitModel();
@@ -718,6 +720,7 @@ HRESULT InitModel()
 	//FAIL_CHECK_WITH_MSG(hr, "dragonplane.fbx load fail");
 
 	g_Models["LightModel"].push_back(sphere);
+	g_Models["GeoModel"].push_back(sphere);
 	//g_Models["GeoModel"].push_back(model);
 
 	return hr;
@@ -1136,34 +1139,42 @@ void LightPass()
 	// draw debug window(same resolution as screen)
 	g_DebugWindow.Render(g_pDeviceContext, 0, 0);
 	
-	// Ambient Light
-	{
-		SetNoBlend();
-		SetZBuffer(false);
-		{
-			if (!g_LightShader.Render(g_pDeviceContext,
-				g_DebugWindow.GetIndexCount(),
-				g_World,
-				g_Camera.GetViewMatrix(),
-				g_OrthoMatrix,
-				g_GBufferRenderTarget.GetShaderResourceViews(),
-				nullptr,
-				g_AmbientLight,
-				g_Camera.GetPosition()))
-			{
-				MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
-				return;
-			}
-		}
-	}
+	//// Ambient Light
+	//{
+	//	SetNoBlend();
+	//	SetZBuffer(false);
+	//	{
+	//		if (!g_LightShader.Render(g_pDeviceContext,
+	//			g_DebugWindow.GetIndexCount(),
+	//			g_World,
+	//			g_Camera.GetViewMatrix(),
+	//			g_OrthoMatrix,
+	//			g_GBufferRenderTarget.GetShaderResourceViews(),
+	//			nullptr,
+	//			g_AmbientLight,
+	//			g_Camera.GetPosition()))
+	//		{
+	//			MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
+	//			return;
+	//		}
+	//	}
+	//}
 	
 	// Global light
 	{
 		// create depth for global light
         XMMATRIX perspLight;
 		float lightNear, lightFar;
-		DepthPass(g_GlobalLight.GetPosition(), g_lightView, perspLight, lightNear, lightFar);
 
+		// 뎁스 패스를 거친 뒤에 아무것도 나오지 않아
+		// 좋아 이제 뎁스는 분명 나와
+		// 뎁스는 그려지고는 있으니까 일단 샘플링을 하던가 해서 
+		// 월드 포즈를 갖든지 하고, 이 월드 포즈 샘플 받은걸 
+		// 라이트 뷰, 오르소 프로젝팅 해서 뎁스 값을 내보내는 거야.
+		DepthPass(g_GlobalLight.GetPosition(), 
+			g_GlobalLight.GetDirection(),
+			g_lightView, perspLight, lightNear, lightFar);
+	
 		SetAdditiveBlend();
 		SetZBuffer(false);
 		{
@@ -1181,34 +1192,33 @@ void LightPass()
 				return;
 			}
 		}
-
 		g_DepthBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
 	}
 	
-	// local lights
-	{
-		SetAdditiveBlend();
-		SetZBuffer(false);
-		SetBackFaceCull(true);
-		{
-			for (UINT i = 0; i < MAX_LIGHT; ++i)
-			{
-				if (!g_LightShader.Render(g_pDeviceContext,
-					g_DebugWindow.GetIndexCount(),
-					g_World,
-					g_Camera.GetViewMatrix(),
-					g_OrthoMatrix,
-					g_GBufferRenderTarget.GetShaderResourceViews(),
-					nullptr,
-					g_LocalLights[i],
-					g_Camera.GetPosition()))
-				{
-					MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
-					return;
-				}
-			}
-		}
-	}
+	//// local lights
+	//{
+	//	SetAdditiveBlend();
+	//	SetZBuffer(false);
+	//	SetBackFaceCull(true);
+	//	{
+	//		for (UINT i = 0; i < MAX_LIGHT; ++i)
+	//		{
+	//			if (!g_LightShader.Render(g_pDeviceContext,
+	//				g_DebugWindow.GetIndexCount(),
+	//				g_World,
+	//				g_Camera.GetViewMatrix(),
+	//				g_OrthoMatrix,
+	//				g_GBufferRenderTarget.GetShaderResourceViews(),
+	//				nullptr,
+	//				g_LocalLights[i],
+	//				g_Camera.GetPosition()))
+	//			{
+	//				MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
+	//				return;
+	//			}
+	//		}
+	//	}
+	//}
 
 	// reset ZBuffer and No blending
 	SetZBuffer(true);
@@ -1220,18 +1230,26 @@ void LightPass()
 
 // Depth Pass for deferred shading
 void DepthPass(const XMFLOAT3 & lightPos, 
+	const XMFLOAT3 & lightDir,
 	XMMATRIX & viewLight, 
 	XMMATRIX & perspLight,
 	float& lightNear, float& lightFar)
 {
+	// 지금 이게 제대로 안나오는 이유는 디버그 렌더러는 스크린을 메우는 크기의 윈도우를 그리고 있는데
+	// 이게 스크린상 좌표가 아니라 말 그대로 3차원인데 보이는 위치를 그렇게 잡아놓고 그리고 있는것
+	// 뿐이라서 그래. 스크린을 사진찍듯 한 게 아니란 거지.
+	// 그래서 시점을 위로 올리면 버퍼 자체는 안따라오니까 이대로 찍히는 거야
+	// 아무것도 없이 그냥 하얀 이유는 지오 매트리를 안그려줘서 그런 거고
+	// 씨발 내일 물어보자 어떻게 쿼드 그렸는지
+
 	XMVECTOR lPos, lookAt, up;
 	lPos.m128_f32[0] = lightPos.x; 
 	lPos.m128_f32[1] = lightPos.y; 
 	lPos.m128_f32[2] = lightPos.z;
 
-	lookAt.m128_f32[0] = g_Camera.GetLookAt().x; 
-	lookAt.m128_f32[1] = g_Camera.GetLookAt().y;
-	lookAt.m128_f32[2] = g_Camera.GetLookAt().z;
+	lookAt.m128_f32[0] = g_Camera.GetLookAt().x;//lightPos.x + 50 * lightDir.x; 
+	lookAt.m128_f32[1] = g_Camera.GetLookAt().y;//lightPos.y + 50 * lightDir.y;
+	lookAt.m128_f32[2] = g_Camera.GetLookAt().z;//lightPos.z + 50 * lightDir.z;
 
 	up.m128_f32[0] = g_Camera.GetUp().x;
 	up.m128_f32[1] = g_Camera.GetUp().y;
@@ -1240,28 +1258,33 @@ void DepthPass(const XMFLOAT3 & lightPos,
 	viewLight = XMMatrixLookAtLH(lPos, lookAt, up);
 
 	lightNear = 1.f;
-	lightFar = -FLT_MAX;
+	lightFar = FLT_MAX;
+	
+	// draw debug window(same resolution as screen)
+	g_DebugWindow.Render(g_pDeviceContext, 0, 0);
 
 	g_DepthBufferRenderTarget.ClearRenderTarget(g_pDeviceContext, g_pDepthStencilView, ClearColor);
 	g_DepthBufferRenderTarget.SetRenderTarget(g_pDeviceContext, g_pDepthStencilView);
 
 	SetNoBlend();
 	SetZBuffer(true);
-	SetFrontFaceCull(true);
-
-	// draw debug window(same resolution as screen)
-	g_DebugWindow.Render(g_pDeviceContext, 0, 0);
+	SetBackFaceCull(true);
 
 	// 왜 뎁스 텍스쳐가 안나오는 거지?
 	if (!g_DepthShader.Render(g_pDeviceContext,
 		g_DebugWindow.GetIndexCount(),
-		g_World, viewLight, g_OrthoMatrix))
+		g_World,
+		viewLight, 
+		g_OrthoMatrix))
 	{
 		MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
 		return;
 	}
+	//RenderGeometryModelDepth
 
-	// reset render target as scene buffer
+	SetBackFaceCull(false);
+
+	// Reset rendertarget as scene buffer render target
 	g_SceneBufferRenderTarget.SetRenderTarget(g_pDeviceContext, g_pDepthStencilView);
 }
 
@@ -1298,15 +1321,20 @@ void Render()
 			g_World,
 			g_Camera.GetViewMatrix(),
 			g_OrthoMatrix,
-			g_SceneBufferRenderTarget.GetShaderResourceView()))
+			//g_DepthBufferRenderTarget.GetShaderResourceView()
+			// 나중에 이걸로 바꿔야 함
+			g_SceneBufferRenderTarget.GetShaderResourceView()
+			))
 		{
 			MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
 			return;
 		}
-		
+
+		//g_DepthBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
+		// 나중에 이걸로 바꿔야 함
 		g_SceneBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
 	}
-		
+	
 	//RenderScene();
 
 #if DEBUG
@@ -1355,14 +1383,14 @@ void RenderLightModel()
 		{
 			auto& currMesh = iter->GetMeshNode(mn_idx);
 			ursine::Light* light = nullptr;
-			//// ambient light
-			//{
-			//	light = &g_AmbientLight;
-			//	// set shader parameters(mapping constant buffers, matrices, resources)
-			//	currMesh.SetMeshColor(light->GetColor());
-			//	SetLightShaderParameters(&iter, (*light), mn_idx);
-			//	iter->RenderNode(g_pDeviceContext, mn_idx);
-			//}
+			// ambient light
+			{
+				light = &g_AmbientLight;
+				// set shader parameters(mapping constant buffers, matrices, resources)
+				currMesh.SetMeshColor(light->GetColor());
+				SetLightShaderParameters(&iter, (*light), mn_idx);
+				iter->RenderNode(g_pDeviceContext, mn_idx);
+			}
 
 			// global light
 			{
@@ -1445,14 +1473,44 @@ void RenderGeometryModel()
 			// set shader parameters(mapping constant buffers, matrices, resources)
 			SetGeometryShaderParameters(&iter, mn_idx, layout_type);
 
-			// render node
-			//if (mdl_idx == 0 && g_bInstancing)
-			//	currModel->RenderNodeInstancing(g_pImmediateContext, mn_idx, g_InstanceMAX);
-			//else
 			iter->RenderNode(g_pDeviceContext, mn_idx);
 
-			//// render bone points
-			//currModel->RenderPoint(g_pImmediateContext);
+			// reset shader
+			g_pDeviceContext->VSSetShader(nullptr, nullptr, 0);
+			g_pDeviceContext->PSSetShader(nullptr, nullptr, 0);
+		}
+	}
+}
+
+//--------------------------------------------------------------------------------------
+// Render the geometry model's depth
+//--------------------------------------------------------------------------------------
+void RenderGeometryModelDepth()
+{
+	// geo model
+	if (g_Models["GeoModel"].empty())
+		return;
+
+	// for all model
+	for (auto& iter : g_Models["GeoModel"])
+	{
+		// mesh nodes count
+		size_t meshnodeCnt = iter->GetMeshNodeCount();
+
+		// for all mesh nodes
+		for (UINT mn_idx = 0; mn_idx < meshnodeCnt; ++mn_idx)
+		{
+			//////////////////////////////////////
+			// sort by layout later
+			//////////////////////////////////////
+			g_pDeviceContext->VSSetShader(g_DepthShader.GetVertexShader(), nullptr, 0);
+			g_pDeviceContext->PSSetShader(g_DepthShader.GetPixelShader(), nullptr, 0);
+
+			// set shader parameters(mapping constant buffers, matrices, resources)
+			g_DepthShader.SetShaderParameters(g_pDeviceContext,
+				g_World, g_lightView, g_OrthoMatrix);
+
+			iter->RenderNodeDepth(g_pDeviceContext, mn_idx, g_DepthShader.GetDepthLayout());
 
 			// reset shader
 			g_pDeviceContext->VSSetShader(nullptr, nullptr, 0);
@@ -1757,20 +1815,20 @@ void SetAdditiveBlend()
 	return;
 }
 
-void SetBackFaceCull(bool on)
-{
-	// Set the culling rasterizer state.
-	if (on)
-		g_pDeviceContext->RSSetState(g_RasterState);
-	else
-		g_pDeviceContext->RSSetState(g_NoCullRasterState);
-}
-
 void SetFrontFaceCull(bool on)
 {
 	// Set the culling rasterizer state.
 	if (on)
 		g_pDeviceContext->RSSetState(g_FrontCullRasterState);
+	else
+		g_pDeviceContext->RSSetState(g_NoCullRasterState);
+}
+
+void SetBackFaceCull(bool on)
+{
+	// Set the culling rasterizer state.
+	if (on)
+		g_pDeviceContext->RSSetState(g_RasterState);
 	else
 		g_pDeviceContext->RSSetState(g_NoCullRasterState);
 }

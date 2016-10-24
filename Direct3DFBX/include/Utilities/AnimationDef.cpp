@@ -50,6 +50,7 @@ namespace ursine
 			SAFE_RELEASE(m_pInputLayout);
 			SAFE_RELEASE(m_pIB);
 			SAFE_RELEASE(m_pVB);
+			SAFE_RELEASE(m_pVBDepth);
 		}
 	};
 };

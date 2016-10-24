@@ -54,7 +54,7 @@ bool LightShader::Render(ID3D11DeviceContext* deviceContext, int indexCount,
 	// Set the shader parameters that it will use for rendering.
 	result = SetShaderParameters(deviceContext,	
 		worldMatrix, viewMatrix, projectionMatrix, 
-		textures, 
+		textures,
 		depthtexture, 
 		light, 
 		eyePos);
@@ -102,7 +102,7 @@ bool LightShader::InitializeShader(ID3D11Device* device, HWND hwnd, string vsFil
 	hr = device->CreateInputLayout(input_layout.LAYOUT_TEX, 2,
 		vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(),
 		&m_layout);
-	FAIL_CHECK_BOOLEAN(hr);
+	FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "LightShader input layout creation failed");
 
 	// Release the vertex shader buffer and pixel shader buffer since they are no longer needed.
 	SAFE_RELEASE(vertexShaderBuffer);
@@ -137,6 +137,7 @@ bool LightShader::InitializeShader(ID3D11Device* device, HWND hwnd, string vsFil
 		D3D11_COMPARISON_ALWAYS,
 		0,
 		D3D11_FLOAT32_MAX);
+
 	samplerDesc.MipLODBias = 0.0f;
 	samplerDesc.MaxAnisotropy = 1;
 	samplerDesc.BorderColor[0] = 0;
@@ -236,8 +237,11 @@ bool LightShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 
 	// textures (pos, norm, diff, spec, depth)
 	{
-		for (UINT i = 0; i < textures.size(); ++i, ++bufferNumber)
+		for (UINT i = 0; i < textures.size(); ++i)
+		{
 			deviceContext->PSSetShaderResources(bufferNumber, 1, &textures[i]);
+			++bufferNumber;
+		}
 
 		if(depthtexture)
 			deviceContext->PSSetShaderResources(bufferNumber, 1, &depthtexture);

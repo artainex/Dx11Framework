@@ -342,6 +342,7 @@ namespace ursine
 		{
 			std::string				m_meshName;
 			ID3D11Buffer*			m_pVB;
+			ID3D11Buffer*			m_pVBDepth;
 			ID3D11Buffer*			m_pIB;
 			ID3D11InputLayout*		m_pInputLayout;
 			XMMATRIX				m_meshTM;
@@ -366,7 +367,8 @@ namespace ursine
 
 			MESH_NODE()
 				: 
-				m_pVB(nullptr), m_pIB(nullptr), 
+				m_pVB(nullptr), m_pVBDepth(nullptr),
+				m_pIB(nullptr), 
 				m_pInputLayout(nullptr),
 				m_indexBit(INDEX_NOINDEX), 
 				vertexCount(0), 
