@@ -118,5 +118,5 @@ float4 LightPixelShader(PixelInputType input) : SV_Target
 	float3 lighting =
 		(0 == type) ? ambi.xyz : lightIntensity * BRDF(l, v, h, wNor, diffuse.xyz, specular.xyz, roughness, color);
 	
-	return depth;// float4(diff.xyz + spec.xyz, 1.0f); // shadow * float4(lighting.xyz, 1.0f);
+	return float4(diff.xyz + spec.xyz, 1.0f); // shadow * float4(lighting.xyz, 1.0f);
 }

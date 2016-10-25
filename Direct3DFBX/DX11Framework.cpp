@@ -1139,26 +1139,26 @@ void LightPass()
 	// draw debug window(same resolution as screen)
 	g_DebugWindow.Render(g_pDeviceContext, 0, 0);
 	
-	//// Ambient Light
-	//{
-	//	SetNoBlend();
-	//	SetZBuffer(false);
-	//	{
-	//		if (!g_LightShader.Render(g_pDeviceContext,
-	//			g_DebugWindow.GetIndexCount(),
-	//			g_World,
-	//			g_Camera.GetViewMatrix(),
-	//			g_OrthoMatrix,
-	//			g_GBufferRenderTarget.GetShaderResourceViews(),
-	//			nullptr,
-	//			g_AmbientLight,
-	//			g_Camera.GetPosition()))
-	//		{
-	//			MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
-	//			return;
-	//		}
-	//	}
-	//}
+	// Ambient Light
+	{
+		SetNoBlend();
+		SetZBuffer(false);
+		{
+			if (!g_LightShader.Render(g_pDeviceContext,
+				g_DebugWindow.GetIndexCount(),
+				g_World,
+				g_Camera.GetViewMatrix(),
+				g_OrthoMatrix,
+				g_GBufferRenderTarget.GetShaderResourceViews(),
+				nullptr,
+				g_AmbientLight,
+				g_Camera.GetPosition()))
+			{
+				MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
+				return;
+			}
+		}
+	}
 	
 	// Global light
 	{
@@ -1171,9 +1171,9 @@ void LightPass()
 		// 뎁스는 그려지고는 있으니까 일단 샘플링을 하던가 해서 
 		// 월드 포즈를 갖든지 하고, 이 월드 포즈 샘플 받은걸 
 		// 라이트 뷰, 오르소 프로젝팅 해서 뎁스 값을 내보내는 거야.
-		DepthPass(g_GlobalLight.GetPosition(), 
-			g_GlobalLight.GetDirection(),
-			g_lightView, perspLight, lightNear, lightFar);
+		//DepthPass(g_GlobalLight.GetPosition(), 
+		//	g_GlobalLight.GetDirection(),
+		//	g_lightView, perspLight, lightNear, lightFar);
 	
 		SetAdditiveBlend();
 		SetZBuffer(false);
@@ -1195,30 +1195,30 @@ void LightPass()
 		g_DepthBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
 	}
 	
-	//// local lights
-	//{
-	//	SetAdditiveBlend();
-	//	SetZBuffer(false);
-	//	SetBackFaceCull(true);
-	//	{
-	//		for (UINT i = 0; i < MAX_LIGHT; ++i)
-	//		{
-	//			if (!g_LightShader.Render(g_pDeviceContext,
-	//				g_DebugWindow.GetIndexCount(),
-	//				g_World,
-	//				g_Camera.GetViewMatrix(),
-	//				g_OrthoMatrix,
-	//				g_GBufferRenderTarget.GetShaderResourceViews(),
-	//				nullptr,
-	//				g_LocalLights[i],
-	//				g_Camera.GetPosition()))
-	//			{
-	//				MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
-	//				return;
-	//			}
-	//		}
-	//	}
-	//}
+	// local lights
+	{
+		SetAdditiveBlend();
+		SetZBuffer(false);
+		SetBackFaceCull(true);
+		{
+			for (UINT i = 0; i < MAX_LIGHT; ++i)
+			{
+				if (!g_LightShader.Render(g_pDeviceContext,
+					g_DebugWindow.GetIndexCount(),
+					g_World,
+					g_Camera.GetViewMatrix(),
+					g_OrthoMatrix,
+					g_GBufferRenderTarget.GetShaderResourceViews(),
+					nullptr,
+					g_LocalLights[i],
+					g_Camera.GetPosition()))
+				{
+					MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
+					return;
+				}
+			}
+		}
+	}
 
 	// reset ZBuffer and No blending
 	SetZBuffer(true);
@@ -1241,15 +1241,16 @@ void DepthPass(const XMFLOAT3 & lightPos,
 	// 그래서 시점을 위로 올리면 버퍼 자체는 안따라오니까 이대로 찍히는 거야
 	// 아무것도 없이 그냥 하얀 이유는 지오 매트리를 안그려줘서 그런 거고
 	// 씨발 내일 물어보자 어떻게 쿼드 그렸는지
+	// 일단 신경끄고, 라이트 위치가 카메라 위치랑 동일하다고 생각하고 한번 해보자고 어디
 
 	XMVECTOR lPos, lookAt, up;
-	lPos.m128_f32[0] = lightPos.x; 
-	lPos.m128_f32[1] = lightPos.y; 
-	lPos.m128_f32[2] = lightPos.z;
+	lPos.m128_f32[0] = g_Camera.GetPosition().x; //lightPos.x;
+	lPos.m128_f32[1] = g_Camera.GetPosition().y; //lightPos.y;
+	lPos.m128_f32[2] = g_Camera.GetPosition().z; //lightPos.z;
 
-	lookAt.m128_f32[0] = g_Camera.GetLookAt().x;//lightPos.x + 50 * lightDir.x; 
-	lookAt.m128_f32[1] = g_Camera.GetLookAt().y;//lightPos.y + 50 * lightDir.y;
-	lookAt.m128_f32[2] = g_Camera.GetLookAt().z;//lightPos.z + 50 * lightDir.z;
+	lookAt.m128_f32[0] = g_Camera.GetLookAt().x; //lightPos.x + 50 * lightDir.x; 
+	lookAt.m128_f32[1] = g_Camera.GetLookAt().y; //lightPos.y + 50 * lightDir.y;
+	lookAt.m128_f32[2] = g_Camera.GetLookAt().z; //lightPos.z + 50 * lightDir.z;
 
 	up.m128_f32[0] = g_Camera.GetUp().x;
 	up.m128_f32[1] = g_Camera.GetUp().y;
@@ -1260,27 +1261,30 @@ void DepthPass(const XMFLOAT3 & lightPos,
 	lightNear = 1.f;
 	lightFar = FLT_MAX;
 	
-	// draw debug window(same resolution as screen)
-	g_DebugWindow.Render(g_pDeviceContext, 0, 0);
-
 	g_DepthBufferRenderTarget.ClearRenderTarget(g_pDeviceContext, g_pDepthStencilView, ClearColor);
 	g_DepthBufferRenderTarget.SetRenderTarget(g_pDeviceContext, g_pDepthStencilView);
+
+	// draw debug window(same resolution as screen)
+	//g_DebugWindow.Render(g_pDeviceContext, 0, 0);
 
 	SetNoBlend();
 	SetZBuffer(true);
 	SetBackFaceCull(true);
 
-	// 왜 뎁스 텍스쳐가 안나오는 거지?
-	if (!g_DepthShader.Render(g_pDeviceContext,
-		g_DebugWindow.GetIndexCount(),
-		g_World,
-		viewLight, 
-		g_OrthoMatrix))
-	{
-		MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
-		return;
-	}
-	//RenderGeometryModelDepth
+	//if (!g_DepthShader.Render(g_pDeviceContext,
+	//	g_DebugWindow.GetIndexCount(),
+	//	g_World,
+	//	viewLight, 
+	//	g_OrthoMatrix))
+	//{
+	//	MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
+	//	return;
+	//}
+
+	g_lightView = g_Camera.GetViewMatrix();
+	// 아니 시발 풀쿼드를 어떻게 그려
+	// 모델 메시 그리면서 풀쿼드를 어떻게 그려
+	RenderGeometryModelDepth();
 
 	SetBackFaceCull(false);
 
@@ -1307,6 +1311,8 @@ void Render()
 	  // PS : compute and output ambient light
 	LightPass();
 	
+	// 월드 포즈 텍스쳐 그리기로 했던가?
+	
 	// Final Result Rendering
 	{
 		// Set backbuffer as render target and clear
@@ -1321,21 +1327,19 @@ void Render()
 			g_World,
 			g_Camera.GetViewMatrix(),
 			g_OrthoMatrix,
-			//g_DepthBufferRenderTarget.GetShaderResourceView()
+			g_DepthBufferRenderTarget.GetShaderResourceView()
 			// 나중에 이걸로 바꿔야 함
-			g_SceneBufferRenderTarget.GetShaderResourceView()
+			//g_SceneBufferRenderTarget.GetShaderResourceView()
 			))
 		{
 			MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
 			return;
 		}
-
-		//g_DepthBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
-		// 나중에 이걸로 바꿔야 함
-		g_SceneBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
-	}
 	
-	//RenderScene();
+		g_DepthBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
+		// 나중에 이걸로 바꿔야 함
+		//g_SceneBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
+	}
 
 #if DEBUG
 #else
@@ -1508,7 +1512,10 @@ void RenderGeometryModelDepth()
 
 			// set shader parameters(mapping constant buffers, matrices, resources)
 			g_DepthShader.SetShaderParameters(g_pDeviceContext,
-				g_World, g_lightView, g_OrthoMatrix);
+				g_ScaleMatrix *	g_RotationMatrix * g_World, 
+				//g_lightView, 
+				g_Camera.GetViewMatrix(),
+				g_Projection);
 
 			iter->RenderNodeDepth(g_pDeviceContext, mn_idx, g_DepthShader.GetDepthLayout());
 

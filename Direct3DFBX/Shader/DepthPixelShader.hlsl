@@ -16,5 +16,5 @@ struct PixelInputType
 ////////////////////////////////////////////////////////////////////////////////
 float4 DepthPixelShader(PixelInputType input) : SV_TARGET
 {
-	return float4(1,1,1,1);// float4(input.shadowPos.z, input.shadowPos.z, input.shadowPos.z, 1.0f);
+	return float4(input.Pos.xyz, 1.f);// float4(input.shadowPos.z, input.shadowPos.z, input.shadowPos.z, 1.0f);
 }

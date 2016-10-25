@@ -391,14 +391,16 @@ namespace ursine
 		}
 
 		i = 0;
-		VERTEX_DATA_LPOS* pVSDepth = new VERTEX_DATA_LPOS[currMI.meshVtxInfoCount];
+		VERTEX_DATA_LT* pVSDepth = new VERTEX_DATA_LT[currMI.meshVtxInfoCount];
 		for (auto &iter : currMI.meshVtxInfos)
 		{
 			XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+			XMFLOAT2 currTex = XMFLOAT2(0.f, 0.f);
 			pVSDepth[i].vPos = currVtx;
+			pVSDepth[i].vTexcoord = currTex;
 			++i;
 		}
-		hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVBDepth, pVSDepth, sizeof(VERTEX_DATA_LPOS), meshNode.vertexCount);
+		hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVBDepth, pVSDepth, sizeof(VERTEX_DATA_LT), meshNode.vertexCount);
 		SAFE_DELETE_ARRAY(pVSDepth);
 
 		return hr;
@@ -654,7 +656,7 @@ namespace ursine
 		if (node->vertexCount == 0)
 			return S_OK;
 
-		UINT stride = sizeof(VERTEX_DATA_LPOS);
+		UINT stride = sizeof(VERTEX_DATA_LT);
 
 		UINT offset = 0; 
 		pImmediateContext->IASetVertexBuffers(0, 1, &node->m_pVBDepth, &stride, &offset);
