@@ -15,9 +15,14 @@ namespace ursine
 	{
 		LIGHT_NONE = -1,
 		LIGHT_AMBIENT = 0,
-		LIGHT_DIRECTIONAL,
-		LIGHT_POINT,
-		LIGHT_SPOTLIGHT,
+
+		LIGHT_GLOBALDIRECTIONAL,
+		LIGHT_GLOBALPOINT,
+		LIGHT_GLOBALSPOTLIGHT,
+
+		LIGHT_LOCALDIRECTIONAL,
+		LIGHT_LOCALPOINT,
+		LIGHT_LOCALSPOTLIGHT,
 
 		LIGHT_COUNT
 	};
@@ -38,19 +43,21 @@ namespace ursine
 		void SetPosition(XMFLOAT3 pos) { m_position = pos; m_transfrom = XMMatrixTranslation(m_position.x, m_position.y, m_position.z); }
 		void SetPosition(float x, float y, float z) { m_position = XMFLOAT3(x, y, z); m_transfrom = XMMatrixTranslation(m_position.x, m_position.y, m_position.z); }
 
+		void SetRange(float range) { m_range = range; }
 		void SetColor(float red, float green, float blue, float alpha) { m_color = XMFLOAT4(red, green, blue, alpha); }
 		void SetColor(XMFLOAT4 rgba) { m_color = rgba; }
 		void SetDirection(float x, float y, float z) { m_direction = XMFLOAT3(x, y, z); }
 
 		XMFLOAT4 GetColor() const { return m_color; }
+		float GetRange() const { return m_range; }
 		XMFLOAT3 GetDirection() const { return m_direction; }
-
 		XMMATRIX GetTransformation() const { return m_transfrom; }
 
 	private:
 		LightType m_type;
 		XMFLOAT3 m_position;
 		XMFLOAT4 m_color;
+		float m_range;
 		XMFLOAT3 m_direction;
 		XMMATRIX m_transfrom;
 	};

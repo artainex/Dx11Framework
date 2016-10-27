@@ -44,6 +44,7 @@ void LightShader::Shutdown()
 
 bool LightShader::Render(ID3D11DeviceContext* deviceContext, int indexCount,
 	XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
+	XMMATRIX lightviewMatrix, XMMATRIX lightprojectionMatrix,
 	const std::vector<ID3D11ShaderResourceView*>& textures,
 	ID3D11ShaderResourceView* depthtexture,
 	const ursine::Light& light,
@@ -54,6 +55,7 @@ bool LightShader::Render(ID3D11DeviceContext* deviceContext, int indexCount,
 	// Set the shader parameters that it will use for rendering.
 	result = SetShaderParameters(deviceContext,	
 		worldMatrix, viewMatrix, projectionMatrix, 
+		lightviewMatrix, lightprojectionMatrix,
 		textures,
 		depthtexture, 
 		light, 
@@ -176,7 +178,8 @@ void LightShader::ShutdownShader()
 }
 
 bool LightShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, 
-	XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, 
+	XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
+	XMMATRIX lightviewMatrix, XMMATRIX lightprojectionMatrix,
 	const std::vector<ID3D11ShaderResourceView*>& textures,
 	ID3D11ShaderResourceView* depthtexture,
 	const ursine::Light& light,
@@ -215,6 +218,7 @@ bool LightShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 		deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_matrixBuffer);
 	}
 
+
 	bufferNumber = 0;
 	// light 
 	{
@@ -223,11 +227,13 @@ bool LightShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 	
 		LightBufferType* lightBuffer = (LightBufferType*)mappedResource.pData;
 	
-		lightBuffer->type = light.GetType();
+		lightBuffer->type = (UINT)light.GetType();
 		lightBuffer->color = light.GetColor();
 		lightBuffer->eyePosition = eyePos;
 		lightBuffer->lightPosition = light.GetPosition();
-		lightBuffer->lightRange = 1000.f; // fixed range
+		lightBuffer->lightRange = light.GetRange(); // fixed range
+		lightBuffer->lView = lightviewMatrix;
+		lightBuffer->lProj = lightprojectionMatrix;
 	
 		// unmap constant buffer
 		deviceContext->Unmap(m_lightBuffer, 0);

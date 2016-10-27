@@ -60,12 +60,6 @@
     <Filter Include="Shaders\VertexShader">
       <UniqueIdentifier>{78786274-6c1e-4aec-be0d-7c85e1331d99}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PointShader">
-      <UniqueIdentifier>{0ae4ef30-e8f2-4123-8aff-c786c0fbb4be}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\LineShader">
-      <UniqueIdentifier>{2a2c317e-7b68-471a-b214-964602717a83}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Graphics\RenderTarget">
       <UniqueIdentifier>{e6ba4776-4ec2-4ce0-831a-cee6d26aa494}</UniqueIdentifier>
     </Filter>
@@ -146,9 +140,6 @@
     </ClCompile>
     <ClCompile Include="src\Graphics\Light\LightShader.cpp">
       <Filter>Graphics\Light</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Graphics\PointShader.cpp">
-      <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\SceneRenderer.cpp">
       <Filter>Graphics</Filter>
@@ -323,9 +314,6 @@
     <ClInclude Include="include\Graphics\Light\LightShader.h">
       <Filter>Graphics\Light</Filter>
     </ClInclude>
-    <ClInclude Include="include\Graphics\PointShader.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Setting.h">
       <Filter>FBXLoader</Filter>
     </ClInclude>
@@ -352,15 +340,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shader\PointShader\PointShader_GS.hlsl">
-      <Filter>Shaders\PointShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PointShader\PointVertexShader.hlsl">
-      <Filter>Shaders\PointShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PointShader\PointPixelShader.hlsl">
-      <Filter>Shaders\PointShader</Filter>
-    </FxCompile>
     <FxCompile Include="Shader\InstancingVS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>

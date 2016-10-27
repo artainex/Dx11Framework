@@ -5,7 +5,11 @@ namespace ursine
 	///////////////////////////////////////////////////////////////////
 	//lights
 	Light::Light()
-		: m_type(LIGHT_NONE)
+		: m_type(LIGHT_NONE),
+		m_position(XMFLOAT3(0, 0, 0)),
+		m_color(XMFLOAT4(0, 0, 0, 0)),
+		m_range(500.f),
+		m_direction(XMFLOAT3(0, 0, 0))
 	{
 	}
 

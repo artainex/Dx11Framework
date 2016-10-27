@@ -11,7 +11,6 @@
 #include <RenderTarget.h>
 #include <MultiRenderTarget.h>
 
-#include <PointShader.h>
 #include <LightShader.h>
 #include <DepthShader.h>
 #include <SceneRenderer.h>
@@ -59,7 +58,8 @@ ID3D11BlendState *					g_AlphaDisableBlendingState;
 ID3D11BlendState *					g_AlphaAdditiveBlendState;
 
 // Matrices
-XMMATRIX                            g_World;
+XMMATRIX                            g_World; 
+XMMATRIX							g_ScreenView;
 XMMATRIX                            g_Projection;
 XMMATRIX							g_OrthoMatrix;
 XMMATRIX                            g_lightView;

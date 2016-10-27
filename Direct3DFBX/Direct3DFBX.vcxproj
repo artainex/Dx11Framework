@@ -439,7 +439,6 @@
     <ClCompile Include="src\Graphics\DepthShader.cpp" />
     <ClCompile Include="src\Graphics\Light\Light.cpp" />
     <ClCompile Include="src\Graphics\Light\LightShader.cpp" />
-    <ClCompile Include="src\Graphics\PointShader.cpp" />
     <ClCompile Include="src\Graphics\MultiRenderTarget.cpp" />
     <ClCompile Include="src\Graphics\RenderTarget.cpp" />
     <ClCompile Include="src\Graphics\SceneRenderer.cpp" />
@@ -475,7 +474,6 @@
     <ClInclude Include="include\Graphics\DepthShader.h" />
     <ClInclude Include="include\Graphics\Light\Light.h" />
     <ClInclude Include="include\Graphics\Light\LightShader.h" />
-    <ClInclude Include="include\Graphics\PointShader.h" />
     <ClInclude Include="include\Graphics\MultiRenderTarget.h" />
     <ClInclude Include="include\Graphics\RenderTarget.h" />
     <ClInclude Include="include\Graphics\SceneRenderer.h" />
@@ -578,18 +576,6 @@
     <FxCompile Include="Shader\PixelShaderLayout7.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </FxCompile>
-    <FxCompile Include="Shader\PointShader\PointShader_GS.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </FxCompile>
-    <FxCompile Include="Shader\PointShader\PointPixelShader.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </FxCompile>
-    <FxCompile Include="Shader\PointShader\PointVertexShader.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Shader\ScenePixelShader.hlsl">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

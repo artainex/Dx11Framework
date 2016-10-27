@@ -46,7 +46,7 @@ PS_OUTPUT PS( PS_INPUT input)
 
 	output.Postion = input.WPos;
 	output.Normal = input.WNor;
-	output.Diffuse = float4(mesh_color.xyz * m_diffuse.xyz, m_transparency) * diffMap;
+	output.Diffuse = float4(mesh_color.xyz * m_diffuse.xyz, m_transparency);// *diffMap;
 	output.SpecularAndShine = float4(m_specular.xyz, m_shineness);
 
 	//float depth;
