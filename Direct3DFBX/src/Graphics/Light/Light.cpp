@@ -7,10 +7,14 @@ namespace ursine
 	Light::Light()
 		: m_type(LIGHT_NONE),
 		m_position(XMFLOAT3(0, 0, 0)),
+		m_rotation(0.f),
 		m_color(XMFLOAT4(0, 0, 0, 0)),
 		m_range(500.f),
 		m_direction(XMFLOAT3(0, 0, 0))
 	{
+		m_transfrom = XMMatrixIdentity();
+		m_view = XMMatrixIdentity();
+		m_proj = XMMatrixIdentity();
 	}
 
 
@@ -23,7 +27,57 @@ namespace ursine
 	Light::~Light()
 	{
 	}
-		
+
+	void Light::Initialize(XMFLOAT4 color, ursine::LightType type, XMFLOAT3 dir, XMFLOAT3 pos)
+	{
+		m_color = color;
+		m_type = type;
+		m_direction = dir;
+		m_position = initPos = pos;
+	}
+
+	void Light::Reset()
+	{
+		m_position = initPos;
+	}
+
+	void Light::Update()
+	{
+		XMMATRIX transl = XMMatrixTranslation(m_position.x, m_position.y, m_position.z);
+
+		XMFLOAT4 yaxis = XMFLOAT4(0, 1, 0, 1);
+		XMMATRIX rot = XMMatrixRotationAxis(XMLoadFloat4(&yaxis), m_rotation);
+		m_transfrom = transl * rot;
+
+		XMFLOAT4 newPos;
+		XMStoreFloat4(&newPos, m_transfrom.r[3]);
+
+		m_position = XMFLOAT3(newPos.x, newPos.y, newPos.z);
+
+		GenerateShadowView();
+	}
+
+	void Light::GenerateShadowView(void)
+	{
+		auto tempPos = m_position;
+		auto position = DirectX::XMFLOAT4( tempPos.x, tempPos.y, tempPos.z, 1.0f);
+	
+		auto tempLook = m_direction;
+		auto dir = DirectX::XMFLOAT4( tempLook.x, tempLook.y, tempLook.z, 0.0f);
+	
+		auto up = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f );
+
+		m_view = XMMatrixLookToLH(
+			XMLoadFloat4(&position),
+			XMLoadFloat4(&dir),
+			XMLoadFloat4(&up));
+	}
+	
+	void Light::GenerateShadowProjection(float fov, float aspect, float lightnear, float lightfar)
+	{
+		m_proj = XMMatrixPerspectiveFovLH(fov, aspect, lightnear, lightfar);
+	}
+
 	/////////////////////////////////////////////////////////////////////
 	//// universal light
 	//void Light::Initialize(void)
@@ -132,50 +186,6 @@ namespace ursine
 	//	return m_spotlightTransform;
 	//}
 	//
-	//SMat4 Light::GenerateShadowView(void) const
-	//{
-	//	auto tempPos = m_position.ToD3D();
-	//	auto position = DirectX::XMFLOAT4(
-	//		tempPos.x,
-	//		tempPos.y,
-	//		tempPos.z,
-	//		1.0f
-	//		);
-	//
-	//	auto tempLook = m_direction.ToD3D();
-	//	auto dir = DirectX::XMFLOAT4(
-	//		tempLook.x,
-	//		tempLook.y,
-	//		tempLook.z,
-	//		0.0f
-	//		);
-	//
-	//	auto up = DirectX::XMFLOAT4(
-	//		0.0f,
-	//		1.0f,
-	//		0.0f,
-	//		0.0f
-	//		);
-	//
-	//	return SMat4(
-	//		DirectX::XMMatrixLookToLH(
-	//			DirectX::XMLoadFloat4(&position),
-	//			DirectX::XMLoadFloat4(&dir),
-	//			DirectX::XMLoadFloat4(&up)
-	//			)
-	//		);
-	//}
-	//
-	//SMat4 Light::GenerateShadowProjection(void) const
-	//{
-	//	return SMat4(DirectX::XMMatrixPerspectiveFovLH(
-	//		math::DegreesToRadians(m_spotlightAngles.Y()),
-	//		1.0f,
-	//		m_radius,
-	//		1.0f
-	//		)
-	//		);
-	//}
 	//
 	//unsigned Light::GetShadowmapWidth(void) const
 	//{

@@ -48,5 +48,6 @@ PixelInputType DepthVertexShader(VertexInputType input)
 	// Store the shadowPos to the rendertarget
 	output.shadowPos = output.Pos;
 
+
 	return output;
 }

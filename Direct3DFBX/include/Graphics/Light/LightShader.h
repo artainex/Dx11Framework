@@ -27,7 +27,6 @@ public:
 	void Shutdown();
 	bool Render(ID3D11DeviceContext* deviceContext, int indexCount,
 		XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
-		XMMATRIX lightviewMatrix, XMMATRIX lightprojectionMatrix,
 		const std::vector<ID3D11ShaderResourceView*>& textures,
 		ID3D11ShaderResourceView* depthtexture,
 		const ursine::Light& light,
@@ -40,12 +39,11 @@ private:
 	//bool SetTexture(ShaderType shaderType, u32 texNum, const MultiRenderTarget * mrt, u32 rtIndex);
 	bool SetShaderParameters(ID3D11DeviceContext* deviceContext,
 		XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
-		XMMATRIX lightviewMatrix, XMMATRIX lightprojectionMatrix,
 		const std::vector<ID3D11ShaderResourceView*>& textures,
 		ID3D11ShaderResourceView* depthtexture,
 		const ursine::Light& light,
 		const XMFLOAT3& eyePos);
-	void RenderShader(ID3D11DeviceContext* deviceContext, int indexCount);
+	void RenderShader(ID3D11DeviceContext* deviceContext, int indexCount, const ursine::LightType& lightType);
 
 private:
 	ID3D11VertexShader* m_vertexShader;
@@ -54,4 +52,5 @@ private:
 	ID3D11Buffer* m_matrixBuffer;
 	ID3D11Buffer* m_lightBuffer;
 	ID3D11SamplerState* m_sampleState;
+	ID3D11SamplerState* m_sampleShadowState;
 };

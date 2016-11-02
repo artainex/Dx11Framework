@@ -36,30 +36,47 @@ namespace ursine
 		Light(const Light&);
 		~Light();
 
+		void Initialize(XMFLOAT4 color, ursine::LightType type, XMFLOAT3 dir, XMFLOAT3 pos);
+		void Reset();
 		LightType GetType(void) const { return m_type; }
 		void SetType(const LightType type) { m_type = type; }
-
+		
 		XMFLOAT3 GetPosition() const { return m_position; }
-		void SetPosition(XMFLOAT3 pos) { m_position = pos; m_transfrom = XMMatrixTranslation(m_position.x, m_position.y, m_position.z); }
-		void SetPosition(float x, float y, float z) { m_position = XMFLOAT3(x, y, z); m_transfrom = XMMatrixTranslation(m_position.x, m_position.y, m_position.z); }
+		void SetPosition(XMFLOAT3 pos) { m_position = pos; }
+		void SetPosition(float x, float y, float z) { m_position = XMFLOAT3(x, y, z); }
+		float GetRotation() { return m_rotation; }
+		void SetRotation(float rot) { m_rotation = rot; }
 
 		void SetRange(float range) { m_range = range; }
 		void SetColor(float red, float green, float blue, float alpha) { m_color = XMFLOAT4(red, green, blue, alpha); }
 		void SetColor(XMFLOAT4 rgba) { m_color = rgba; }
 		void SetDirection(float x, float y, float z) { m_direction = XMFLOAT3(x, y, z); }
-
+		
 		XMFLOAT4 GetColor() const { return m_color; }
 		float GetRange() const { return m_range; }
 		XMFLOAT3 GetDirection() const { return m_direction; }
 		XMMATRIX GetTransformation() const { return m_transfrom; }
+		XMMATRIX GetShadowView() const { return m_view; }
+		XMMATRIX GetShadowProjection() const { return m_proj; }
+
+		void Update();
+		void GenerateShadowView(void);
+		void GenerateShadowProjection(float fov, float aspect, float lightnear, float lightfar);
 
 	private:
 		LightType m_type;
 		XMFLOAT3 m_position;
+		float m_rotation;
 		XMFLOAT4 m_color;
 		float m_range;
 		XMFLOAT3 m_direction;
 		XMMATRIX m_transfrom;
+		XMMATRIX m_view;
+		XMMATRIX m_proj;
+
+		// initial value
+		XMFLOAT3 initPos;
+		float	initRot;
 	};
 
 	//class Light

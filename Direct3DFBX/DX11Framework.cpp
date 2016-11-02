@@ -32,15 +32,11 @@ void ClearRenderTarget();
 void RenderScene();
 void GeometryPass();
 void LightPass();
-void DepthPass(const XMFLOAT3 & lightPos,
-	const XMFLOAT3 & lightDir,
-	XMMATRIX & viewLight,
-	XMMATRIX & perspLight,
-	float& lightNear, float& lightFar);
+void DepthPass(ursine::Light& light);
 void Render();
 void RenderLightModel();
 void RenderGeometryModel();
-void RenderGeometryModelDepth();
+void RenderGeometryModelDepth(const ursine::Light& light);
 void SetMatrix();
 bool SetGeometryShaderParameters(ursine::FBXModel** currentModel, const UINT& mesh_index, const eLayout& layoutType);
 bool SetLightShaderParameters(ursine::FBXModel** currentModel, const ursine::Light& light, const UINT& mesh_index);
@@ -395,15 +391,14 @@ HRESULT InitCamera()
 	g_World = XMMatrixIdentity();
 
 	// Initialize the view matrix
-	g_Camera.SetPosition(tsl);
-	g_Camera.SetRotation(rot);
+	g_Camera.SetPosition(XMFLOAT3(0.f, 0.f, -100.f));
+	g_Camera.SetRotation(XMFLOAT3(0.f, 0.f, 0.f));
 	g_Camera.SetLookAt(XMFLOAT3(0.f, 0.f, 1.f));
 	g_Camera.Update();
 	g_ScreenView = g_Camera.GetViewMatrix();
 
 	// Initialize the projection matrix
 	g_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, (float)width / (float)height, SCREEN_NEAR, SCREEN_FAR);
-
 	g_OrthoMatrix = XMMatrixOrthographicLH((float)width, (float)height, SCREEN_NEAR, SCREEN_FAR);
 
 	return hr;
@@ -419,23 +414,23 @@ HRESULT InitLight()
 	g_AmbientLight.SetType(ursine::LightType::LIGHT_AMBIENT);
 
 	// Init global light
-	g_GlobalLight.SetColor(urColor::Red.TOXMFLOAT4());
-	g_GlobalLight.SetDirection(-1.f, -1.f, 0.f);
-	g_GlobalLight.SetPosition(50.f, 50.f, 0.f);
-	g_GlobalLight.SetType(ursine::LightType::LIGHT_GLOBALDIRECTIONAL);
+	g_GlobalLight.Initialize(
+		urColor::Red.TOXMFLOAT4(), 
+		ursine::LightType::LIGHT_GLOBALDIRECTIONAL,
+		XMFLOAT3(-1.f, -1.f, 0.f),
+		XMFLOAT3(50.f, 50.f, 0.f)
+		);
 
 	// Init local lights for diffuse and specular
 	for (UINT i = 0; i < MAX_LIGHT; ++i)
 	{
 		double angle = i * (360.0 / MAX_LIGHT) * (XM_PI / 180.0);
-		g_LocalLights[i].SetColor(urColor::White.TOXMFLOAT4());
-		g_LocalLights[i].SetPosition(400.f * cos(angle), 0.f, 400.f * sin(angle));
-		g_LocalLights[i].SetDirection(
-			-g_LocalLights[i].GetPosition().x,
-			-g_LocalLights[i].GetPosition().y,
-			-g_LocalLights[i].GetPosition().z
-			);
-		g_LocalLights[i].SetType(ursine::LightType::LIGHT_LOCALDIRECTIONAL);
+		XMFLOAT3 pos = XMFLOAT3(400.f * cos(angle), 0.f, 400.f * sin(angle));
+		XMFLOAT3 dir = XMFLOAT3(-pos.x, -pos.y, -pos.z);
+		g_LocalLights[i].Initialize(
+			urColor::White.TOXMFLOAT4(),
+			ursine::LightType::LIGHT_LOCALDIRECTIONAL,
+			dir, pos);
 	}
 
 	return S_OK;
@@ -847,7 +842,7 @@ HRESULT InitApp()
 	// Create the blend state using the description.
 	hr = g_pd3dDevice->CreateBlendState(&blendStateDescription, &g_AlphaAdditiveBlendState);
 	FAIL_CHECK(hr);
-
+	
 #if DEBUG
 #else
 	//// SpriteBatch
@@ -992,73 +987,56 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 			break;
 			// xz translation
-		case VK_NUMPAD2:
-			tsl.z += 5.0f;
-			break;
-		case VK_NUMPAD8:
-			tsl.z -= 5.0f;
-			break;
-		case VK_NUMPAD4:
-			tsl.x += 5.0f;
-			break;
-		case VK_NUMPAD6:
-			tsl.x -= 5.0f;
-			break;
+		case VK_NUMPAD2: tsl.z -= 5.0f; break;
+		case VK_NUMPAD8: tsl.z += 5.0f; break;
+		case VK_NUMPAD4: tsl.x -= 5.0f; break;
+		case VK_NUMPAD6: tsl.x += 5.0f; break;
 
 			// y translation
 		case 'w':
 		case 'W':
-			tsl.y -= 5.0f;
-			break;
+			tsl.y += 5.0f; break;
 		case 's':
 		case 'S':
-			tsl.y += 5.0f;
-			break;
+			tsl.y -= 5.0f; break;
 
 			// initialize
 		case VK_NUMPAD5:
 			tsl = InitTsl;
 			rot = InitRot;
-			rot2 = InitRot;
 			scl = 1.0f;
+
+			// resetting elements of lights
+			lrot = 0.f;
+			g_GlobalLight.Reset();
 			break;
+
+			// y-Axis rot
+		case VK_NUMPAD7: rot.y += 0.1f; break;
+		case VK_NUMPAD9: rot.y -= 0.1f; break;
 
 			// Number pad rotation "0" cw, "." ccw
-			// y-Axis rot
-		case VK_NUMPAD0:
-			rot.y += 0.1f;
-			break;
-		case VK_DECIMAL:
-			rot.y -= 0.1f;
-			break;
-
-		case VK_NUMPAD7:
-			rot2.y += 0.1f;
-			break;
-		case VK_NUMPAD9:
-			rot2.y -= 0.1f;
-			break;
+		case VK_NUMPAD0: lrot = 0.1f; break;
+		case VK_DECIMAL: lrot = -0.1f; break;
 
 			// Zoom in and out
-		case VK_ADD:
-			scl += 0.1f;
-			break;
-		case VK_SUBTRACT:
-			scl -= 0.1f;
-			if (scl <= 0.f)
-				scl = 1.f;
-			break;
+		case VK_ADD: scl += 0.1f; break;
+		case VK_SUBTRACT: scl -= 0.1f; break;
 		}
-		if (rot.y >= 360.f)
-			rot.y = 0.0f;
-		if (rot2.y >= 360.f)
-			rot2.y = 0.0f;
 
-		g_RotationMatrix = XMMatrixRotationY(rot2.y);
+		if (rot.y >= 360.f) rot.y = 0.0f;
+		if (scl <= 0.f) scl = 1.f;
+
+		g_translMatrix = XMMatrixTranslation(tsl.x, tsl.y, tsl.z);
+		g_RotationMatrix = XMMatrixRotationY(rot.y);
 		g_ScaleMatrix = XMMatrixScaling(scl, scl, scl);
-		g_Camera.SetPosition(tsl);
-		g_Camera.SetRotation(rot);
-		g_Camera.Update();
+
+		g_World = g_ScaleMatrix * g_RotationMatrix * g_translMatrix;
+		
+		// 일단 당장 섀도우가 사라지는 건 프러스텀(디렉션)을 체인지 해주지 않기 때문
+		//// light transformation update 일단 글로벌만
+		g_GlobalLight.SetRotation(lrot);
+		g_GlobalLight.Update();
 		break;
 
 	case WM_DESTROY:
@@ -1123,26 +1101,27 @@ void GeometryPass()
 // Light Pass for deferred shading
 void LightPass()
 {
+	float lightNear = 0.1f;
+	float lightFar = 500.f;
+
 	// set scene buffer as render target
 	g_SceneBufferRenderTarget.ClearRenderTarget(g_pDeviceContext, g_pDepthStencilView, ClearColor);
 	g_SceneBufferRenderTarget.SetRenderTarget(g_pDeviceContext, g_pDepthStencilView);
 	
 	// Ambient Light
 	{
-
 		SetNoBlend();
 		SetZBuffer(false);
 		{
 			// draw debug window(same resolution as screen)
 			g_DebugWindow.Render(g_pDeviceContext, 0, 0);
 
+			g_AmbientLight.GenerateShadowView();
+			g_AmbientLight.GenerateShadowProjection(XM_PIDIV4, (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, lightNear, lightFar);
+
 			if (!g_LightShader.Render(g_pDeviceContext,
 				g_DebugWindow.GetIndexCount(),
-				g_World,
-				g_ScreenView,
-				g_OrthoMatrix,
-				g_lightView,
-				g_Projection,
+				g_ScreenRTMatrix, g_ScreenView, g_OrthoMatrix,
 				g_GBufferRenderTarget.GetShaderResourceViews(),
 				nullptr,
 				g_AmbientLight,
@@ -1151,36 +1130,25 @@ void LightPass()
 				MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
 				return;
 			}
+	
+			// release rendertarget textures after use
+			g_GBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
 		}
 	}
-	
+
 	// Global light
 	{
-		// create depth for global light
-        XMMATRIX perspLight;
-		float lightNear, lightFar;
-	
-		// 뎁스 패스를 거친 뒤에 아무것도 나오지 않아
-		// 좋아 이제 뎁스는 분명 나와
-		// 뎁스는 그려지고는 있으니까 일단 샘플링을 하던가 해서 
-		// 월드 포즈를 갖든지 하고, 이 월드 포즈 샘플 받은걸 
-		// 라이트 뷰, 오르소 프로젝팅 해서 뎁스 값을 내보내는 거야.
-		DepthPass(g_GlobalLight.GetPosition(), 
-			g_GlobalLight.GetDirection(),
-			g_lightView, perspLight, lightNear, lightFar);
+		// create depth for global light	
+		DepthPass(g_GlobalLight);
 	
 		SetAdditiveBlend();
 		SetZBuffer(false);
 		{
 			g_DebugWindow.Render(g_pDeviceContext, 0, 0);
-
+	
 			if (!g_LightShader.Render(g_pDeviceContext,
 				g_DebugWindow.GetIndexCount(),
-				g_World,
-				g_ScreenView,
-				g_OrthoMatrix,
-				g_lightView,
-				g_Projection,
+				g_ScreenRTMatrix, g_ScreenView, g_OrthoMatrix,
 				g_GBufferRenderTarget.GetShaderResourceViews(),
 				g_DepthBufferRenderTarget.GetShaderResourceView(),
 				g_GlobalLight,
@@ -1189,95 +1157,66 @@ void LightPass()
 				MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
 				return;
 			}
+	
+			// release rendertarget textures after use
+			g_GBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
+			g_DepthBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
 		}
-		g_DepthBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
 	}
 	
-	//// local lights
-	//{
-	//	SetAdditiveBlend();
-	//	SetZBuffer(false);
-	//	SetBackFaceCull(true);
-	//	{
-	//		g_DebugWindow.Render(g_pDeviceContext, 0, 0);
-	//
-	//		for (UINT i = 0; i < MAX_LIGHT; ++i)
-	//		{
-	//			if (!g_LightShader.Render(g_pDeviceContext,
-	//				g_DebugWindow.GetIndexCount(),
-	//				g_World,
-	//				g_ScreenView,
-	//				g_OrthoMatrix,
-	//				g_lightView,
-	//				g_Projection,
-	//				g_GBufferRenderTarget.GetShaderResourceViews(),
-	//				nullptr,
-	//				g_LocalLights[i],
-	//				g_Camera.GetPosition()))
-	//			{
-	//				MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
-	//				return;
-	//			}
-	//		}
-	//	}
-	//}
+	// local lights
+	{
+		SetAdditiveBlend();
+		SetZBuffer(false);
+		SetBackFaceCull(true);
+		{
+			g_DebugWindow.Render(g_pDeviceContext, 0, 0);
+	
+			for (UINT i = 0; i < MAX_LIGHT; ++i)
+			{
+				if (!g_LightShader.Render(g_pDeviceContext,
+					g_DebugWindow.GetIndexCount(),
+					g_ScreenRTMatrix, g_ScreenView, g_OrthoMatrix,
+					g_GBufferRenderTarget.GetShaderResourceViews(),
+					nullptr,
+					g_LocalLights[i],
+					g_Camera.GetPosition()))
+				{
+					MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
+					return;
+				}
+			}
+	
+			// release rendertarget textures after use
+			g_GBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
+		}
+	}
 
 	// reset ZBuffer and No blending
 	SetZBuffer(true);
 	SetNoBlend();
-
-	// release rendertarget textures after use
-	g_GBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
 }
 
 // Depth Pass for deferred shading
-void DepthPass(const XMFLOAT3 & lightPos, 
-	const XMFLOAT3 & lightDir,
-	XMMATRIX & viewLight, 
-	XMMATRIX & perspLight,
-	float& lightNear, float& lightFar)
+void DepthPass(ursine::Light& light)
 {
-	XMVECTOR lPos, lookAt, up;
-	lPos.m128_f32[0] = lightPos.x;
-	lPos.m128_f32[1] = lightPos.y;
-	lPos.m128_f32[2] = lightPos.z;
+	float lightNear = 0.1f;
+	float lightFar = 500.f;
 
-	lookAt.m128_f32[0] = g_Camera.GetLookAt().x; 
-	lookAt.m128_f32[1] = g_Camera.GetLookAt().y;
-	lookAt.m128_f32[2] = g_Camera.GetLookAt().z;
+	light.GenerateShadowView();
+	light.GenerateShadowProjection(XM_PIDIV4, (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, lightNear, lightFar);
 
-	up.m128_f32[0] = g_Camera.GetUp().x;
-	up.m128_f32[1] = g_Camera.GetUp().y;
-	up.m128_f32[2] = g_Camera.GetUp().z;
-
-	viewLight = XMMatrixLookAtLH(lPos, lookAt, up);
-
-	lightNear = 1.f;
-	lightFar = FLT_MAX;
-	
 	g_DepthBufferRenderTarget.ClearRenderTarget(g_pDeviceContext, g_pDepthStencilView, ClearColor);
 	g_DepthBufferRenderTarget.SetRenderTarget(g_pDeviceContext, g_pDepthStencilView);
-
-	// draw debug window(same resolution as screen)
-	//g_DebugWindow.Render(g_pDeviceContext, 0, 0);
 
 	SetNoBlend();
 	SetZBuffer(true);
 	SetBackFaceCull(true);
 
-	//if (!g_DepthShader.Render(g_pDeviceContext,
-	//	g_DebugWindow.GetIndexCount(),
-	//	g_World,
-	//	viewLight, 
-	//	g_OrthoMatrix))
-	//{
-	//	MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
-	//	return;
-	//}
+	// redner geometry
+	RenderGeometryModelDepth(light);
 
-	g_lightView = viewLight;
-	RenderGeometryModelDepth();
-
+	// reset back face cull
 	SetBackFaceCull(false);
 
 	// Reset rendertarget as scene buffer render target
@@ -1302,9 +1241,7 @@ void Render()
 	  // VS : pass the FSQ's vertex straight through. no transformation
 	  // PS : compute and output ambient light
 	LightPass();
-	
-	// 월드 포즈 텍스쳐 그리기로 했던가?
-	
+
 	// Final Result Rendering
 	{
 		// Set backbuffer as render target and clear
@@ -1316,20 +1253,14 @@ void Render()
 		
 		if (!g_SceneRenderer.Render(g_pDeviceContext,
 			g_DebugWindow.GetIndexCount(),
-			g_World,
-			g_ScreenView,
-			g_OrthoMatrix,
-			//g_DepthBufferRenderTarget.GetShaderResourceView()
-			// 나중에 이걸로 바꿔야 함
+			g_ScreenRTMatrix, g_ScreenView, g_OrthoMatrix,
 			g_SceneBufferRenderTarget.GetShaderResourceView()
 			))
 		{
 			MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
 			return;
 		}
-	
-		//g_DepthBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
-		// 나중에 이걸로 바꿔야 함
+
 		g_SceneBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
 	}
 
@@ -1379,13 +1310,15 @@ void RenderLightModel()
 		{
 			auto& currMesh = iter->GetMeshNode(mn_idx);
 			ursine::Light* light = nullptr;
+
 			// ambient light
 			{
 				light = &g_AmbientLight;
 				// set shader parameters(mapping constant buffers, matrices, resources)
 				currMesh.SetMeshColor(light->GetColor());
 				SetLightShaderParameters(&iter, (*light), mn_idx);
-				iter->RenderNode(g_pDeviceContext, mn_idx);
+				//// Don't need to draw ambient light
+				//iter->RenderNode(g_pDeviceContext, mn_idx);
 			}
 
 			// global light
@@ -1481,7 +1414,7 @@ void RenderGeometryModel()
 //--------------------------------------------------------------------------------------
 // Render the geometry model's depth
 //--------------------------------------------------------------------------------------
-void RenderGeometryModelDepth()
+void RenderGeometryModelDepth(const ursine::Light& light)
 {
 	// geo model
 	if (g_Models["GeoModel"].empty())
@@ -1504,13 +1437,13 @@ void RenderGeometryModelDepth()
 
 			// set shader parameters(mapping constant buffers, matrices, resources)
 			g_DepthShader.SetShaderParameters(g_pDeviceContext,
-				g_ScaleMatrix *	g_RotationMatrix * g_World, 
-				g_lightView, 
-				g_Projection);
+				g_World,
+				light.GetShadowView(),
+				light.GetShadowProjection());
 
 			iter->RenderNodeDepth(g_pDeviceContext, mn_idx, g_DepthShader.GetDepthLayout());
 
-			// reset shader
+			// reset shader 
 			g_pDeviceContext->VSSetShader(nullptr, nullptr, 0);
 			g_pDeviceContext->PSSetShader(nullptr, nullptr, 0);
 		}
@@ -1564,7 +1497,7 @@ bool SetGeometryShaderParameters(ursine::FBXModel** currentModel, const UINT& me
 		MatrixBufferType* mtxBuffer = (MatrixBufferType*)MappedResource.pData;
 
 		// WVP
-		mtxBuffer->mWorld = XMMatrixTranspose(g_ScaleMatrix * g_RotationMatrix * g_World);
+		mtxBuffer->mWorld = XMMatrixTranspose(g_World);
 		mtxBuffer->mView = XMMatrixTranspose(g_Camera.GetViewMatrix());
 		mtxBuffer->mProj = XMMatrixTranspose(g_Projection);
 
@@ -1572,9 +1505,7 @@ bool SetGeometryShaderParameters(ursine::FBXModel** currentModel, const UINT& me
 		// hlsl - column major
 		// that's why we should transpose this
 		mtxBuffer->mWVP = XMMatrixTranspose(
-			g_ScaleMatrix *	g_RotationMatrix * g_World *
-			g_Camera.GetViewMatrix() * 
-			g_Projection);
+			g_World * g_Camera.GetViewMatrix() * g_Projection);
 
 		// unmap constant buffer
 		g_pDeviceContext->Unmap(g_pmtxBuffer, 0);
@@ -1698,7 +1629,7 @@ bool SetLightShaderParameters(ursine::FBXModel** currentModel, const ursine::Lig
 
 		MatrixBufferType* mtxBuffer = (MatrixBufferType*)MappedResource.pData;
 
-		XMMATRIX world = g_ScaleMatrix * light.GetTransformation() * g_World;
+		XMMATRIX world = light.GetTransformation() * g_World;
 
 		// WVP
 		mtxBuffer->mWorld = XMMatrixTranspose(world);
@@ -1708,9 +1639,7 @@ bool SetLightShaderParameters(ursine::FBXModel** currentModel, const ursine::Lig
 		// xm matrix - row major
 		// hlsl - column major
 		// that's why we should transpose this
-		mtxBuffer->mWVP = XMMatrixTranspose(world * 
-			g_Camera.GetViewMatrix() * 
-			g_Projection);
+		mtxBuffer->mWVP = XMMatrixTranspose(world * g_Camera.GetViewMatrix() * g_Projection);
 
 		// unmap constant buffer
 		g_pDeviceContext->Unmap(g_pmtxBuffer, 0);

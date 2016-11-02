@@ -8,17 +8,7 @@ Texture2D specshineTexture	: register(t3);
 Texture2D depthTexture		: register(t4);
 
 SamplerState SampleType : register(s0);
-
-SamplerComparisonState ShadowSampler
-{
-	// sampler state
-	Filter = COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
-	AddressU = MIRROR;
-	AddressV = MIRROR;
-
-	// sampler comparison state
-	ComparisonFunc = LESS;
-};
+SamplerComparisonState SampleShadowType : register(s1);
 
 static const float PI = 3.14159265359f;
 
@@ -41,27 +31,37 @@ cbuffer LightBuffer : register(b0)
 //////////////
 struct PixelInputType
 {
-	float4 Pos		: SV_POSITION;
-	float2 Tex		: TEXCOORD0;
+	float4	Pos			: SV_POSITION;
+	float2	Tex			: TEXCOORD0;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 // Helper function
 ////////////////////////////////////////////////////////////////////////////////
-float ShadowCasting(float3 position)
+float ShadowCasting(float3 position, float nDotL)
 {
-	// transform world space into light projected space
-	float4 posShadowMap = mul( float4(position, 1.f), lightView );
-	posShadowMap = mul( posShadowMap, lightProj );
+	// transform world space into light projected space to compute the vertex positino in the light's POV
+	float4 shadowCrd = mul( float4(position.xyz, 1.f), lightView );
+	shadowCrd = mul(shadowCrd, lightProj);
 
-	// Transform the position to shadow clip space
-	float3 UVD = posShadowMap.xyz / posShadowMap.w;
+	// To make the coordinates in between -1~1, -1~1
+	float2 shadowIndex = shadowCrd.xy /= shadowCrd.w;
 
-	// Convert to shadow map UV values
-	UVD.xy = 0.5 * UVD.xy + 0.5;
-	UVD.y = 1.0 - UVD.y;
+	// To transform it to proper texture coord 0~1
+	shadowIndex.x = (shadowIndex.x + 1.0f) * 0.5f;
+	shadowIndex.y = (1.0f - shadowIndex.y) * 0.5f;
 
-	return saturate(depthTexture.SampleCmpLevelZero(ShadowSampler, UVD.xy, UVD.z));
+	float shadow = 1.0f;
+	// If it's inside depth map
+	if (shadowIndex.x >= 0.0f && shadowIndex.x <= 1.0f &&
+		shadowIndex.y >= 0.0f && shadowIndex.y <= 1.0f && shadowCrd.w > 0.0f)
+	{
+		float bias = 0.005 * tan(acos(nDotL));
+		float depth = depthTexture.Sample(SampleType, shadowIndex).w;
+		if (shadowCrd.w - bias > depth)
+			shadow = 0.0f;
+	}
+	return shadow;
 }
 
 //float3 BRDF(float3 l, float3 v, float3 h, float3 n, float3 diffuse, float3 specular, float roughness, float3 color)
@@ -119,11 +119,6 @@ float4 LightPixelShader(PixelInputType input) : SV_Target
 	float3 lightDir = normalize(lightVector);
 	float lightDistance = length(lightVector);
 
-	// if the depth from view is greater than depth from light view, then there's a shadow
-	float shadow = 0.f;
-	if (1 <= type && type <= 3)
-		shadow = ShadowCasting(wPos.xyz);
-
 	// Attenuation
 	float lightIntensity = (lightRange >= lightDistance) ? pow(1.0f - saturate(lightDistance / lightRange), 2.0f) : 0.0f;
 	
@@ -131,7 +126,7 @@ float4 LightPixelShader(PixelInputType input) : SV_Target
 	float3 fvNorm = wNor.xyz;
 	float fNdotL = max(0, dot(fvNorm, -lightDir));
 
-	float3 fvReflect = normalize(2.0f * fNdotL * wNor.xyz - lightDir);
+	float3 fvReflect = normalize(reflect(lightDir, wNor));// normalize(2.0f * fNdotL * wNor.xyz - lightDir);
 	float3 fvViewDir = normalize(eyePos - wPos.xyz);
 	float  fRdotV = saturate(dot(fvReflect, fvViewDir));
 
@@ -145,11 +140,24 @@ float4 LightPixelShader(PixelInputType input) : SV_Target
 	if (0 == type)
 		finalColor = ambi;
 	else 
-		finalColor = shadow * lightIntensity * (diff + spec);
+		finalColor = lightIntensity * (diff + spec);
 
-	return float4(finalColor.xyz, 1.0f);
+	// if the depth from view is greater than depth from light view, then there's a shadow
+	float shadow = 1.f;
+	float4 wpDepth;
+	float2 temp;
+	if (1 <= type && type <= 3)
+	{
+		shadow = (wPos.w != 0.0f) ? ShadowCasting(wPos.xyz, fNdotL) : 1.f;
+	}
 
-	//// BRDF is not working for some reason
+	return float4(shadow * finalColor.xyz, 1.0f);
+
+	//return float4(shadow, shadow, shadow, 1.f);
+	//return float4(temp.x, temp.y, 0, 1.f);
+	//return float4(depth.w, depth.w, depth.w, 1.f) / 100;
+
+	//// BRDF is not working for some reason1
 	//float3 l = normalize(lightPos - wPos.xyz);
 	//float3 v = normalize(eyePos - wPos.xyz);
 	//float3 r = -reflect(l, wNor);

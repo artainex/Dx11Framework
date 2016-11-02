@@ -64,7 +64,6 @@ bool DepthShader::InitializeShader(ID3D11Device* device, HWND hwnd, string vsFil
 	ID3DBlob* pixelShaderBuffer;
 
 	D3D11_BUFFER_DESC matrixBufferDesc;
-	D3D11_SAMPLER_DESC samplerDesc;
 
 	// Initialize the pointers this function will use to null.
 	errorMessage = 0;

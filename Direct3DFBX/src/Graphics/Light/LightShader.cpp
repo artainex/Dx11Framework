@@ -11,7 +11,8 @@ LightShader::LightShader()
 	m_layout(0), 
 	m_matrixBuffer(0),
 	m_lightBuffer(0),
-	m_sampleState(0)
+	m_sampleState(0),
+	m_sampleShadowState(0)
 {
 }
 
@@ -44,7 +45,6 @@ void LightShader::Shutdown()
 
 bool LightShader::Render(ID3D11DeviceContext* deviceContext, int indexCount,
 	XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
-	XMMATRIX lightviewMatrix, XMMATRIX lightprojectionMatrix,
 	const std::vector<ID3D11ShaderResourceView*>& textures,
 	ID3D11ShaderResourceView* depthtexture,
 	const ursine::Light& light,
@@ -55,15 +55,11 @@ bool LightShader::Render(ID3D11DeviceContext* deviceContext, int indexCount,
 	// Set the shader parameters that it will use for rendering.
 	result = SetShaderParameters(deviceContext,	
 		worldMatrix, viewMatrix, projectionMatrix, 
-		lightviewMatrix, lightprojectionMatrix,
-		textures,
-		depthtexture, 
-		light, 
-		eyePos);
+		textures, depthtexture, light, eyePos);
 	FAIL_CHECK_WITH_MSG(result, "LightShader Render Fail");
 
 	// Now render the prepared buffers with the shader.
-	RenderShader(deviceContext, indexCount);
+	RenderShader(deviceContext, indexCount, light.GetType());
 	return true;
 }
 
@@ -151,6 +147,29 @@ bool LightShader::InitializeShader(ID3D11Device* device, HWND hwnd, string vsFil
 	hr = device->CreateSamplerState(&samplerDesc, &m_sampleState);
 	FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "Sampleer state creation fail");
 
+	// Create shadow sampler state
+	SamplerInitialize(samplerDesc,
+		D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT,
+		D3D11_TEXTURE_ADDRESS_BORDER,
+		D3D11_TEXTURE_ADDRESS_BORDER,
+		D3D11_TEXTURE_ADDRESS_BORDER,
+		D3D11_COMPARISON_GREATER,
+		0, 
+		D3D11_FLOAT32_MAX);
+
+	samplerDesc.MipLODBias = 0.0f;
+	samplerDesc.MaxAnisotropy = 0;
+	samplerDesc.BorderColor[0] = 1.0;
+	samplerDesc.BorderColor[1] = 1.0;
+	samplerDesc.BorderColor[2] = 1.0;
+	samplerDesc.BorderColor[3] = 1.0;
+	samplerDesc.MinLOD = 0;
+	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+	// Create the texture sampler state.
+	hr = device->CreateSamplerState(&samplerDesc, &m_sampleShadowState);
+	FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "Creating Sampler Shadow State Failed");
+
 	return true;
 }
 
@@ -164,6 +183,7 @@ void LightShader::ShutdownShader()
 
 	// Release the sampler state.
 	SAFE_RELEASE(m_sampleState);
+	SAFE_RELEASE(m_sampleShadowState);
 
 	// Release the layout.
 	SAFE_RELEASE(m_layout);
@@ -179,7 +199,6 @@ void LightShader::ShutdownShader()
 
 bool LightShader::SetShaderParameters(ID3D11DeviceContext* deviceContext, 
 	XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
-	XMMATRIX lightviewMatrix, XMMATRIX lightprojectionMatrix,
 	const std::vector<ID3D11ShaderResourceView*>& textures,
 	ID3D11ShaderResourceView* depthtexture,
 	const ursine::Light& light,
@@ -232,9 +251,9 @@ bool LightShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 		lightBuffer->eyePosition = eyePos;
 		lightBuffer->lightPosition = light.GetPosition();
 		lightBuffer->lightRange = light.GetRange(); // fixed range
-		lightBuffer->lView = lightviewMatrix;
-		lightBuffer->lProj = lightprojectionMatrix;
-	
+		lightBuffer->lView = XMMatrixTranspose(light.GetShadowView());
+		lightBuffer->lProj = XMMatrixTranspose(light.GetShadowProjection());
+
 		// unmap constant buffer
 		deviceContext->Unmap(m_lightBuffer, 0);
 	
@@ -249,14 +268,14 @@ bool LightShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 			++bufferNumber;
 		}
 
-		if(depthtexture)
+		if (depthtexture)
 			deviceContext->PSSetShaderResources(bufferNumber, 1, &depthtexture);
 	}
 
 	return true;
 }
 
-void LightShader::RenderShader(ID3D11DeviceContext* deviceContext, int indexCount)
+void LightShader::RenderShader(ID3D11DeviceContext* deviceContext, int indexCount, const ursine::LightType& lightType)
 {
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -269,6 +288,7 @@ void LightShader::RenderShader(ID3D11DeviceContext* deviceContext, int indexCoun
 
 	// Set the sampler state in the pixel shader.
 	deviceContext->PSSetSamplers(0, 1, &m_sampleState);
+	deviceContext->PSSetSamplers(1, 1, &m_sampleShadowState);	
 
 	// Render the triangle.
 	deviceContext->DrawIndexed(indexCount, 0, 0);

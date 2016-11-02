@@ -63,16 +63,19 @@ XMMATRIX							g_ScreenView;
 XMMATRIX                            g_Projection;
 XMMATRIX							g_OrthoMatrix;
 XMMATRIX                            g_lightView;
+XMMATRIX							g_lightProjection;
+XMMATRIX							g_translMatrix = XMMatrixIdentity();
 XMMATRIX							g_ScaleMatrix = XMMatrixIdentity();
 XMMATRIX							g_RotationMatrix = XMMatrixIdentity();
+XMMATRIX							g_ScreenRTMatrix = XMMatrixIdentity();
 
 // Camera
-XMFLOAT3 InitTsl = XMFLOAT3(0.f, 0.f, -100.f);
-XMFLOAT3 InitRot = XMFLOAT3(0, 0, 0);
+XMFLOAT3 InitTsl = XMFLOAT3(0.f, 0.f, 0.f);
+XMFLOAT3 InitRot = XMFLOAT3(0.f, 0.f, 0.f);
 static XMFLOAT3 tsl = InitTsl;
 static XMFLOAT3 rot = InitRot;
-static XMFLOAT3 rot2 = InitRot;
 static float scl = 1.0f;
+static float lrot = 0.f;
 Camera								g_Camera;
 
 // Lights
