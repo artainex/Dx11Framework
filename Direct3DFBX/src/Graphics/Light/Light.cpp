@@ -34,6 +34,8 @@ namespace ursine
 		m_type = type;
 		m_direction = dir;
 		m_position = initPos = pos;
+
+		m_transfrom = XMMatrixTranslation(m_position.x, m_position.y, m_position.z);
 	}
 
 	void Light::Reset()
@@ -53,8 +55,7 @@ namespace ursine
 		XMStoreFloat4(&newPos, m_transfrom.r[3]);
 
 		m_position = XMFLOAT3(newPos.x, newPos.y, newPos.z);
-
-		GenerateShadowView();
+		m_direction = XMFLOAT3(-newPos.x, -newPos.y, -newPos.z);
 	}
 
 	void Light::GenerateShadowView(void)

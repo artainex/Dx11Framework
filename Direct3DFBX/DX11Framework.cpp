@@ -702,8 +702,8 @@ HRESULT InitModel()
 	FAIL_CHECK_WITH_MSG(hr, "sphere.fbx load fail");
 
 	ursine::FBXModel* model = new ursine::FBXModel;
-	hr = model->LoadFBX("Assets/Models/dragonplane.fbx", g_pd3dDevice);
-	FAIL_CHECK_WITH_MSG(hr, "dragonplane.fbx load fail");
+	hr = model->LoadFBX("Assets/Models/MultiObj.fbx", g_pd3dDevice);
+	FAIL_CHECK_WITH_MSG(hr, "MultiObj.fbx load fail");
 
 	g_Models["LightModel"].push_back(sphere);
 	//g_Models["GeoModel"].push_back(sphere);
@@ -1033,8 +1033,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		g_World = g_ScaleMatrix * g_RotationMatrix * g_translMatrix;
 		
-		// 일단 당장 섀도우가 사라지는 건 프러스텀(디렉션)을 체인지 해주지 않기 때문
-		//// light transformation update 일단 글로벌만
+		// 나중에 라이트도 자유롭게 transform 업뎃할 수 있게 만들자.
 		g_GlobalLight.SetRotation(lrot);
 		g_GlobalLight.Update();
 		break;
@@ -1101,9 +1100,6 @@ void GeometryPass()
 // Light Pass for deferred shading
 void LightPass()
 {
-	float lightNear = 0.1f;
-	float lightFar = 500.f;
-
 	// set scene buffer as render target
 	g_SceneBufferRenderTarget.ClearRenderTarget(g_pDeviceContext, g_pDepthStencilView, ClearColor);
 	g_SceneBufferRenderTarget.SetRenderTarget(g_pDeviceContext, g_pDepthStencilView);
@@ -1115,9 +1111,6 @@ void LightPass()
 		{
 			// draw debug window(same resolution as screen)
 			g_DebugWindow.Render(g_pDeviceContext, 0, 0);
-
-			g_AmbientLight.GenerateShadowView();
-			g_AmbientLight.GenerateShadowProjection(XM_PIDIV4, (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, lightNear, lightFar);
 
 			if (!g_LightShader.Render(g_pDeviceContext,
 				g_DebugWindow.GetIndexCount(),
@@ -1200,9 +1193,6 @@ void LightPass()
 // Depth Pass for deferred shading
 void DepthPass(ursine::Light& light)
 {
-	float lightNear = 0.1f;
-	float lightFar = 500.f;
-
 	light.GenerateShadowView();
 	light.GenerateShadowProjection(XM_PIDIV4, (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, lightNear, lightFar);
 
@@ -1629,17 +1619,15 @@ bool SetLightShaderParameters(ursine::FBXModel** currentModel, const ursine::Lig
 
 		MatrixBufferType* mtxBuffer = (MatrixBufferType*)MappedResource.pData;
 
-		XMMATRIX world = light.GetTransformation() * g_World;
-
 		// WVP
-		mtxBuffer->mWorld = XMMatrixTranspose(world);
+		mtxBuffer->mWorld = XMMatrixTranspose(light.GetTransformation());
 		mtxBuffer->mView = XMMatrixTranspose(g_Camera.GetViewMatrix());
 		mtxBuffer->mProj = XMMatrixTranspose(g_Projection);
 
 		// xm matrix - row major
 		// hlsl - column major
 		// that's why we should transpose this
-		mtxBuffer->mWVP = XMMatrixTranspose(world * g_Camera.GetViewMatrix() * g_Projection);
+		mtxBuffer->mWVP = XMMatrixTranspose(light.GetTransformation() * g_Camera.GetViewMatrix() * g_Projection);
 
 		// unmap constant buffer
 		g_pDeviceContext->Unmap(g_pmtxBuffer, 0);

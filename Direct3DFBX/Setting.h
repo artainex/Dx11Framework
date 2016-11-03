@@ -144,3 +144,7 @@ ID3D11ShaderResourceView*		g_pTransformSRV = nullptr;
 
 // Clear Color rgba
 const float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+// Light
+const float lightNear = 0.1f;
+const float lightFar = 500.f;

@@ -152,10 +152,13 @@ float4 LightPixelShader(PixelInputType input) : SV_Target
 	}
 
 	return float4(shadow * finalColor.xyz, 1.0f);
+	//return float4(depth.w, depth.w, depth.w, 1) / 1000.f;
 
-	//return float4(shadow, shadow, shadow, 1.f);
-	//return float4(temp.x, temp.y, 0, 1.f);
-	//return float4(depth.w, depth.w, depth.w, 1.f) / 100;
+	// 나중에 라이트 오브젝트는 라이팅 계산 안하게 하자
+	// 오브젝트 구분하는 타입도 필요할듯
+	// 이건 언제든 할 수 있으니 냅두고 지금은 우선 라이트 방향에 따라서
+	// 뷰 개선해야 해
+	// 뎁스 그릴 때의 라이트가 안변해서 그러는 모양인데?
 
 	//// BRDF is not working for some reason1
 	//float3 l = normalize(lightPos - wPos.xyz);
