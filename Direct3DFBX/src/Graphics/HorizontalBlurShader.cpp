@@ -8,7 +8,7 @@ HorizontalBlurShader::HorizontalBlurShader()
 	:
 	m_computeShader(0),
 	m_sampleState(0),
-	mBlurKernelRadius(50)
+	mBlurKernelRadius(MAX_KERNEL_RADIUS)
 {
 }
 
@@ -194,9 +194,10 @@ void HorizontalBlurShader::SetBlurKernelRadius(int radius)
 
 void HorizontalBlurShader::BuildWeights()
 {
+	// gaussian kernel width = 2w + 1
 	int kernalWidth = 2 * mBlurKernelRadius + 1;
 
-	float variance = 8.f;
+	float variance = 4.f;
 	float covariance = variance * variance;
 	float sum = 0.f;
 	for (int i = 0; i < kernalWidth; ++i)
@@ -206,6 +207,7 @@ void HorizontalBlurShader::BuildWeights()
 		sum += mWeights[i].x;
 	}
 
+	// Average weights from 0 to 1
 	for (int i = 0; i < kernalWidth; ++i)
 	{
 		mWeights[i].x /= sum;

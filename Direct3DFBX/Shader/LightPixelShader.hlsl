@@ -73,8 +73,6 @@ float ShadowCasting(float3 position, float nDotL)
 		////////////////////////////////////////
 		// Exponential shadow
 		////////////////////////////////////////
-		// 블러 컬러를 되돌려줬는데 .w를 받으면 항상 1이니까 제대로 안나올만도 해.
-		// 그럼 블러 된 텍스쳐에서 뭘 받아야 깊이가 나오지? z?
 		float filteredDepth = depthTexture.Sample(SampleType, shadowIndex).z;		
 		float depth = clamp((shadowCrd.w - nearFarC.x) / (nearFarC.y - nearFarC.x), 0.0f, 1.0f);
 		

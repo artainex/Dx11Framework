@@ -1081,6 +1081,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		if (rot.y >= 360.f) rot.y = 0.0f;
 		if (scl <= 0.f) scl = 1.f;
+		if (exponentialConst < 1.f) exponentialConst = 1.f;
 
 		g_TranslMatrix = XMMatrixTranslation(tsl.x, tsl.y, tsl.z);
 		g_RotationMatrix = XMMatrixRotationY(rot.y);
