@@ -26,6 +26,12 @@ cbuffer LightBuffer : register(b0)
 	matrix lightProj;
 };
 
+cbuffer ConstantBuffer : register(b1)
+{
+	float3 nearFarC;
+	float padding;
+};
+
 //////////////
 // TYPEDEFS //
 //////////////
@@ -56,10 +62,23 @@ float ShadowCasting(float3 position, float nDotL)
 	if (shadowIndex.x >= 0.0f && shadowIndex.x <= 1.0f &&
 		shadowIndex.y >= 0.0f && shadowIndex.y <= 1.0f && shadowCrd.w > 0.0f)
 	{
-		float bias = 0.005 * tan(acos(nDotL));
-		float depth = depthTexture.Sample(SampleType, shadowIndex).w;
-		if (shadowCrd.w - bias > depth)
-			shadow = 0.0f;
+		//////////////////////////////////////////
+		//// General depth shadow
+		//////////////////////////////////////////
+		//float bias = 0.005 * tan(acos(nDotL));
+		//float depth = depthTexture.Sample(SampleType, shadowIndex).w;
+		//if (shadowCrd.w - bias > depth)
+		//	shadow = 0.0f;
+
+		////////////////////////////////////////
+		// Exponential shadow
+		////////////////////////////////////////
+		// 블러 컬러를 되돌려줬는데 .w를 받으면 항상 1이니까 제대로 안나올만도 해.
+		// 그럼 블러 된 텍스쳐에서 뭘 받아야 깊이가 나오지? z?
+		float filteredDepth = depthTexture.Sample(SampleType, shadowIndex).z;		
+		float depth = clamp((shadowCrd.w - nearFarC.x) / (nearFarC.y - nearFarC.x), 0.0f, 1.0f);
+		
+		return filteredDepth * exp((float)(-nearFarC.z) * depth);
 	}
 	return shadow;
 }
@@ -114,6 +133,7 @@ float4 LightPixelShader(PixelInputType input) : SV_Target
 	float roughness = specular.w;
 	specular.w = 1.f;
 	float4 depth = depthTexture.Sample(SampleType, uv);
+	float expDepth = depthTexture.Sample(SampleType, uv).x;
 	
 	float3 lightVector = wPos.xyz - lightPos;
 	float3 lightDir = normalize(lightVector);
@@ -144,21 +164,24 @@ float4 LightPixelShader(PixelInputType input) : SV_Target
 
 	// if the depth from view is greater than depth from light view, then there's a shadow
 	float shadow = 1.f;
-	float4 wpDepth;
-	float2 temp;
 	if (1 <= type && type <= 3)
 	{
 		shadow = (wPos.w != 0.0f) ? ShadowCasting(wPos.xyz, fNdotL) : 1.f;
 	}
 
-	return float4(shadow * finalColor.xyz, 1.0f);
-	//return float4(depth.w, depth.w, depth.w, 1) / 1000.f;
+	return float4(shadow * finalColor.xyz, 1.f);
+	//return float4(shadow, shadow, shadow, 1.f) / 10.f;
+	//return float4(depth.xyz, 1.f);
+	//return float4(expDepth, expDepth, expDepth, 1.f) / 10000.f;
+	// 블러시킨 뎁스 맵은 제대로 들어왔음
+	// 근데 섀도우 하는데서 망가지네
 
 	// 나중에 라이트 오브젝트는 라이팅 계산 안하게 하자
 	// 오브젝트 구분하는 타입도 필요할듯
 	// 이건 언제든 할 수 있으니 냅두고 지금은 우선 라이트 방향에 따라서
 	// 뷰 개선해야 해
 	// 뎁스 그릴 때의 라이트가 안변해서 그러는 모양인데?
+	// 지금 확대하면 사라지는 버그가 있는데 왜이래 기본 프러스텀도 좀 작아서 그림자가 잘리잖아
 
 	//// BRDF is not working for some reason1
 	//float3 l = normalize(lightPos - wPos.xyz);

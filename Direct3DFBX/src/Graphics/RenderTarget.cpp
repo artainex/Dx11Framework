@@ -65,6 +65,9 @@ bool RenderTarget::Initialize(ID3D11Device* device, int width, int height)
 	result = device->CreateShaderResourceView(m_renderTargetTexture, &shaderResourceViewDesc, &m_shaderResourceView);
 	FAIL_CHECK_BOOLEAN(result);
 
+	mWidth = width;
+	mHeight = height;
+
 	return true;
 }
 
@@ -90,10 +93,15 @@ void RenderTarget::SetRenderTarget(ID3D11DeviceContext* deviceContext, ID3D11Dep
 	return;
 }
 
-void RenderTarget::ReleaseRenderTarget(ID3D11DeviceContext* deviceContext)
+void RenderTarget::ReleaseRenderTarget(eShaderType shaderType, ID3D11DeviceContext* deviceContext)
 {
 	ID3D11ShaderResourceView* pSRV = nullptr;
-	deviceContext->PSSetShaderResources(0, 1, &pSRV);
+	if (shaderType == VERTEX_SHADER)
+		deviceContext->VSSetShaderResources(0, 1, &pSRV);
+	else if (shaderType == PIXEL_SHADER)
+		deviceContext->PSSetShaderResources(0, 1, &pSRV);
+	else if (shaderType == COMPUTE_SHADER)
+		deviceContext->CSSetShaderResources(0, 1, &pSRV);
 	return;
 }
 

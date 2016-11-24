@@ -150,9 +150,6 @@
     <ClCompile Include="src\Graphics\RenderTarget.cpp">
       <Filter>Graphics\RenderTarget</Filter>
     </ClCompile>
-    <ClCompile Include="src\Graphics\Shader.cpp">
-      <Filter>Shaders</Filter>
-    </ClCompile>
     <ClCompile Include="src\Graphics\Debug Window\DebugWindow.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
@@ -164,6 +161,21 @@
     </ClCompile>
     <ClCompile Include="src\Graphics\DepthShader.cpp">
       <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\ExponentialDepthShader.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\HorizontalBlurShader.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\VerticalBlurShader.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Shader.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\UAVTexture.cpp">
+      <Filter>Graphics\RenderTarget</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -326,9 +338,6 @@
     <ClInclude Include="include\Graphics\RenderTarget.h">
       <Filter>Graphics\RenderTarget</Filter>
     </ClInclude>
-    <ClInclude Include="include\Graphics\Shader.h">
-      <Filter>Shaders</Filter>
-    </ClInclude>
     <ClInclude Include="include\Graphics\Debug Window\DebugWindow.h">
       <Filter>Graphics</Filter>
     </ClInclude>
@@ -336,6 +345,27 @@
       <Filter>FBXLoader</Filter>
     </ClInclude>
     <ClInclude Include="include\Graphics\DepthShader.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\ExponentialDepthShader.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\HorizontalBlurShader.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\VerticalBlurShader.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\Shader.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\UAVTexture.h">
+      <Filter>Graphics\RenderTarget</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\ExponentialProperty.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\Constants.h">
       <Filter>Graphics</Filter>
     </ClInclude>
   </ItemGroup>
@@ -407,6 +437,18 @@
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Shader\DepthVertexShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\ExponentialDepthPixelShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\ExponentialDepthVertexShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\HorizontalBlurShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VerticalBlurShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

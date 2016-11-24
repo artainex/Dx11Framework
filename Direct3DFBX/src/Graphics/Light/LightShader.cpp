@@ -1,6 +1,8 @@
 #pragma once
 
 #include <LightShader.h>
+#include <Constants.h>
+#include <ConstantBuffers.h>
 
 #pragma warning(disable : 4100)
 
@@ -71,7 +73,7 @@ bool LightShader::InitializeShader(ID3D11Device* device, HWND hwnd, string vsFil
 	ID3DBlob* vertexShaderBuffer;
 	ID3DBlob* pixelShaderBuffer;
 
-	D3D11_BUFFER_DESC matrixBufferDesc, lightBufferDesc;
+	D3D11_BUFFER_DESC matrixBufferDesc, lightBufferDesc, expBufferDesc;
 	D3D11_SAMPLER_DESC samplerDesc;
 
 	// Initialize the pointers this function will use to null.
@@ -126,6 +128,16 @@ bool LightShader::InitializeShader(ID3D11Device* device, HWND hwnd, string vsFil
 	hr = device->CreateBuffer(&lightBufferDesc, nullptr, &m_lightBuffer);
 	FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "LightBufferType buffer creation fail");
 	
+	// Setup the description of the dynamic render type constant buffer that is in the vertex shader.
+	BufferInitialize(expBufferDesc, sizeof(ExponentialBufferType),
+		D3D11_USAGE_DYNAMIC,
+		D3D11_BIND_CONSTANT_BUFFER,
+		D3D11_CPU_ACCESS_WRITE);
+
+	// Create the constant buffer pointer so we can access the vertex shader constant buffer from within this class.
+	hr = device->CreateBuffer(&expBufferDesc, nullptr, &m_expBuffer);
+	FAIL_CHECK_BOOLEAN_WITH_MSG(hr, "ExponentialBufferType buffer creation fail");
+
 	// Create a texture sampler state description.
 	SamplerInitialize(samplerDesc,
 		D3D11_FILTER_MIN_MAG_MIP_LINEAR,
@@ -180,6 +192,7 @@ void LightShader::ShutdownShader()
 
 	// Release the light constant buffer.
 	SAFE_RELEASE(m_lightBuffer);
+	SAFE_RELEASE(m_expBuffer);
 
 	// Release the sampler state.
 	SAFE_RELEASE(m_sampleState);
@@ -237,7 +250,6 @@ bool LightShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 		deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_matrixBuffer);
 	}
 
-
 	bufferNumber = 0;
 	// light 
 	{
@@ -245,7 +257,7 @@ bool LightShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 		FAIL_CHECK_BOOLEAN(result);
 	
 		LightBufferType* lightBuffer = (LightBufferType*)mappedResource.pData;
-	
+
 		lightBuffer->type = (UINT)light.GetType();
 		lightBuffer->color = light.GetColor();
 		lightBuffer->eyePosition = eyePos;
@@ -260,6 +272,23 @@ bool LightShader::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 		deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_lightBuffer);
 	}
 
+	bufferNumber = 1;
+	// exponential near, far, const
+	{
+		result = deviceContext->Map(m_expBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		FAIL_CHECK_BOOLEAN(result);
+
+		ExponentialBufferType* expBuffer = (ExponentialBufferType*)mappedResource.pData;
+
+		expBuffer->lightNearFarConst = XMFLOAT3(lightNear, lightFar, exponentialConst);
+
+		// unmap constant buffer
+		deviceContext->Unmap(m_expBuffer, 0);
+
+		deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_expBuffer);
+	}
+
+	bufferNumber = 0;
 	// textures (pos, norm, diff, spec, depth)
 	{
 		for (UINT i = 0; i < textures.size(); ++i)

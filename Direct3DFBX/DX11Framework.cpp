@@ -13,6 +13,17 @@
 //--------------------------------------------------------------------------------------
 // TODO list
 //--------------------------------------------------------------------------------------
+UINT updateSpeed = 1;
+UINT frame = 0;
+UINT frame_per_sec = 0;
+
+// Clear Color rgba
+const float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+// Light
+float lightNear = 0.1f;
+float lightFar = 500.f;
+float exponentialConst = 45.f;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations
@@ -33,6 +44,7 @@ void RenderScene();
 void GeometryPass();
 void LightPass();
 void DepthPass(ursine::Light& light);
+void BlurDepth();
 void Render();
 void RenderLightModel();
 void RenderGeometryModel();
@@ -391,7 +403,7 @@ HRESULT InitCamera()
 	g_World = XMMatrixIdentity();
 
 	// Initialize the view matrix
-	g_Camera.SetPosition(XMFLOAT3(0.f, 0.f, -100.f));
+	g_Camera.SetPosition(XMFLOAT3(0.f, 0.f, -50.f));
 	g_Camera.SetRotation(XMFLOAT3(0.f, 0.f, 0.f));
 	g_Camera.SetLookAt(XMFLOAT3(0.f, 0.f, 1.f));
 	g_Camera.Update();
@@ -726,11 +738,17 @@ HRESULT InitApp()
 	// create the multi render target which covers Full Screen Quad
 	FAIL_CHECK_WITH_MSG(g_GBufferRenderTarget.Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT), "Could not initialize the G-buffer render target.");
 
-	// create the multi render target which covers Full Screen Quad
+	// create the scene render target which covers Full Screen Quad
 	FAIL_CHECK_WITH_MSG(g_SceneBufferRenderTarget.Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT), "Could not initialize the G-buffer render target.");
 
-	// create the multi render target which covers Full Screen Quad
+	// create the depth render target which covers Full Screen Quad
 	FAIL_CHECK_WITH_MSG(g_DepthBufferRenderTarget.Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT), "Could not initialize the G-buffer render target.");
+
+	// create the horizontal blur render target which covers Full Screen Quad
+	FAIL_CHECK_WITH_MSG(g_HBlurBuffer.Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT), "Could not initialize the horizontal texture buffer.");
+
+	// create the vertical blur render target which covers Full Screen Quad
+	FAIL_CHECK_WITH_MSG(g_FinalBlurBuffer.Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT), "Could not initialize the vertical texture buffer.");
 
 	// create render target which covers Full Screen Quad
 	FAIL_CHECK_WITH_MSG(g_DebugWindow.Initialize(g_pd3dDevice, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT), "Could not initialize the final render target.");
@@ -750,6 +768,30 @@ HRESULT InitApp()
 
 	// Init Depth Shader
 	FAIL_CHECK_BOOLEAN_WITH_MSG(g_DepthShader.Initialize(g_pd3dDevice, g_hWnd), "Depth Shader initialize failed");
+
+	// Init Exponential Depth Shader
+	FAIL_CHECK_BOOLEAN_WITH_MSG(g_ExpDepthShader.Initialize(g_pd3dDevice, g_hWnd), "Exponential Depth Shader initialize failed");
+	
+	// Blur shader macro
+	std::string kernalRadiusDef = std::to_string(MAX_KERNEL_RADIUS);
+	std::string batchXDef = std::to_string(BATCH_X_NUM);
+	std::string batchYDef = std::to_string(BATCH_Y_NUM);
+
+	D3D_SHADER_MACRO blurShaderMacros[4];
+	blurShaderMacros[0].Name = "MAX_KERNEL_RADIUS";
+	blurShaderMacros[0].Definition = kernalRadiusDef.c_str();
+	blurShaderMacros[1].Name = "BATCH_X_NUM";
+	blurShaderMacros[1].Definition = batchXDef.c_str();
+	blurShaderMacros[2].Name = "BATCH_Y_NUM";
+	blurShaderMacros[2].Definition = batchYDef.c_str();
+	blurShaderMacros[3].Name = NULL;
+	blurShaderMacros[3].Definition = NULL;
+
+	// Init Horizontal Shader
+	FAIL_CHECK_BOOLEAN_WITH_MSG(g_HBlurShader.Initialize(g_pd3dDevice, g_hWnd, blurShaderMacros), "Horizontal Blur Shader initialize failed");
+	
+	// Init Vertical Shader
+	FAIL_CHECK_BOOLEAN_WITH_MSG(g_VBlurShader.Initialize(g_pd3dDevice, g_hWnd, blurShaderMacros), "Vertical Blur Shader initialize failed");
 
 	// Setup the raster description which will determine how and what polygons will be drawn.
 	D3D11_RASTERIZER_DESC rasterDesc;
@@ -842,6 +884,10 @@ HRESULT InitApp()
 	// Create the blend state using the description.
 	hr = g_pd3dDevice->CreateBlendState(&blendStateDescription, &g_AlphaAdditiveBlendState);
 	FAIL_CHECK(hr);
+
+	// Build Kernel Weight
+	g_HBlurShader.BuildWeights();
+	g_VBlurShader.BuildWeights();
 	
 #if DEBUG
 #else
@@ -917,11 +963,16 @@ void CleanupApp()
 	SAFE_RELEASE(g_pRenderTargetView);
 
 	g_SceneRenderer.Shutdown();
+	g_VBlurShader.Shutdown();
+	g_HBlurShader.Shutdown();
+	g_ExpDepthShader.Shutdown();
 	g_DepthShader.Shutdown();
 	g_LightShader.Shutdown();
 	g_DebugWindow.Shutdown();
-	g_GBufferRenderTarget.Shutdown();
+	g_FinalBlurBuffer.Shutdown();
+	g_HBlurBuffer.Shutdown();
 	g_DepthBufferRenderTarget.Shutdown();
+	g_GBufferRenderTarget.Shutdown();
 	g_SceneBufferRenderTarget.Shutdown();
 	
 	for (auto& iter : g_Models["GeoModel"])
@@ -1022,18 +1073,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			// Zoom in and out
 		case VK_ADD: scl += 0.1f; break;
 		case VK_SUBTRACT: scl -= 0.1f; break;
+
+			// increase/decrease exponential constant
+		case VK_NUMPAD1: exponentialConst -= 5.f; break;
+		case VK_NUMPAD3: exponentialConst += 5.f; break;
 		}
 
 		if (rot.y >= 360.f) rot.y = 0.0f;
 		if (scl <= 0.f) scl = 1.f;
 
-		g_translMatrix = XMMatrixTranslation(tsl.x, tsl.y, tsl.z);
+		g_TranslMatrix = XMMatrixTranslation(tsl.x, tsl.y, tsl.z);
 		g_RotationMatrix = XMMatrixRotationY(rot.y);
 		g_ScaleMatrix = XMMatrixScaling(scl, scl, scl);
 
-		g_World = g_ScaleMatrix * g_RotationMatrix * g_translMatrix;
+		g_World = g_ScaleMatrix * g_RotationMatrix * g_TranslMatrix;
 		
 		// 나중에 라이트도 자유롭게 transform 업뎃할 수 있게 만들자.
+		//g_GlobalLight.SetPosition(tsl);
 		g_GlobalLight.SetRotation(lrot);
 		g_GlobalLight.Update();
 		break;
@@ -1111,7 +1167,7 @@ void LightPass()
 		{
 			// draw debug window(same resolution as screen)
 			g_DebugWindow.Render(g_pDeviceContext, 0, 0);
-
+	
 			if (!g_LightShader.Render(g_pDeviceContext,
 				g_DebugWindow.GetIndexCount(),
 				g_ScreenRTMatrix, g_ScreenView, g_OrthoMatrix,
@@ -1125,7 +1181,7 @@ void LightPass()
 			}
 	
 			// release rendertarget textures after use
-			g_GBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
+			g_GBufferRenderTarget.ReleaseRenderTarget(PIXEL_SHADER, g_pDeviceContext);
 		}
 	}
 
@@ -1138,24 +1194,45 @@ void LightPass()
 		SetZBuffer(false);
 		{
 			g_DebugWindow.Render(g_pDeviceContext, 0, 0);
-	
+
 			if (!g_LightShader.Render(g_pDeviceContext,
 				g_DebugWindow.GetIndexCount(),
 				g_ScreenRTMatrix, g_ScreenView, g_OrthoMatrix,
 				g_GBufferRenderTarget.GetShaderResourceViews(),
-				g_DepthBufferRenderTarget.GetShaderResourceView(),
+				//////////////////////////////////////
+				// Common Depth
+				//////////////////////////////////////
+				//g_DepthBufferRenderTarget.GetShaderResourceView(),
+				
+				////////////////////////////////////////
+				//// Blurred Depth
+				////////////////////////////////////////
+				g_HBlurBuffer.GetShaderResourceView(),
 				g_GlobalLight,
 				g_Camera.GetPosition()))
 			{
 				MessageBox(nullptr, "failed to render debug window by using Texture Shader", "Error", MB_OK);
 				return;
 			}
-	
+
 			// release rendertarget textures after use
-			g_GBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
-			g_DepthBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
+			g_GBufferRenderTarget.ReleaseRenderTarget(PIXEL_SHADER, g_pDeviceContext);
+			//////////////////////////////////////
+			// Common Depth
+			//////////////////////////////////////
+			//g_DepthBufferRenderTarget.ReleaseRenderTarget(PIXEL_SHADER, g_pDeviceContext);
+			////////////////////////////////////////
+			//// Blurred Depth
+			////////////////////////////////////////
+			g_HBlurBuffer.ReleaseShaderResourceView(g_pDeviceContext);
+			
+			// modify this 2 lines below later
+			// these lines are for releasing binded depth texture from PSSRV 4th slot
+			ID3D11ShaderResourceView* SRV_NULL = nullptr;
+			g_pDeviceContext->PSSetShaderResources(4, 1, &SRV_NULL);
 		}
 	}
+	// 왜 익스포넨셜 뎁스맵이 안그려지냐? 있는데 분명
 	
 	// local lights
 	{
@@ -1181,7 +1258,7 @@ void LightPass()
 			}
 	
 			// release rendertarget textures after use
-			g_GBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
+			g_GBufferRenderTarget.ReleaseRenderTarget(PIXEL_SHADER, g_pDeviceContext);
 		}
 	}
 
@@ -1196,6 +1273,8 @@ void DepthPass(ursine::Light& light)
 	light.GenerateShadowView();
 	light.GenerateShadowProjection(XM_PIDIV4, (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, lightNear, lightFar);
 
+	// Why still throwing OMRendertarget slot0 is still bound on input?
+	// also setting CS shader resource slot 0 to null either wtf?
 	g_DepthBufferRenderTarget.ClearRenderTarget(g_pDeviceContext, g_pDepthStencilView, ClearColor);
 	g_DepthBufferRenderTarget.SetRenderTarget(g_pDeviceContext, g_pDepthStencilView);
 
@@ -1211,6 +1290,73 @@ void DepthPass(ursine::Light& light)
 
 	// Reset rendertarget as scene buffer render target
 	g_SceneBufferRenderTarget.SetRenderTarget(g_pDeviceContext, g_pDepthStencilView);
+	BlurDepth();
+}
+
+void BlurDepth()
+{
+	auto depthTexture = g_DepthBufferRenderTarget.GetShaderResourceView();
+	auto hblurUAV = g_HBlurBuffer.GetUnorderedAccessView();
+	auto hblurShaderResourceView = g_HBlurBuffer.GetShaderResourceView();
+	auto finalblurUAV= g_FinalBlurBuffer.GetUnorderedAccessView();
+
+	auto depthWidth = g_DepthBufferRenderTarget.GetWidth();
+	auto depthHeight = g_DepthBufferRenderTarget.GetHeight();
+
+	auto hBlurWidth = g_HBlurBuffer.GetWidth();
+	auto hBlurHeight = g_HBlurBuffer.GetHeight();
+
+	ID3D11ShaderResourceView* SRV_NULL = nullptr;
+	ID3D11UnorderedAccessView* UAV_NULL = nullptr;
+
+	// horizontal blur
+	{
+		g_HBlurShader.SetShaderParameters(g_pDeviceContext,
+			XMINT3(depthWidth, depthHeight,
+				g_HBlurShader.GetBlurKernelRadius()));
+
+		// set depth texture as shader resource
+		g_pDeviceContext->CSSetShaderResources(0, 1, &depthTexture);
+
+		// bind unordered access view
+		g_pDeviceContext->CSSetUnorderedAccessViews(0, 1, &hblurUAV, nullptr);
+		
+		g_HBlurShader.RenderShader(g_pDeviceContext);
+
+		// dispatch
+		g_pDeviceContext->Dispatch(depthWidth / BATCH_X_NUM, depthHeight, 1);
+
+		// unbind shader resource view
+		g_pDeviceContext->CSSetShaderResources(0, 1, &SRV_NULL);
+
+		// unbind unordered access view
+		g_pDeviceContext->CSSetUnorderedAccessViews(0, 1, &UAV_NULL, nullptr);
+	}
+
+	// vertical blurring horizontally blurred texture
+	{
+		g_VBlurShader.SetShaderParameters(g_pDeviceContext,
+			XMINT3(depthWidth, depthHeight, 
+				g_VBlurShader.GetBlurKernelRadius()));
+		
+		// set depth texture as shader resource
+		g_pDeviceContext->CSSetShaderResources(0, 1, &hblurShaderResourceView);
+	
+		// bind unordered access view
+		g_pDeviceContext->CSSetUnorderedAccessViews(0, 1, &finalblurUAV, nullptr);
+	
+		// set compute shader
+		g_VBlurShader.RenderShader(g_pDeviceContext);
+	
+		// dispatch
+		g_pDeviceContext->Dispatch(hBlurWidth, hBlurHeight / BATCH_Y_NUM, 1);
+	
+		// unbind texture
+		g_pDeviceContext->CSSetShaderResources(0, 1, &SRV_NULL);
+	
+		// unbind unordered access view
+		g_pDeviceContext->CSSetUnorderedAccessViews(0, 1, &UAV_NULL, nullptr);
+	}
 }
 
 //--------------------------------------------------------------------------------------
@@ -1251,7 +1397,7 @@ void Render()
 			return;
 		}
 
-		g_SceneBufferRenderTarget.ReleaseRenderTarget(g_pDeviceContext);
+		g_SceneBufferRenderTarget.ReleaseRenderTarget(PIXEL_SHADER, g_pDeviceContext);
 	}
 
 #if DEBUG
@@ -1419,19 +1565,29 @@ void RenderGeometryModelDepth(const ursine::Light& light)
 		// for all mesh nodes
 		for (UINT mn_idx = 0; mn_idx < meshnodeCnt; ++mn_idx)
 		{
-			//////////////////////////////////////
-			// sort by layout later
-			//////////////////////////////////////
-			g_pDeviceContext->VSSetShader(g_DepthShader.GetVertexShader(), nullptr, 0);
-			g_pDeviceContext->PSSetShader(g_DepthShader.GetPixelShader(), nullptr, 0);
+			////////////////////////////////////////
+			//// Common Depth
+			////////////////////////////////////////
+			//g_pDeviceContext->VSSetShader(g_DepthShader.GetVertexShader(), nullptr, 0);
+			//g_pDeviceContext->PSSetShader(g_DepthShader.GetPixelShader(), nullptr, 0);
+			//// set shader parameters(mapping constant buffers, matrices, resources)
+			//g_DepthShader.SetShaderParameters(g_pDeviceContext,
+			//	g_World,
+			//	light.GetShadowView(),
+			//	light.GetShadowProjection());
+			//iter->RenderNodeDepth(g_pDeviceContext, mn_idx, g_DepthShader.GetDepthLayout());
 
+			//////////////////////////////////////
+			// Exponential Depth
+			//////////////////////////////////////
+			g_pDeviceContext->VSSetShader(g_ExpDepthShader.GetVertexShader(), nullptr, 0);
+			g_pDeviceContext->PSSetShader(g_ExpDepthShader.GetPixelShader(), nullptr, 0);			
 			// set shader parameters(mapping constant buffers, matrices, resources)
-			g_DepthShader.SetShaderParameters(g_pDeviceContext,
+			g_ExpDepthShader.SetShaderParameters(g_pDeviceContext,
 				g_World,
 				light.GetShadowView(),
-				light.GetShadowProjection());
-
-			iter->RenderNodeDepth(g_pDeviceContext, mn_idx, g_DepthShader.GetDepthLayout());
+				light.GetShadowProjection()); 
+			iter->RenderNodeDepth(g_pDeviceContext, mn_idx, g_ExpDepthShader.GetDepthLayout());
 
 			// reset shader 
 			g_pDeviceContext->VSSetShader(nullptr, nullptr, 0);

@@ -21,8 +21,39 @@
 #include <SVec3.h>
 #include <SVec4.h>
 #include <SMat4.h>
+#include <algorithm>
 
 #pragma warning(disable : 4458)
+
+template <typename T>
+inline T Max(const T & v1, const T & v2)
+{
+	return std::max<T>(v1, v2);
+}
+
+template <typename T, typename... Arguments >
+inline T Max(const T & v1, const T & v2, Arguments... args)
+{
+	return Max(Max(v1, v2), args...);
+}
+
+template <typename T>
+inline T Min(const T & v1, const T & v2)
+{
+	return std::min<T>(v1, v2);
+}
+
+template <typename T, typename... Arguments >
+inline T Min(const T & v1, const T & v2, Arguments... args)
+{
+	return Min(Min(v1, v2), args...);
+}
+
+template <typename T>
+inline T Clamp(const T & value, const T & low, const T & high)
+{
+	return Max(low, Min(value, high));
+}
 
 //--------------------------------------------------------------------------------------
 // MACROS
@@ -72,6 +103,7 @@ enum eShaderType
 	NONE_SHADER = -1,
 	VERTEX_SHADER,
 	PIXEL_SHADER,
+	GEOMETRY_SHADER,
 	COMPUTE_SHADER,
 	HULL_SHADER
 };
@@ -283,6 +315,15 @@ HRESULT CompileShaderFromFile(eShaderType shaderType,
 	ID3DBlob** ppBlobOut = nullptr,
 	ID3D11VertexShader** ppVSLayout = nullptr,
 	ID3D11PixelShader** ppPSLayout = nullptr);
+
+HRESULT CompileShaderFromFile(eShaderType shaderType,
+	LPCTSTR szFileName,
+	LPCSTR szEntryPoint,
+	LPCSTR szShaderModel,
+	ID3D11Device** ppD3Ddevice = nullptr,
+	ID3DBlob** ppBlobOut = nullptr,
+	const D3D_SHADER_MACRO* macro = nullptr,
+	ID3D11ComputeShader** ppComputeShader = nullptr);
 
 namespace pseudodx
 {

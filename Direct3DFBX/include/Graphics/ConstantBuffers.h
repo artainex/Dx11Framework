@@ -29,8 +29,8 @@ struct LightBufferType
 	// For now, try use phong model, use ursine LightClass if I understand HDR or more (this class doesn't have HDR)
 	XMFLOAT4 color;			// 16
 	XMFLOAT3 eyePosition;	// 28
-	float lightRange;		// 44
-	XMFLOAT3 lightPosition; // 40
+	float lightRange;		// 32
+	XMFLOAT3 lightPosition; // 44
 	UINT type;				// 48
 	XMMATRIX lView;
 	XMMATRIX lProj;
@@ -43,6 +43,13 @@ struct LightBufferType
 		lightRange(500.f),
 		type(ursine::LIGHT_AMBIENT)
 	{}
+};
+
+// Exponential 
+struct ExponentialBufferType
+{
+	XMFLOAT3 lightNearFarConst;
+	float padding;
 };
 
 struct MeshBufferType

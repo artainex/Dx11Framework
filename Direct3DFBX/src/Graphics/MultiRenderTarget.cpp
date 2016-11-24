@@ -76,6 +76,9 @@ bool MultiRenderTarget::Initialize(ID3D11Device* device, int textureWidth, int t
 		FAIL_CHECK_BOOLEAN(result);
 	}
 
+	mWidth = textureWidth;
+	mHeight = textureHeight;
+
 	return true;
 }
 
@@ -110,11 +113,20 @@ void MultiRenderTarget::SetRenderTarget(ID3D11DeviceContext* deviceContext, ID3D
 	return;
 }
 
-void MultiRenderTarget::ReleaseRenderTarget(ID3D11DeviceContext* deviceContext)
+void MultiRenderTarget::ReleaseRenderTarget(eShaderType shadertype, ID3D11DeviceContext* deviceContext)
 {
 	ID3D11ShaderResourceView* pSRV = nullptr;
 	for (UINT i = 0; i < m_renderTargetViews.size(); ++i)
-		deviceContext->PSSetShaderResources(i, 1, &pSRV);
+	{
+		if (shadertype == VERTEX_SHADER)
+			deviceContext->VSSetShaderResources(i, 1, &pSRV);
+		else if (shadertype == PIXEL_SHADER)
+			deviceContext->PSSetShaderResources(i, 1, &pSRV);
+		else if (shadertype == GEOMETRY_SHADER)
+			deviceContext->GSSetShaderResources(i, 1, &pSRV);
+		else if (shadertype == COMPUTE_SHADER)
+			deviceContext->CSSetShaderResources(i, 1, &pSRV);
+	}
 	return;
 }
 

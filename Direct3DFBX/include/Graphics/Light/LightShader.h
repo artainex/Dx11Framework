@@ -4,7 +4,6 @@
 // INCLUDES //
 //////////////
 #include <Utilities.h>
-#include <ConstantBuffers.h>
 #include <Light.h>
 #include <fstream>
 
@@ -51,6 +50,7 @@ private:
 	ID3D11InputLayout* m_layout;
 	ID3D11Buffer* m_matrixBuffer;
 	ID3D11Buffer* m_lightBuffer;
+	ID3D11Buffer* m_expBuffer;
 	ID3D11SamplerState* m_sampleState;
 	ID3D11SamplerState* m_sampleShadowState;
 };

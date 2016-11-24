@@ -437,12 +437,16 @@
     <ClCompile Include="src\Graphics\Camera\Camera.cpp" />
     <ClCompile Include="src\Graphics\Debug Window\DebugWindow.cpp" />
     <ClCompile Include="src\Graphics\DepthShader.cpp" />
+    <ClCompile Include="src\Graphics\ExponentialDepthShader.cpp" />
+    <ClCompile Include="src\Graphics\HorizontalBlurShader.cpp" />
     <ClCompile Include="src\Graphics\Light\Light.cpp" />
     <ClCompile Include="src\Graphics\Light\LightShader.cpp" />
     <ClCompile Include="src\Graphics\MultiRenderTarget.cpp" />
     <ClCompile Include="src\Graphics\RenderTarget.cpp" />
     <ClCompile Include="src\Graphics\SceneRenderer.cpp" />
     <ClCompile Include="src\Graphics\Shader.cpp" />
+    <ClCompile Include="src\Graphics\UAVTexture.cpp" />
+    <ClCompile Include="src\Graphics\VerticalBlurShader.cpp" />
     <ClCompile Include="src\Math\Mat3.cpp" />
     <ClCompile Include="src\Math\Mat4.cpp" />
     <ClCompile Include="src\Math\SIMD\SMat3.cpp" />
@@ -470,14 +474,20 @@
     <ClInclude Include="include\Color.h" />
     <ClInclude Include="include\Graphics\Camera\Camera.h" />
     <ClInclude Include="include\Graphics\ConstantBuffers.h" />
+    <ClInclude Include="include\Graphics\Constants.h" />
     <ClInclude Include="include\Graphics\Debug Window\DebugWindow.h" />
     <ClInclude Include="include\Graphics\DepthShader.h" />
+    <ClInclude Include="include\Graphics\ExponentialDepthShader.h" />
+    <ClInclude Include="include\Graphics\ExponentialProperty.h" />
+    <ClInclude Include="include\Graphics\HorizontalBlurShader.h" />
     <ClInclude Include="include\Graphics\Light\Light.h" />
     <ClInclude Include="include\Graphics\Light\LightShader.h" />
     <ClInclude Include="include\Graphics\MultiRenderTarget.h" />
     <ClInclude Include="include\Graphics\RenderTarget.h" />
     <ClInclude Include="include\Graphics\SceneRenderer.h" />
     <ClInclude Include="include\Graphics\Shader.h" />
+    <ClInclude Include="include\Graphics\UAVTexture.h" />
+    <ClInclude Include="include\Graphics\VerticalBlurShader.h" />
     <ClInclude Include="include\Math\Mat3.h" />
     <ClInclude Include="include\Math\Mat3.hpp" />
     <ClInclude Include="include\Math\Mat4.h" />
@@ -529,6 +539,18 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Shader\DepthVertexShader.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shader\ExponentialDepthPixelShader.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shader\ExponentialDepthVertexShader.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shader\HorizontalBlurShader.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
@@ -620,6 +642,10 @@
     <FxCompile Include="Shader\VertexShaderLayout7.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shader\VerticalBlurShader.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -14,7 +14,7 @@ public:
 	void Shutdown();
 
 	void SetRenderTarget(ID3D11DeviceContext* deviceContext, ID3D11DepthStencilView* depthStencilView);
-	void ReleaseRenderTarget(ID3D11DeviceContext* deviceContext);
+	void ReleaseRenderTarget(eShaderType shadertype, ID3D11DeviceContext* deviceContext);
 	void ClearRenderTarget(ID3D11DeviceContext* deviceContext, ID3D11DepthStencilView* depthStencilView, const float* color);
 	void ClearRenderTarget(ID3D11DeviceContext* deviceContext, ID3D11DepthStencilView* depthStencilView, float r, float g, float b, float a);
 
@@ -23,7 +23,13 @@ public:
 	ID3D11ShaderResourceView* GetShaderResourceView(int index);
 	const std::vector<ID3D11ShaderResourceView*>& GetShaderResourceViews() const;
 
+	// Get Dimension
+	int GetWidth() const { return mWidth; }
+	int GetHeight() const { return mHeight; }
+
 private:
+	int mWidth;
+	int mHeight;
 
 public:
 	// pos, norm, diff, spec+shineness
