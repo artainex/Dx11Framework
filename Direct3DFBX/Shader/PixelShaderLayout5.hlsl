@@ -16,6 +16,7 @@ cbuffer cbMaterial : register( b0 )
 cbuffer cbMesh : register(b1)
 {
 	float4 mesh_color;
+	int4 model_type;
 }
 
 struct PS_INPUT
@@ -25,19 +26,18 @@ struct PS_INPUT
 	float2	Tex			: TEXCOORD0;
 	float4	WPos		: TEXCOORD1;
 	float4	WNor		: TEXCOORD2;
-	//float4	Depth		: TEXCOORD3;
 };
 
 struct PS_OUTPUT
 {
-	float4 Postion: SV_Target0;
-	float4 Normal: SV_Target1;
-	float4 Diffuse: SV_Target2;
-	float4 SpecularAndShine: SV_Target3;
-	//float4 Depth: SV_Target4;
+	float4 Postion			: SV_Target0;
+	float4 Normal			: SV_Target1;
+	float4 Diffuse			: SV_Target2;
+	float4 SpecularAndShine	: SV_Target3;
+	float4 Type				: SV_Target4;
 };
 
-PS_OUTPUT PS( PS_INPUT input)
+PS_OUTPUT SkinPixelShader( PS_INPUT input)
 {
 	PS_OUTPUT output;
 
@@ -48,10 +48,7 @@ PS_OUTPUT PS( PS_INPUT input)
 	output.Normal = input.WNor;
 	output.Diffuse = float4(mesh_color.xyz * m_diffuse.xyz, m_transparency);// *diffMap;
 	output.SpecularAndShine = float4(m_specular.xyz, m_shineness);
-
-	//float depth;
-	//depth = input.Depth.z / input.Depth.w;
-	//output.Depth = float4(depth, depth, depth, depth);
+	output.Type = float4((float)model_type, 0, 0, 0);
 
 	return output;
 }

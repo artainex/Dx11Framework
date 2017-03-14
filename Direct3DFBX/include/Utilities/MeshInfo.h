@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------------------
 ** Team Bear King
-** ?2015 DigiPen Institute of Technology, All Rights Reserved.
+** 2017 DigiPen Institute of Technology, All Rights Reserved.
 **
 ** MeshInfo.h
 **
@@ -106,6 +106,8 @@ namespace ursine
 
 		// layout
 		eLayout				mLayout;
+		UINT				mStride;
+		UINT				mStrideCompatible;
 
 		MeshInfo();
 		virtual ~MeshInfo();

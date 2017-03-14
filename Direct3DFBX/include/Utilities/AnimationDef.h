@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------------------
 ** Team Bear King
-** ?2015 DigiPen Institute of Technology, All Rights Reserved.
+** 2017 DigiPen Institute of Technology, All Rights Reserved.
 **
 ** AnimationDef.h
 **
@@ -101,7 +101,7 @@ namespace ursine
 		// this will replace MATERIAL_DATA
 		struct Material_Data
 		{
-			MaterialBufferType			mtrlConst;
+			MaterialBuffer			mtrlConst;
 			ID3D11ShaderResourceView*	pSRV [2]; // for diffuse and normalmap. do I need multiple of this?
 			ID3D11SamplerState*         pSampler;// [2];
 			ID3D11Buffer*				pMaterialCb;
@@ -280,6 +280,8 @@ namespace ursine
 		{
 			eLayout mLayout;
 			unsigned int m_LayoutFlag;
+			unsigned int mStride;
+			unsigned int mStrideCompatible;
 			
 			std::string name;
 			int parentIndex;
@@ -340,21 +342,6 @@ namespace ursine
 		// for rendering
 		struct	MESH_NODE
 		{
-			std::string				m_meshName;
-			ID3D11Buffer*			m_pVB;
-			ID3D11Buffer*			m_pVBDepth;
-			ID3D11Buffer*			m_pIB;
-			ID3D11InputLayout*		m_pInputLayout;
-			XMMATRIX				m_meshTM;
-			std::vector<XMMATRIX>	m_meshMtxPal;
-			DWORD					vertexCount;
-			DWORD					indexCount;
-			XMFLOAT4				m_meshColor;
-			ID3D11Buffer*			m_meshColorBuffer;
-			eLayout					m_Layout;
-
-			std::vector<FBX_DATA::Material_Data> fbxmtrlData;
-
 			// INDEX BUFFER BIT
 			enum INDEX_BIT
 			{
@@ -363,27 +350,34 @@ namespace ursine
 				INDEX_32BIT,		// 32bit
 			};
 
+			std::string				m_meshName;
+			ID3D11Buffer*			m_pVB;
+			ID3D11Buffer*			m_pVBC;
+			ID3D11Buffer*			m_pIB;
+			ID3D11InputLayout*		m_pInputLayout;
+			XMMATRIX				m_meshTM;
+			std::vector<XMMATRIX>	m_meshMtxPal;
+			DWORD					vertexCount;
+			DWORD					indexCount;
+			eLayout					m_Layout;
+			UINT					m_Stride;
+			UINT					m_StrideCompatible;
+
+			std::vector<FBX_DATA::Material_Data> fbxmtrlData;
 			INDEX_BIT	m_indexBit;
 
 			MESH_NODE()
 				: 
-				m_pVB(nullptr), m_pVBDepth(nullptr),
-				m_pIB(nullptr), 
+				m_pVB(nullptr), m_pIB(nullptr), 
 				m_pInputLayout(nullptr),
 				m_indexBit(INDEX_NOINDEX), 
 				vertexCount(0), 
 				indexCount(0),
-				m_meshColor(XMFLOAT4(1,1,1,1)),
-				m_meshColorBuffer(nullptr),
 				m_meshTM( DirectX::XMMatrixIdentity() )
 			{
 			}
 
 			void Release();
-
-			XMFLOAT4 GetMeshColor() { return m_meshColor; }
-			void SetMeshColor(const float& r, const float& g, const float& b, const float& a) { m_meshColor = XMFLOAT4(r, g, b, a); }
-			void SetMeshColor(const XMFLOAT4& color) { m_meshColor = color; }
 			FBX_DATA::Material_Data& GetNodeFbxMaterial(const int& mtrl_id = 0) { return fbxmtrlData[mtrl_id]; };
 
 			void SetIndexBit(const size_t indexCount)
@@ -401,6 +395,8 @@ namespace ursine
 					m_indexBit = INDEX_32BIT;
 #endif
 			};
+			void Bind();
+			void BindCompatible();
 		};
 	}
 }

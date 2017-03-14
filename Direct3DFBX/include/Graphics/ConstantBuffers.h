@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Utilities.h>
-#include <Light.h>
+#include <Color.h>
 
 using namespace DirectX;
 typedef ursine::Color urColor;
@@ -9,7 +9,7 @@ typedef ursine::Color urColor;
 // all constant buffers' size should be multiple of 16
 
 // Matrix Constant Buffer
-struct MatrixBufferType
+struct MatrixBuffer
 {
 	XMMATRIX mWorld;
 	XMMATRIX mView;
@@ -17,62 +17,68 @@ struct MatrixBufferType
 	XMMATRIX mWVP;
 };
 
+// Gradient Constant Buffer
+struct GradientBuffer
+{
+	XMFLOAT4 apexColor;
+	XMFLOAT4 centerColor;
+};
+
 // Matrix Palette Constant Buffer
-struct PaletteBufferType
+struct PaletteBuffer
 {
 	XMMATRIX matPal[96];
 };
 
-// Light Constant Buffer
-struct LightBufferType
+// Ambient Constant Buffer
+struct AmbientBuffer
 {
-	// For now, try use phong model, use ursine LightClass if I understand HDR or more (this class doesn't have HDR)
+	XMFLOAT4 ambient;
+	XMFLOAT3 eyePosition;
+	float skyDimension;
+	float screenWidth;
+	float screenHeight;
+	float ambientAmount;
+	float padding;
+};
+
+const int IBL_N = 40;
+// For IBL hammersley
+struct RandomBuffer
+{
+	XMFLOAT4 hammersley[IBL_N];
+};
+
+// Light Constant Buffer
+struct LightBuffer
+{
 	XMFLOAT4 color;			// 16
 	XMFLOAT3 eyePosition;	// 28
-	float lightRange;		// 32
+	float screenWidth;		// 32
 	XMFLOAT3 lightPosition; // 44
-	UINT type;				// 48
-	XMMATRIX lView;
-	XMMATRIX lProj;
+	float screenHeight;		// 48
+	XMFLOAT3 nearFarC;		// 60
+	float lightRange;		// 64
+};
 
-	LightBufferType()
-		:
-		color(0, 0, 0, 1),
-		eyePosition(0, 0, 0),
-		lightPosition(0, 0, 0),
-		lightRange(500.f),
-		type(ursine::LIGHT_AMBIENT)
-	{}
+// Shadow Buffer
+struct ShadowBuffer
+{
+	XMMATRIX shadowMatrix;	// 64
+	int castShadow;			// 68
+	int isExponential;		// 72 : 0 is shadow, 1 is exponential shadow
+	XMUINT2 padding;		// 80
 };
 
 // Exponential 
-struct ExponentialBufferType
+struct ExponentialBuffer
 {
 	XMFLOAT3 lightNearFarConst;
 	float padding;
 };
 
-struct MeshBufferType
-{
-	XMFLOAT4	color;			//16
-
-	MeshBufferType() :
-		color(XMFLOAT4(1, 1, 1, 1))
-	{}
-};
-
-struct RenderBufferType
-{
-	UINT	type;				// 4
-	XMFLOAT3 padding;			// 16
-
-	RenderBufferType() 
-		: type(0)
-	{}
-};
-
 // Material Constant Buffer
-struct MaterialBufferType
+struct MaterialBuffer
 {
 	XMFLOAT4	ambient;		// 16
 	XMFLOAT4	diffuse;		// 32
@@ -81,14 +87,16 @@ struct MaterialBufferType
 	float		transparency;	// 68
 	float		shineness;		// 72
 	XMFLOAT2	padding;		// 80
+	XMFLOAT4	colorandtype;	// 96
 
-	MaterialBufferType() : 
+	MaterialBuffer() : 
 		ambient(XMFLOAT4(1, 1, 1, 1)),
 		diffuse(XMFLOAT4(1, 1, 1, 1)),
 		specular(XMFLOAT4(1, 1, 1, 1)),
 		emissive(XMFLOAT4(1, 1, 1, 1)),
 		transparency(1.0f),
 		shineness(0.1f),
-		padding(XMFLOAT2(0, 0))
+		padding(XMFLOAT2(0, 0)),
+		colorandtype(XMFLOAT4(0, 1, 1, 1))
 	{}
 };

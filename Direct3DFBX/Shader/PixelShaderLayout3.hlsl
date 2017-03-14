@@ -11,12 +11,8 @@ cbuffer cbMaterial : register( b0 )
 	float m_transparency;
 	float m_shineness;
 	float2 m_padding;
+	float4 m_colorandtype;
 };
-
-cbuffer cbMesh : register(b1)
-{
-	float4 mesh_color;
-}
 
 struct PS_INPUT
 {
@@ -25,19 +21,17 @@ struct PS_INPUT
 	float2	Tex			: TEXCOORD0;
 	float4	WPos		: TEXCOORD1;
 	float4	WNor		: TEXCOORD2;
-	//float4	Depth		: TEXCOORD3;
 };
 
 struct PS_OUTPUT
 {
-	float4 Postion: SV_Target0;
-	float4 Normal: SV_Target1;
-	float4 Diffuse: SV_Target2;
-	float4 SpecularAndShine: SV_Target3;
-	//float4 Depth: SV_Target4;
+	float4 Postion			: SV_Target0;
+	float4 Normal			: SV_Target1;
+	float4 Diffuse			: SV_Target2;
+	float4 SpecularAndShine	: SV_Target3;
 };
 
-PS_OUTPUT PS( PS_INPUT input) 
+PS_OUTPUT GeometryPixelShader(PS_INPUT input)
 {
 	PS_OUTPUT output;
 
@@ -46,12 +40,11 @@ PS_OUTPUT PS( PS_INPUT input)
 
 	output.Postion = input.WPos;
 	output.Normal = input.WNor;
-	output.Diffuse = float4(mesh_color.xyz * m_diffuse.xyz, m_transparency);// *diffMap;
+	if(m_colorandtype.w == 0.0f)
+		output.Diffuse = float4(m_diffuse.xyz, m_transparency);
+	else if((m_colorandtype.w == 1.0f)) // for debug light
+		output.Diffuse = float4(m_colorandtype.xyz, -1.f);
 	output.SpecularAndShine = float4(m_specular.xyz, m_shineness);
-
-	//float depth;
-	//depth = input.Depth.z / input.Depth.w;
-	//output.Depth = float4(depth, depth, depth, depth);
 
 	return output;
 }

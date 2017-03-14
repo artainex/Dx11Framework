@@ -12,15 +12,12 @@
 #include < locale.h >
 #include "CFBXLoader.h"
 #include "FBXModel.h"
+#include <Graphics.h>
 
 namespace ursine
 {
 	FBXModel::FBXModel() :
 		m_pFBX(nullptr)
-		//m_bonevsLayout(nullptr),
-		//m_pboneInputLayout(nullptr),
-		//m_boneVS(nullptr),
-		//m_boneVB(nullptr)
 	{
 	}
 
@@ -35,16 +32,12 @@ namespace ursine
 			meshNode.Release();
 		m_meshNodeArray.clear();
 
-		//SAFE_RELEASE(m_boneVB);
-		//SAFE_RELEASE(m_boneVS);
-		//SAFE_RELEASE(m_pboneInputLayout);
-		//SAFE_RELEASE(m_bonevsLayout);
 		SAFE_DELETE(m_pFBX);
 	}
 
-	HRESULT FBXModel::LoadFBX(const char* filename, ID3D11Device*	pd3dDevice)
+	HRESULT FBXModel::LoadFBX(const char* filename)
 	{
-		if (!filename || !pd3dDevice)
+		if (!filename)
 			return E_FAIL;
 
 		HRESULT hr = S_OK;
@@ -53,22 +46,17 @@ namespace ursine
 		hr = m_pFBX->LoadFBX(filename);
 		FAIL_CHECK(hr);
 
-		hr = CreateNodes(pd3dDevice);
+		hr = CreateNodes();
 		FAIL_CHECK(hr);
-
-		//hr = CreatePoint(pd3dDevice);
-		//FAIL_CHECK(hr);
 
 		return hr;
 	}
 
-	HRESULT FBXModel::CreateNodes(ID3D11Device* pd3dDevice)
+	HRESULT FBXModel::CreateNodes()
 	{
-		if (!pd3dDevice) 
-			return E_FAIL;
-
 		HRESULT hr = S_OK;
 		const ModelInfo& modelInfo = m_pFBX->GetModelInfo();
+		const AnimInfo& animInfo = m_pFBX->GetAnimInfo();
 
 		// if there is no mesh, doesn't mean it failed to loading FBX
 		UINT meshCnt = modelInfo.mmeshCount;
@@ -83,9 +71,11 @@ namespace ursine
 			meshNode.m_meshName = currMI.name;
 			meshNode.m_Layout = currMI.mLayout;
 			meshNode.m_meshTM = currMI.meshTM;
+			meshNode.m_Stride = currMI.mStride;
+			meshNode.m_StrideCompatible = currMI.mStrideCompatible;
 
 			// constructing vertex buffer
-			VertexConstructionByModel(pd3dDevice, meshNode, modelInfo.mMeshInfoVec[i]);
+			VertexConstructionByModel(meshNode, modelInfo.mMeshInfoVec[i], animInfo.IsValid());
 			meshNode.indexCount = static_cast<DWORD>(currMI.meshVtxIdxCount);
 			meshNode.SetIndexBit(meshNode.indexCount);
 
@@ -94,34 +84,23 @@ namespace ursine
 				indices[j] = currMI.meshVtxIndices[j];
 
 			if (meshNode.indexCount > 0)
-				hr = CreateIndexBuffer(pd3dDevice,
+				hr = CreateIndexBuffer(
 					&meshNode.m_pIB,
 					indices,
 					static_cast<uint32_t>(meshNode.indexCount));
 
 			// constructing materials 
-			MaterialConstructionByModel(pd3dDevice, meshNode, modelInfo, i);
-
-			// constructing mesh color buffer
-			D3D11_BUFFER_DESC meshBufferDesc;
-			BufferInitialize(meshBufferDesc,
-				sizeof(MeshBufferType),
-				D3D11_USAGE_DYNAMIC,
-				D3D11_BIND_CONSTANT_BUFFER,
-				D3D11_CPU_ACCESS_WRITE);
+			MaterialConstructionByModel(meshNode, modelInfo, i);
 			
-			hr = pd3dDevice->CreateBuffer(&meshBufferDesc, nullptr, &meshNode.m_meshColorBuffer);
-			FAIL_CHECK_WITH_MSG(hr, "MeshBuffer creation failed");
-
 			m_meshNodeArray.push_back(meshNode);
 			delete indices;
 		}
 		return hr;
 	}
 
-	HRESULT FBXModel::CreateVertexBuffer(ID3D11Device* pd3dDevice, ID3D11Buffer** pBuffer, void* pVertices, uint32_t stride, uint32_t vertexCount)
+	HRESULT FBXModel::CreateVertexBuffer(ID3D11Buffer** pBuffer, void* pVertices, uint32_t stride, uint32_t vertexCount)
 	{
-		if (!pd3dDevice || stride == 0 || vertexCount == 0)
+		if (stride == 0 || vertexCount == 0)
 			return E_FAIL;
 
 		HRESULT hr = S_OK;
@@ -136,15 +115,16 @@ namespace ursine
 		ZeroMemory(&InitData, sizeof(InitData));
 
 		InitData.pSysMem = pVertices;
-		hr = pd3dDevice->CreateBuffer(&bd, &InitData, pBuffer);
+		ID3D11Device* device = GRAPHICS.GetPipeline()->GetDevice();
+		hr = device->CreateBuffer(&bd, &InitData, pBuffer);
 		FAIL_CHECK(hr);
 
 		return hr;
 	}
 
-	HRESULT FBXModel::CreateIndexBuffer(ID3D11Device* pd3dDevice, ID3D11Buffer** pBuffer, void* pIndices, uint32_t indexCount)
+	HRESULT FBXModel::CreateIndexBuffer(ID3D11Buffer** pBuffer, void* pIndices, uint32_t indexCount)
 	{
-		if (!pd3dDevice || indexCount == 0)
+		if (indexCount == 0)
 			return E_FAIL;
 
 		HRESULT hr = S_OK;
@@ -161,95 +141,71 @@ namespace ursine
 
 		InitData.pSysMem = pIndices;
 
-		hr = pd3dDevice->CreateBuffer(&bd, &InitData, pBuffer);
+		ID3D11Device* device = GRAPHICS.GetPipeline()->GetDevice();
+		hr = device->CreateBuffer(&bd, &InitData, pBuffer);
 		FAIL_CHECK(hr);
 
 		return hr;
 	}
 
-	HRESULT FBXModel::VertexConstructionByModel(ID3D11Device* pd3dDevice, FBX_DATA::MESH_NODE& meshNode, const MeshInfo& meshInfo)
+	HRESULT FBXModel::VertexConstructionByModel(FBX_DATA::MESH_NODE& meshNode, const MeshInfo& meshInfo, bool IsSkinned)
 	{
 		const MeshInfo& currMI = meshInfo;
 		meshNode.vertexCount = static_cast<DWORD>(currMI.meshVtxInfoCount);
 		meshNode.indexCount = static_cast<DWORD>(currMI.meshVtxIdxCount);
 
-		if (!pd3dDevice || 0 == meshNode.vertexCount || 0 == meshNode.indexCount)
+		if (0 == meshNode.vertexCount || 0 == meshNode.indexCount)
 			return E_FAIL;
 
 		HRESULT hr = S_OK;
 		UINT i = 0;
-		switch (meshNode.m_Layout)
+
+		if (!IsSkinned)
 		{
-		case LAYOUT0:
-		{
-			VERTEX_DATA_L0* pVS = new VERTEX_DATA_L0[currMI.meshVtxInfoCount];
+			VERTEX_DATA_GEO* pVS = new VERTEX_DATA_GEO[currMI.meshVtxInfoCount];
+			VERTEX_DATA_COMPATIBLE* pVSC = new VERTEX_DATA_COMPATIBLE[currMI.meshVtxInfoCount];
+
 			for (auto &iter : currMI.meshVtxInfos)
 			{
-				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
-				XMFLOAT3 currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+				XMFLOAT3 currVtx(-100.f, -100.f, -100.f);
+				XMFLOAT3 currNorm(-100.f,-100.f,-100.f);
+				XMFLOAT3 currBin(-100.f, -100.f, -100.f);
+				XMFLOAT3 currTan(-100.f, -100.f, -100.f);
+				XMFLOAT2 currUV(-100.f, -100.f);
 
-				pVS[i].vPos = currVtx;
-				pVS[i].vNor = currNorm;
-
-				++i;
-			}
-
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_L0), meshNode.vertexCount);
-			SAFE_DELETE_ARRAY(pVS);
-		}
-		break;
-		case LAYOUT1:
-		{
-			VERTEX_DATA_L1* pVS = new VERTEX_DATA_L1[currMI.meshVtxInfoCount];
-			for (auto &iter : currMI.meshVtxInfos)
-			{
-				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
-				XMFLOAT3 currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
-				XMFLOAT2 currUV = XMFLOAT2(iter.uv.x, iter.uv.y);
-
-				pVS[i].vPos = currVtx;
-				pVS[i].vNor = currNorm;
-				pVS[i].vTexcoord = currUV;
-
-				++i;
-			}
-
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_L1), meshNode.vertexCount);
-			SAFE_DELETE_ARRAY(pVS);
-		}
-		break;
-		case LAYOUT2:
-		{
-			VERTEX_DATA_L2* pVS = new VERTEX_DATA_L2[currMI.meshVtxInfoCount];
-			for (auto &iter : currMI.meshVtxInfos)
-			{
-				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
-				XMFLOAT3 currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
-				XMFLOAT3 currBin = XMFLOAT3(iter.binormal.x, iter.binormal.y, iter.binormal.z);
-				XMFLOAT3 currTan = XMFLOAT3(iter.tangent.x, iter.tangent.y, iter.tangent.z);
-
-				pVS[i].vPos = currVtx;
-				pVS[i].vNor = currNorm;
-				pVS[i].vBin = currBin;
-				pVS[i].vTan = currTan;
-
-				++i;
-			}
-
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_L2), meshNode.vertexCount);
-			SAFE_DELETE_ARRAY(pVS);
-		}
-		break;
-		case LAYOUT3:
-		{
-			VERTEX_DATA_L3* pVS = new VERTEX_DATA_L3[currMI.meshVtxInfoCount];
-			for (auto &iter : currMI.meshVtxInfos)
-			{
-				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
-				XMFLOAT3 currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
-				XMFLOAT3 currBin = XMFLOAT3(iter.binormal.x, iter.binormal.y, iter.binormal.z);
-				XMFLOAT3 currTan = XMFLOAT3(iter.tangent.x, iter.tangent.y, iter.tangent.z);
-				XMFLOAT2 currUV = XMFLOAT2(iter.uv.x, iter.uv.y);
+				switch (meshNode.m_Layout)
+				{
+				case LAYOUT0:
+				{
+					currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+					currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+				}
+				break;
+				case LAYOUT1:
+				{
+					currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+					currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+					currUV = XMFLOAT2(iter.uv.x, iter.uv.y);
+				}
+				break;
+				case LAYOUT2:
+				{
+					currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+					currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+					currBin = XMFLOAT3(iter.binormal.x, iter.binormal.y, iter.binormal.z);
+					currTan = XMFLOAT3(iter.tangent.x, iter.tangent.y, iter.tangent.z);
+				}
+				break;
+				case LAYOUT3:
+				{
+					currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+					currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+					currBin = XMFLOAT3(iter.binormal.x, iter.binormal.y, iter.binormal.z);
+					currTan = XMFLOAT3(iter.tangent.x, iter.tangent.y, iter.tangent.z);
+					currUV = XMFLOAT2(iter.uv.x, iter.uv.y);
+				}
+				break;
+				}
 
 				pVS[i].vPos = currVtx;
 				pVS[i].vNor = currNorm;
@@ -257,113 +213,68 @@ namespace ursine
 				pVS[i].vTan = currTan;
 				pVS[i].vTexcoord = currUV;
 
-				++i;
-			}
-
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_L3), meshNode.vertexCount);
-			SAFE_DELETE_ARRAY(pVS);
-		}
-		break;
-		case LAYOUT4:
-		{
-			VERTEX_DATA_L4* pVS = new VERTEX_DATA_L4[currMI.meshVtxInfoCount];
-			for (auto &iter : currMI.meshVtxInfos)
-			{
-				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
-				XMFLOAT3 currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
-
-				pVS[i].vPos = currVtx;
-				pVS[i].vNor = currNorm;
-
-				// blend bone idx, weight
-				pVS[i].vBIdx[0] = (BYTE)iter.ctrlIndices.x;
-				pVS[i].vBIdx[1] = (BYTE)iter.ctrlIndices.y;
-				pVS[i].vBIdx[2] = (BYTE)iter.ctrlIndices.z;
-				pVS[i].vBIdx[3] = (BYTE)iter.ctrlIndices.w;
-				pVS[i].vBWeight.x = (float)iter.ctrlBlendWeights.x;
-				pVS[i].vBWeight.y = (float)iter.ctrlBlendWeights.y;
-				pVS[i].vBWeight.z = (float)iter.ctrlBlendWeights.z;
-				pVS[i].vBWeight.w = (float)iter.ctrlBlendWeights.w;
+				pVSC[i].vPos = currVtx;
+				pVSC[i].vNor = currNorm;
+				pVSC[i].vTexcoord = currUV;
 
 				++i;
 			}
 
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_L4), meshNode.vertexCount);
+			hr = CreateVertexBuffer(&meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_GEO), meshNode.vertexCount);
 			SAFE_DELETE_ARRAY(pVS);
+
+			hr = CreateVertexBuffer(&meshNode.m_pVBC, pVSC, sizeof(VERTEX_DATA_COMPATIBLE), meshNode.vertexCount);
+			SAFE_DELETE_ARRAY(pVSC);
+			// 그냥 지오랑 스킨을 나누는 건 좋은데, 만약 노말이나 바이노멀, 탄젠트, UV가 없는 애들은 어떡하지?
+			// 기본적으로 -100, -100, -100 해두자.
+			// 아니면 매크로로 IsNormal, IsBinormal, IsTangent이런거 하거나 해야하는데, 좀 더 생각해보던가
+			// 어떻게 하면 효율적으로 버텍스 포맷을 굳이 바꾸지 않으면서 처리할 수 있을지
 		}
-		break;
-		case LAYOUT5:
+		else
 		{
-			VERTEX_DATA_L5* pVS = new VERTEX_DATA_L5[currMI.meshVtxInfoCount];
+			VERTEX_DATA_SKIN* pVS = new VERTEX_DATA_SKIN[currMI.meshVtxInfoCount];
+
 			for (auto &iter : currMI.meshVtxInfos)
 			{
-				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
-				XMFLOAT3 currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
-				XMFLOAT2 currUV = XMFLOAT2(iter.uv.x, iter.uv.y);
+				XMFLOAT3 currVtx(-100.f, -100.f, -100.f);
+				XMFLOAT3 currNorm(-100.f, -100.f, -100.f);
+				XMFLOAT3 currBin(-100.f, -100.f, -100.f);
+				XMFLOAT3 currTan(-100.f, -100.f, -100.f);
+				XMFLOAT2 currUV(-100.f, -100.f);
 
-				pVS[i].vPos = currVtx;
-				pVS[i].vNor = currNorm;
-				pVS[i].vTexcoord = currUV;
-
-				// blend bone idx, weight
-				pVS[i].vBIdx[0] = (BYTE)iter.ctrlIndices.x;
-				pVS[i].vBIdx[1] = (BYTE)iter.ctrlIndices.y;
-				pVS[i].vBIdx[2] = (BYTE)iter.ctrlIndices.z;
-				pVS[i].vBIdx[3] = (BYTE)iter.ctrlIndices.w;
-				pVS[i].vBWeight.x = (float)iter.ctrlBlendWeights.x;
-				pVS[i].vBWeight.y = (float)iter.ctrlBlendWeights.y;
-				pVS[i].vBWeight.z = (float)iter.ctrlBlendWeights.z;
-				pVS[i].vBWeight.w = (float)iter.ctrlBlendWeights.w;
-
-				++i;
-			}
-
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_L5), meshNode.vertexCount);
-			SAFE_DELETE_ARRAY(pVS);
-		}
-		break;
-		case LAYOUT6:
-		{
-			VERTEX_DATA_L6* pVS = new VERTEX_DATA_L6[currMI.meshVtxInfoCount];
-			for (auto &iter : currMI.meshVtxInfos)
-			{
-				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
-				XMFLOAT3 currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
-				XMFLOAT3 currBin = XMFLOAT3(iter.binormal.x, iter.binormal.y, iter.binormal.z);
-				XMFLOAT3 currTan = XMFLOAT3(iter.tangent.x, iter.tangent.y, iter.tangent.z);
-
-				pVS[i].vPos = currVtx;
-				pVS[i].vNor = currNorm;
-				pVS[i].vBin = currBin;
-				pVS[i].vTan = currTan;
-
-				// blend bone idx, weight
-				pVS[i].vBIdx[0] = (BYTE)iter.ctrlIndices.x;
-				pVS[i].vBIdx[1] = (BYTE)iter.ctrlIndices.y;
-				pVS[i].vBIdx[2] = (BYTE)iter.ctrlIndices.z;
-				pVS[i].vBIdx[3] = (BYTE)iter.ctrlIndices.w;
-				pVS[i].vBWeight.x = (float)iter.ctrlBlendWeights.x;
-				pVS[i].vBWeight.y = (float)iter.ctrlBlendWeights.y;
-				pVS[i].vBWeight.z = (float)iter.ctrlBlendWeights.z;
-				pVS[i].vBWeight.w = (float)iter.ctrlBlendWeights.w;
-
-				++i;
-			}
-
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_L6), meshNode.vertexCount);
-			SAFE_DELETE_ARRAY(pVS);
-		}
-		break;
-		case LAYOUT7:
-		{
-			VERTEX_DATA_L7* pVS = new VERTEX_DATA_L7[currMI.meshVtxInfoCount];
-			for (auto &iter : currMI.meshVtxInfos)
-			{
-				XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
-				XMFLOAT3 currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
-				XMFLOAT3 currBin = XMFLOAT3(iter.binormal.x, iter.binormal.y, iter.binormal.z);
-				XMFLOAT3 currTan = XMFLOAT3(iter.tangent.x, iter.tangent.y, iter.tangent.z);
-				XMFLOAT2 currUV = XMFLOAT2(iter.uv.x, iter.uv.y);
+				switch (meshNode.m_Layout)
+				{
+				case LAYOUT4:
+				{
+					currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+					currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+				}
+				break;
+				case LAYOUT5:
+				{
+					currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+					currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+					currUV = XMFLOAT2(iter.uv.x, iter.uv.y);
+				}
+				break;
+				case LAYOUT6:
+				{
+					currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+					currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+					currBin = XMFLOAT3(iter.binormal.x, iter.binormal.y, iter.binormal.z);
+					currTan = XMFLOAT3(iter.tangent.x, iter.tangent.y, iter.tangent.z);
+				}
+				break;
+				case LAYOUT7:
+				{
+					currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+					currNorm = XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+					currBin = XMFLOAT3(iter.binormal.x, iter.binormal.y, iter.binormal.z);
+					currTan = XMFLOAT3(iter.tangent.x, iter.tangent.y, iter.tangent.z);
+					currUV = XMFLOAT2(iter.uv.x, iter.uv.y);
+				}
+				break;
+				}
 
 				pVS[i].vPos = currVtx;
 				pVS[i].vNor = currNorm;
@@ -384,39 +295,24 @@ namespace ursine
 				++i;
 			}
 
-			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_L7), meshNode.vertexCount);
+			hr = CreateVertexBuffer(&meshNode.m_pVB, pVS, sizeof(VERTEX_DATA_SKIN), meshNode.vertexCount);
 			SAFE_DELETE_ARRAY(pVS);
 		}
-		break;
-		}
-
-		i = 0;
-		VERTEX_DATA_LT* pVSDepth = new VERTEX_DATA_LT[currMI.meshVtxInfoCount];
-		for (auto &iter : currMI.meshVtxInfos)
-		{
-			XMFLOAT3 currVtx = XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
-			XMFLOAT2 currTex = XMFLOAT2(0.f, 0.f);
-			pVSDepth[i].vPos = currVtx;
-			pVSDepth[i].vTexcoord = currTex;
-			++i;
-		}
-		hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVBDepth, pVSDepth, sizeof(VERTEX_DATA_LT), meshNode.vertexCount);
-		SAFE_DELETE_ARRAY(pVSDepth);
 
 		return hr;
 	}
 
-	HRESULT FBXModel::MaterialConstructionByModel(ID3D11Device* pd3dDevice,
-		FBX_DATA::MESH_NODE& meshNode, const ModelInfo& modelInfo, const UINT& index)
+	HRESULT FBXModel::MaterialConstructionByModel(FBX_DATA::MESH_NODE& meshNode, const ModelInfo& modelInfo, const UINT& index)
 	{
 		const MaterialInfo& currMI = modelInfo.mMtrlInfoVec[index];
-		if (!pd3dDevice || 0 == modelInfo.mmaterialCount)
+		if (0 == modelInfo.mmaterialCount)
 			return E_FAIL;
 
 		//--------------------------------------------------------
 		// Will this work for multi-material?
 		//--------------------------------------------------------
 		HRESULT hr = S_OK;
+		ID3D11Device* device = GRAPHICS.GetPipeline()->GetDevice();
 		
 		// Pass Data to Material_Data structure
 		if (0 != modelInfo.mmaterialCount)
@@ -439,7 +335,7 @@ namespace ursine
 				// material Constant Buffer
 				D3D11_BUFFER_DESC mtrlBufferDesc;
 				BufferInitialize(mtrlBufferDesc, 
-					sizeof(MaterialBufferType), 
+					sizeof(MaterialBuffer), 
 					D3D11_USAGE_DYNAMIC, 
 					D3D11_BIND_CONSTANT_BUFFER, 
 					D3D11_CPU_ACCESS_WRITE);
@@ -455,26 +351,26 @@ namespace ursine
 							std::string path1 = "Assets/";
 							std::string folder = currMI.diff_texNames[j];
 							path1 += folder;
-							D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path1.c_str(), nullptr, nullptr, &currFbxMtrl.pSRV[0], nullptr);
+							D3DX11CreateShaderResourceViewFromFile(device, path1.c_str(), nullptr, nullptr, &currFbxMtrl.pSRV[0], nullptr);
 						}
 					}
 				}
 				// if there's no texture, just use default texture
 				else {
 					std::string path1 = "Assets/uv.png";
-					D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path1.c_str(), nullptr, nullptr, &currFbxMtrl.pSRV[0], nullptr);
+					D3DX11CreateShaderResourceViewFromFile(device, path1.c_str(), nullptr, nullptr, &currFbxMtrl.pSRV[0], nullptr);
 				}
 
 				// for default normal map
 				std::string path2 = "Assets/norm.png";
-				D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path2.c_str(), nullptr, nullptr, &currFbxMtrl.pSRV[1], nullptr);
+				D3DX11CreateShaderResourceViewFromFile(device, path2.c_str(), nullptr, nullptr, &currFbxMtrl.pSRV[1], nullptr);
 
 				// Setting sampler as default texture
-				hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler);
+				hr = device->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler);
 				FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
 
 				// currently, constant buffer creation always failed because constant buffer size should be multiple of 16
-				hr = pd3dDevice->CreateBuffer(&mtrlBufferDesc, nullptr, &currFbxMtrl.pMaterialCb);
+				hr = device->CreateBuffer(&mtrlBufferDesc, nullptr, &currFbxMtrl.pMaterialCb);
 				FAIL_CHECK_WITH_MSG(hr, "Constant buffer is not size of multiple of 16");
 
 				currFbxMtrl.mtrlConst.ambient		= XMFLOAT4(currMI.ambi_mcolor.x, currMI.ambi_mcolor.y, currMI.ambi_mcolor.z, 1.f);
@@ -504,24 +400,24 @@ namespace ursine
 			// material Constant Buffer
 			D3D11_BUFFER_DESC mtrlBufferDesc;
 			BufferInitialize(mtrlBufferDesc, 
-				sizeof(MaterialBufferType), 
+				sizeof(MaterialBuffer), 
 				D3D11_USAGE_DYNAMIC, 
 				D3D11_BIND_CONSTANT_BUFFER, 
 				D3D11_CPU_ACCESS_WRITE);
 
 			// Create Shader Resource View from default texture and material
 			std::string path1 = "Assets/uv.png";
-			D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path1.c_str(), nullptr, nullptr, &currFbxMtrl.pSRV[0], nullptr);
+			D3DX11CreateShaderResourceViewFromFile(device, path1.c_str(), nullptr, nullptr, &currFbxMtrl.pSRV[0], nullptr);
 			// for default normal map
 			std::string path2 = "Assets/norm.png";
-			D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path2.c_str(), nullptr, nullptr, &currFbxMtrl.pSRV[1], nullptr);
+			D3DX11CreateShaderResourceViewFromFile(device, path2.c_str(), nullptr, nullptr, &currFbxMtrl.pSRV[1], nullptr);
 
 			// Setting sampler as default texture
-			hr = pd3dDevice->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler);
+			hr = device->CreateSamplerState(&sampDesc, &currFbxMtrl.pSampler);
 			FAIL_CHECK_WITH_MSG(hr, "Creating Sampler State Failed");
 
 			// currently, constant buffer creation always failed because constant buffer size should be multiple of 16
-			hr = pd3dDevice->CreateBuffer(&mtrlBufferDesc, nullptr, &currFbxMtrl.pMaterialCb);
+			hr = device->CreateBuffer(&mtrlBufferDesc, nullptr, &currFbxMtrl.pMaterialCb);
 			FAIL_CHECK_WITH_MSG(hr, "Constant buffer is not size of multiple of 16");
 
 			currFbxMtrl.mtrlConst.ambient		= XMFLOAT4(1.0f, 1.0f, 1.0f, 1.f);
@@ -535,234 +431,6 @@ namespace ursine
 		// where should I add code for default normalmap?
 
 		return S_OK;
-	}
-
-	HRESULT FBXModel::CreateInputLayout(ID3D11Device*	pd3dDevice,
-		const void* pShaderBytecodeWithInputSignature,
-		size_t BytecodeLength,
-		D3D11_INPUT_ELEMENT_DESC* pLayout, 
-		UINT layoutSize)
-	{
-		// InputeLayout
-		if (!pd3dDevice || !pShaderBytecodeWithInputSignature || !pLayout)
-			return E_FAIL;
-
-		HRESULT hr = S_OK;
-
-		for (auto &iter : m_meshNodeArray)
-		{
-			pd3dDevice->CreateInputLayout(pLayout,
-				layoutSize,
-				pShaderBytecodeWithInputSignature,
-				BytecodeLength,
-				&iter.m_pInputLayout);
-		}
-
-		return hr;
-	}
-
-	HRESULT FBXModel::RenderAll(ID3D11DeviceContext* pImmediateContext)
-	{
-		size_t nodeCount = m_meshNodeArray.size();
-		if (nodeCount == 0)
-			return S_OK;
-
-		HRESULT hr = S_OK;
-		pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-		for (auto &iter : m_meshNodeArray)
-		{
-			if (iter.vertexCount == 0)
-				continue;
-
-			UINT stride = 0;
-			switch (iter.m_Layout)
-			{
-			case LAYOUT0: stride = sizeof(VERTEX_DATA_L0); break;
-			case LAYOUT1: stride = sizeof(VERTEX_DATA_L1); break;
-			case LAYOUT2: stride = sizeof(VERTEX_DATA_L2); break;
-			case LAYOUT3: stride = sizeof(VERTEX_DATA_L3); break;
-			case LAYOUT4: stride = sizeof(VERTEX_DATA_L4); break;
-			case LAYOUT5: stride = sizeof(VERTEX_DATA_L5); break;
-			case LAYOUT6: stride = sizeof(VERTEX_DATA_L6); break;
-			case LAYOUT7: stride = sizeof(VERTEX_DATA_L7); break;
-			//case FBX_DATA::LAYOUTT: stride = sizeof(FBX_DATA::VERTEX_DATA_LT); break;
-			}
-			UINT offset = 0;
-			pImmediateContext->IASetVertexBuffers(0, 1, &iter.m_pVB, &stride, &offset);
-
-			DXGI_FORMAT indexbit = DXGI_FORMAT_R16_UINT;
-			if (iter.m_indexBit == FBX_DATA::MESH_NODE::INDEX_32BIT)
-				indexbit = DXGI_FORMAT_R32_UINT;
-
-			pImmediateContext->IASetInputLayout(iter.m_pInputLayout);
-			pImmediateContext->IASetIndexBuffer(iter.m_pIB, indexbit, 0);
-			pImmediateContext->DrawIndexed(iter.indexCount, 0, 0);
-		}
-
-		return hr;
-	}
-
-	HRESULT FBXModel::RenderNode(ID3D11DeviceContext* pImmediateContext, const size_t nodeId)
-	{
-		size_t nodeCount = m_meshNodeArray.size();
-		if (nodeCount == 0 || nodeCount <= nodeId)
-			return S_OK;
-
-		HRESULT hr = S_OK;
-		FBX_DATA::MESH_NODE* node = &m_meshNodeArray[nodeId];
-		if (node->vertexCount == 0)
-			return S_OK;
-
-		UINT stride = 0;
-		switch (node->m_Layout)
-		{
-		case LAYOUT0: stride = sizeof(VERTEX_DATA_L0); break;
-		case LAYOUT1: stride = sizeof(VERTEX_DATA_L1); break;
-		case LAYOUT2: stride = sizeof(VERTEX_DATA_L2); break;
-		case LAYOUT3: stride = sizeof(VERTEX_DATA_L3); break;
-		case LAYOUT4: stride = sizeof(VERTEX_DATA_L4); break;
-		case LAYOUT5: stride = sizeof(VERTEX_DATA_L5); break;
-		case LAYOUT6: stride = sizeof(VERTEX_DATA_L6); break;
-		case LAYOUT7: stride = sizeof(VERTEX_DATA_L7); break;
-		}
-
-		UINT offset = 0;
-		pImmediateContext->IASetVertexBuffers(0, 1, &node->m_pVB, &stride, &offset);
-		pImmediateContext->IASetInputLayout(node->m_pInputLayout);
-		pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-		if (node->m_indexBit != FBX_DATA::MESH_NODE::INDEX_NOINDEX)
-		{
-			DXGI_FORMAT indexbit = DXGI_FORMAT_R16_UINT;
-			if (node->m_indexBit == FBX_DATA::MESH_NODE::INDEX_32BIT)
-				indexbit = DXGI_FORMAT_R32_UINT;
-
-			pImmediateContext->IASetIndexBuffer(node->m_pIB, indexbit, 0);
-			pImmediateContext->DrawIndexed(node->indexCount, 0, 0);
-		}
-
-		return hr;
-	}
-
-	HRESULT FBXModel::RenderNodeDepth(ID3D11DeviceContext* pImmediateContext, const size_t nodeId, ID3D11InputLayout* depthLayout)
-	{
-		size_t nodeCount = m_meshNodeArray.size();
-		if (nodeCount == 0 || nodeCount <= nodeId)
-			return S_OK;
-
-		HRESULT hr = S_OK;
-		FBX_DATA::MESH_NODE* node = &m_meshNodeArray[nodeId];
-		if (node->vertexCount == 0)
-			return S_OK;
-
-		UINT stride = sizeof(VERTEX_DATA_LT);
-
-		UINT offset = 0; 
-		pImmediateContext->IASetVertexBuffers(0, 1, &node->m_pVBDepth, &stride, &offset);
-		pImmediateContext->IASetInputLayout(depthLayout);
-		pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-		if (node->m_indexBit != FBX_DATA::MESH_NODE::INDEX_NOINDEX)
-		{
-			DXGI_FORMAT indexbit = DXGI_FORMAT_R16_UINT;
-			if (node->m_indexBit == FBX_DATA::MESH_NODE::INDEX_32BIT)
-				indexbit = DXGI_FORMAT_R32_UINT;
-
-			pImmediateContext->IASetIndexBuffer(node->m_pIB, indexbit, 0);
-			pImmediateContext->DrawIndexed(node->indexCount, 0, 0);
-		}
-
-		return hr;
-	}
-
-	HRESULT FBXModel::RenderNodeInstancing(ID3D11DeviceContext* pImmediateContext, const size_t nodeId, const uint32_t InstanceCount)
-	{
-		size_t nodeCount = m_meshNodeArray.size();
-		if (nodeCount == 0 || nodeCount <= nodeId || InstanceCount == 0)
-			return S_OK;
-
-		HRESULT hr = S_OK;
-
-		FBX_DATA::MESH_NODE* node = &m_meshNodeArray[nodeId];
-
-		if (node->vertexCount == 0)
-			return S_OK;
-
-		UINT stride = 0;
-		switch (node->m_Layout)
-		{
-		case LAYOUT0: stride = sizeof(VERTEX_DATA_L0); break;
-		case LAYOUT1: stride = sizeof(VERTEX_DATA_L1); break;
-		case LAYOUT2: stride = sizeof(VERTEX_DATA_L2); break;
-		case LAYOUT3: stride = sizeof(VERTEX_DATA_L3); break;
-		case LAYOUT4: stride = sizeof(VERTEX_DATA_L4); break;
-		case LAYOUT5: stride = sizeof(VERTEX_DATA_L5); break;
-		case LAYOUT6: stride = sizeof(VERTEX_DATA_L6); break;
-		case LAYOUT7: stride = sizeof(VERTEX_DATA_L7); break;
-		//case FBX_DATA::LAYOUTT: stride = sizeof(FBX_DATA::VERTEX_DATA_LT); break;
-		}
-
-		UINT offset = 0;
-		pImmediateContext->IASetVertexBuffers(0, 1, &node->m_pVB, &stride, &offset);
-		pImmediateContext->IASetInputLayout(node->m_pInputLayout);
-		pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-		// 
-		if (node->m_indexBit != FBX_DATA::MESH_NODE::INDEX_NOINDEX)
-		{
-			DXGI_FORMAT indexbit = DXGI_FORMAT_R16_UINT;
-			if (node->m_indexBit == FBX_DATA::MESH_NODE::INDEX_32BIT)
-				indexbit = DXGI_FORMAT_R32_UINT;
-			pImmediateContext->IASetIndexBuffer(node->m_pIB, indexbit, 0);
-			pImmediateContext->DrawIndexedInstanced(node->indexCount, InstanceCount, 0, 0, 0);
-		}
-
-		return hr;
-	}
-
-	HRESULT FBXModel::RenderNodeInstancingIndirect(ID3D11DeviceContext* pImmediateContext, const size_t nodeId, ID3D11Buffer* pBufferForArgs, const uint32_t AlignedByteOffsetForArgs)
-	{
-		size_t nodeCount = m_meshNodeArray.size();
-		if (nodeCount == 0 || nodeCount <= nodeId)
-			return S_OK;
-
-		HRESULT hr = S_OK;
-
-		FBX_DATA::MESH_NODE* node = &m_meshNodeArray[nodeId];
-
-		if (node->vertexCount == 0)
-			return S_OK;
-
-		UINT stride = 0;
-		switch (node->m_Layout)
-		{
-		case LAYOUT0: stride = sizeof(VERTEX_DATA_L0); break;
-		case LAYOUT1: stride = sizeof(VERTEX_DATA_L1); break;
-		case LAYOUT2: stride = sizeof(VERTEX_DATA_L2); break;
-		case LAYOUT3: stride = sizeof(VERTEX_DATA_L3); break;
-		case LAYOUT4: stride = sizeof(VERTEX_DATA_L4); break;
-		case LAYOUT5: stride = sizeof(VERTEX_DATA_L5); break;
-		case LAYOUT6: stride = sizeof(VERTEX_DATA_L6); break;
-		case LAYOUT7: stride = sizeof(VERTEX_DATA_L7); break;
-		//case FBX_DATA::LAYOUTT: stride = sizeof(FBX_DATA::VERTEX_DATA_LT); break;
-		}
-
-		UINT offset = 0;
-		pImmediateContext->IASetVertexBuffers(0, 1, &node->m_pVB, &stride, &offset);
-		pImmediateContext->IASetInputLayout(node->m_pInputLayout);
-		pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-		if (node->m_indexBit != FBX_DATA::MESH_NODE::INDEX_NOINDEX)
-		{
-			DXGI_FORMAT indexbit = DXGI_FORMAT_R16_UINT;
-			if (node->m_indexBit == FBX_DATA::MESH_NODE::INDEX_32BIT)
-				indexbit = DXGI_FORMAT_R32_UINT;
-			pImmediateContext->IASetIndexBuffer(node->m_pIB, indexbit, 0);
-			pImmediateContext->DrawIndexedInstancedIndirect(pBufferForArgs, AlignedByteOffsetForArgs);
-		}
-
-		return hr;
 	}
 	
 	void FBXModel::Update(double timedelta)
@@ -789,10 +457,25 @@ namespace ursine
 			matPal[i] = XMMatrixTranspose(palette_for_hlsl);
 		}
 	}
-
-	bool FBXModel::IsSkinned()
+	
+	void FBXModel::BindMeshNode(const int& id)
 	{
-		return m_pFBX->IsSkinned();
-	}
+		if (id < 0 || id > m_meshNodeArray.size() - 1)
+			return;
 
+		ID3D11DeviceContext* deviceContext = GRAPHICS.GetPipeline()->GetContext();
+
+		// Set vertex buffer stride and offset.
+		UINT stride = m_meshNodeArray[id].m_Stride;
+		UINT offset = 0;
+		
+		// Set the vertex buffer to active in the input assembler so it can be rendered.
+		deviceContext->IASetVertexBuffers(0, 1, &m_meshNodeArray[id].m_pVB, &stride, &offset);
+
+		// Set the index buffer to active in the input assembler so it can be rendered.
+		deviceContext->IASetIndexBuffer(m_meshNodeArray[id].m_pIB, DXGI_FORMAT_R32_UINT, 0);
+
+		// Set the type of primitive that should be rendered from this vertex buffer, in this case triangles.
+		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	}
 }	// namespace FBX_LOADER

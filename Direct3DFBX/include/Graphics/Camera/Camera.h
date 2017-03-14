@@ -3,7 +3,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include <WholeInformation.h>
+#include <directxmath.h>
+#include <SMat4.h>
 
 using namespace DirectX;
 
@@ -13,32 +14,42 @@ using namespace DirectX;
 class Camera
 {
 public:
+	// Constructor
 	Camera();
-	Camera(const Camera&);
+
+	// Destructor
 	~Camera();
 
-	void Update();
+	// Set Positiom
+	void SetPosition(const ursine::SVec3 & position);
 
-	void SetPosition(const XMFLOAT3& pos) { mPos = pos; }
-	const XMFLOAT3& GetPosition() const { return mPos; }
+	// Set Target or Look At
+	void SetTarget(const ursine::SVec3 & lookat);
 
-	void SetRotation(const XMFLOAT3& rot) { mRot = rot; }
-	const XMFLOAT3& GetRotation() const { return mRot; }
+	// Set up vector
+	void SetUp(const ursine::SVec3 & up);
 
-	void SetLookAt(const XMFLOAT3& lookat) { mLookAt = lookat; }
-	const XMFLOAT3& GetLookAt() const { return mLookAt; }
+	// Get Position
+	ursine::SVec3 GetPosition() const;
 
-	void SetUp(const XMFLOAT3& up) { mUp = up; }
-	const XMFLOAT3& GetUp() const { return mUp; }
+	// Get Look At
+	ursine::SVec3 GetTarget() const;
 
-	void SetViewMatrix();
-	void SetViewMatrix(const XMMATRIX& viewMtx) { mViewMtx = viewMtx; }
-	const XMMATRIX& GetViewMatrix() const { return mViewMtx; }
+	// Get Up
+	ursine::SVec3 GetUp() const;
+
+	// Get view matrix
+	XMMATRIX GetView() const;
+
+	// Update view matrix
+	void UpdateView();
 
 private:
-	XMFLOAT3 mPos;
-	XMFLOAT3 mRot;
-	XMFLOAT3 mLookAt;
-	XMFLOAT3 mUp;
-	XMMATRIX mViewMtx;
+	XMMATRIX mView;		//!< View Matrix
+
+	ursine::SVec3 mPosition;	//!< Camera Position
+	ursine::SVec3 mTarget;	//!< Camera Look at
+	ursine::SVec3 mUp;		//!< Camera Up
+
+	bool mUpdate;		//!< Flag to check if update is needed
 };

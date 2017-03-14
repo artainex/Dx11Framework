@@ -32,7 +32,7 @@ struct VS_OUTPUT
 	//float4	Depth	: TEXCOORD3;
 };
 
-VS_OUTPUT vs_main(VS_INPUT input, uint instanceID : SV_InstanceID)
+VS_OUTPUT SkinVertexShader(VS_INPUT input)
 {
 	VS_OUTPUT output;
 
