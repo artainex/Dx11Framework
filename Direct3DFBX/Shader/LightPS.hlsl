@@ -135,7 +135,7 @@ float4 LightPS(PixelInputType input) : SV_Target
 	// debug light model
 	if (diffuse.w == -1.f)
 		return float4(diffuse.xyz, 1.f);
-		
+	
 	// BRDF
 	float lightDistance = length( light - p.xyz );
 
@@ -149,7 +149,7 @@ float4 LightPS(PixelInputType input) : SV_Target
 	float3 lighting = BRDF(l, v, h, n, diffuse.xyz, specular.xyz, roughness, color.xyz);
 
 	// if the light is local, strength the intensity to give strong color
-	if (color.w == 0.0f)
+	if (color.w == -1.f)
 		lightIntensity *= 5.f;
 
 	return lightIntensity * shadow * float4(lighting.xyz, 1.f);

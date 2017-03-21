@@ -8,10 +8,10 @@ cbuffer cbMaterial : register( b0 )
 	float4 m_diffuse;
 	float4 m_specular;
 	float4 m_emissive;
+	float4 m_colorandtype;
 	float m_transparency;
 	float m_shineness;
 	float2 m_padding;
-	float4 m_colorandtype;
 };
 
 struct PS_INPUT
@@ -42,7 +42,7 @@ PS_OUTPUT GeometryPixelShader(PS_INPUT input)
 	output.Normal = input.WNor;
 	if(m_colorandtype.w == 0.0f)
 		output.Diffuse = float4(m_diffuse.xyz, m_transparency);
-	else if((m_colorandtype.w == 1.0f)) // for debug light
+	else if((m_colorandtype.w == -1.f)) // for debug light
 		output.Diffuse = float4(m_colorandtype.xyz, -1.f);
 	output.SpecularAndShine = float4(m_specular.xyz, m_shineness);
 

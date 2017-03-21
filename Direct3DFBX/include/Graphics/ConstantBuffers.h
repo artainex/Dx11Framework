@@ -84,19 +84,19 @@ struct MaterialBuffer
 	XMFLOAT4	diffuse;		// 32
 	XMFLOAT4	specular;		// 48
 	XMFLOAT4	emissive;		// 64
-	float		transparency;	// 68
-	float		shineness;		// 72
-	XMFLOAT2	padding;		// 80
-	XMFLOAT4	colorandtype;	// 96
+	XMFLOAT4	colorandtype;	// 80
+	float		transparency;	// 84
+	float		shineness;		// 88
+	XMFLOAT2	padding;		// 96
 
 	MaterialBuffer() : 
 		ambient(XMFLOAT4(1, 1, 1, 1)),
 		diffuse(XMFLOAT4(1, 1, 1, 1)),
 		specular(XMFLOAT4(1, 1, 1, 1)),
 		emissive(XMFLOAT4(1, 1, 1, 1)),
+		colorandtype(XMFLOAT4(1, 1, 1, -1)),
 		transparency(1.0f),
 		shineness(0.1f),
-		padding(XMFLOAT2(0, 0)),
-		colorandtype(XMFLOAT4(0, 1, 1, 1))
+		padding(XMFLOAT2(0, 0))
 	{}
 };

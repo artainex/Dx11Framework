@@ -38,7 +38,7 @@ const float EPSILONF = 1.f - FLT_EPSILON;
 // Light
 const float lightNear = 0.1f;
 const float lightFar = 1000.f;
-const float exponentialConst = 45.f;
+const float exponentialConst = 100.f;
 
 // Local Light Number
 const int localLights = 30;
@@ -102,7 +102,7 @@ private:
 
 	// Blur
 	XMFLOAT4						mWeights[2 * MAX_KERNEL_RADIUS + 1];	// Blur weights
-	int								mBlurKernelRadius;						// Blur Kernel radius
+	int								mBlurKernelWidth;						// Blur Kernel radius
 
 	// Sky dome
 	XMFLOAT4						mHammersley[IBL_N];
@@ -133,7 +133,7 @@ private:
 	void LightPass();
 	void DepthPass(Light& light);
 	void ExponentialDepthPass(Light& light);
-	void BuildWeights();
+	void BuildGaussianBlurFilter();
 	void BlurDepth();
 	void DrawFinalScene();
 	

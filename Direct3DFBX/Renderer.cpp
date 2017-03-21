@@ -18,7 +18,7 @@ Renderer::Renderer()
 	:
 	mMtxBuffer(nullptr),
 	mMtxPaletteBuffer(nullptr),
-	mBlurKernelRadius(50),
+	mBlurKernelWidth(16),
 	mGraphics(Graphics::sInstance),
 	mDrawDebugLight(false),
 	mExponential(true)
@@ -126,10 +126,10 @@ void Renderer::GeometryPass()
 				material.mtrlConst.diffuse,
 				material.mtrlConst.specular,
 				material.mtrlConst.emissive,
+				XMFLOAT4(color.x, color.y, color.z, -1.f),
 				material.mtrlConst.transparency,
 				material.mtrlConst.shineness,
-				XMFLOAT2(0, 0),
-				XMFLOAT4(color.x, color.y, color.z, 1));
+				XMFLOAT2(0, 0));
 
 			sphere.Bind();
 
@@ -480,20 +480,22 @@ void Renderer::ExponentialDepthPass(Light& light)
 	BlurDepth();
 }
 
-void Renderer::BuildWeights()
+void Renderer::BuildGaussianBlurFilter()
 {
-	unsigned int kernalWidth = 2 * mBlurKernelRadius + 1;
+	// Calculate Beta * e^(i^2 / 2*s^2) to create Gaussain Blur Filter
 
-	float variance = 4.f;
-	float covariance = variance * variance;
+	// 2 * w + 1
+	unsigned int kernalWidth = 2 * mBlurKernelWidth + 1;	
+	float s = mBlurKernelWidth / 2; // s = w/2
 	float sum = 0.f;
 	for (unsigned int i = 0; i < kernalWidth; ++i)
 	{
-		float x = static_cast<float>(i) - static_cast<float>(mBlurKernelRadius);
-		mWeights[i].x = std::exp(-((x * x) / (2.f * covariance)));
+		float x = static_cast<float>(i) - static_cast<float>(mBlurKernelWidth);
+		mWeights[i].x = std::exp(-((x * x) / (2.f * s * s))); // e^(i^2 / 2*s^2)
 		sum += mWeights[i].x;
 	}
 
+	// Normalization = Beta
 	for (unsigned int i = 0; i < kernalWidth; ++i)
 		mWeights[i].x /= sum;
 }
@@ -501,7 +503,7 @@ void Renderer::BuildWeights()
 void Renderer::BlurDepth()
 {
 	// horizontal blur
-	mShaders["HBlur"].SetShaderParameters(ComputeShader, 0, mDepthBuffer.GetWidth(), mDepthBuffer.GetHeight(), mBlurKernelRadius);
+	mShaders["HBlur"].SetShaderParameters(ComputeShader, 0, mDepthBuffer.GetWidth(), mDepthBuffer.GetHeight(), mBlurKernelWidth);
 	mShaders["HBlur"].SetShaderArrayParameters(ComputeShader, 1, mWeights);
 	mShaders["HBlur"].SetTexture(ComputeShader, 0, &mDepthBuffer);
 	mShaders["HBlur"].BindUnorderedTexture(0, &mHBlurDepthBuffer);
@@ -509,7 +511,7 @@ void Renderer::BlurDepth()
 	mShaders["HBlur"].UnBindUnorderedTexture(0);
 
 	// vertical blur
-	mShaders["VBlur"].SetShaderParameters(ComputeShader, 0, mDepthBuffer.GetWidth(), mDepthBuffer.GetHeight(), mBlurKernelRadius);
+	mShaders["VBlur"].SetShaderParameters(ComputeShader, 0, mDepthBuffer.GetWidth(), mDepthBuffer.GetHeight(), mBlurKernelWidth);
 	mShaders["VBlur"].SetShaderArrayParameters(ComputeShader, 1, mWeights);
 	mShaders["VBlur"].BindTexture(ComputeShader, 0, &mHBlurDepthBuffer);
 	mShaders["VBlur"].BindUnorderedTexture(0, &mFinalBlurDepthBuffer);
@@ -567,7 +569,7 @@ void Renderer::Initialize()
 	mScreenProj = XMMatrixOrthographicLH(1.f, 1.f, Near, Far);
 
 	if (mExponential)
-		BuildWeights();
+		BuildGaussianBlurFilter();
 
 	// fbx models
 	FAIL_CHECK_VOID_WITH_MSG(InitModels(), "Initialize FBX Models Failed.");
@@ -783,28 +785,28 @@ HRESULT Renderer::InitLight()
 	// Init ambienet light
 	mAmbientLight.SetColor(urColor::Salmon.ToVector4());
 
-	mGlobalLights.push_back(Light(urColor::White.ToVector4(), ursine::SVec3(50.f, 50.f, 0.f)));
+	//mGlobalLights.push_back(Light(urColor::White.ToVector4(), ursine::SVec3(50.f, 50.f, 0.f)));
 
-	//// Init local lights for diffuse and specular
-	//srand((unsigned int)time(nullptr));
-	//for (UINT i = 0; i < localLights; ++i)
-	//{
-	//	ursine::SVec3 pos(
-	//		(float)(rand() % 40) - 20.f,
-	//		(float)(rand() % 10),
-	//		(float)(rand() % 40) - 20.f);
-	//	ursine::SVec4 randomColor(
-	//		(float)(rand() % 255) / 255.f,
-	//		(float)(rand() % 255) / 255.f,
-	//		(float)(rand() % 255) / 255.f,
-	//		0.f);
-	//	mLocalLights.push_back(LocalLight(pos, randomColor, 10.f));
-	//}
-	//
-	//mDirectionalLights.push_back(DirectionalLight(ursine::SVec3(0.f, 100.f, 0.f),
-	//	urColor::Yellow.ToVector4(),
-	//	ursine::SVec3(0.f, -1.f, 0.f),
-	//	ursine::SVec3(1.f, 1.f, 1.f)));
+	// Init local lights for diffuse and specular
+	srand((unsigned int)time(nullptr));
+	for (UINT i = 0; i < localLights; ++i)
+	{
+		ursine::SVec3 pos(
+			(float)(rand() % 40) - 20.f,
+			(float)(rand() % 10),
+			(float)(rand() % 40) - 20.f);
+		ursine::SVec4 randomColor(
+			(float)(rand() % 255) / 255.f,
+			(float)(rand() % 255) / 255.f,
+			(float)(rand() % 255) / 255.f,
+			-1.f);
+		mLocalLights.push_back(LocalLight(pos, randomColor, 10.f));
+	}
+	
+	mDirectionalLights.push_back(DirectionalLight(ursine::SVec3(0.f, 100.f, 0.f),
+		urColor::Yellow.ToVector4(),
+		ursine::SVec3(0.f, -1.f, 0.f),
+		ursine::SVec3(1.f, 1.f, 1.f)));
 
 	return S_OK;
 }
