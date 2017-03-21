@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------------------
 ** Team Bear King
-** ?2015 DigiPen Institute of Technology, All Rights Reserved.
+** 2017 DigiPen Institute of Technology, All Rights Reserved.
 **
 ** Utilities.h
 **
@@ -20,14 +20,66 @@
 #include <fbxsdk.h>
 #include <SVec3.h>
 #include <SVec4.h>
+#include <SMat3.h>
 #include <SMat4.h>
+#include <algorithm>
+#include <vector>
+#include <string>
+#include <rgbe.h>
 
 #pragma warning(disable : 4458)
+
+template <typename T>
+inline T Max(const T & v1, const T & v2)
+{
+	return std::max<T>(v1, v2);
+}
+
+template <typename T, typename... Arguments >
+inline T Max(const T & v1, const T & v2, Arguments... args)
+{
+	return Max(Max(v1, v2), args...);
+}
+
+template <typename T>
+inline T Min(const T & v1, const T & v2)
+{
+	return std::min<T>(v1, v2);
+}
+
+template <typename T, typename... Arguments >
+inline T Min(const T & v1, const T & v2, Arguments... args)
+{
+	return Min(Min(v1, v2), args...);
+}
+
+template <typename T>
+inline T Clamp(const T & value, const T & low, const T & high)
+{
+	return Max(low, Min(value, high));
+}
+
+//--------------------------------------------------------------------------------------
+// HDR file related helper functions
+//--------------------------------------------------------------------------------------
+// Read an HDR image in .hdr (RGBE) format.
+void read(const std::string& inName, std::vector<float>& image, int& width, int& height);
+// Write an HDR image in .hdr (RGBE) format.
+void write(const std::string& outName, std::vector<float>& image, const int width, const int height);
+bool InitHDRTextures(const std::string& hdrfile);
+void HDR_sRGB2Linear(const int& width, const int& height, std::vector<float>* image);
+void HDR_Linear2sRGB(const int& width, const int& height, std::vector<float>* image);
 
 //--------------------------------------------------------------------------------------
 // MACROS
 //--------------------------------------------------------------------------------------
 #define FAIL_CHECK(expression) if( FAILED(expression) )	{ return expression; }
+#define FAIL_CHECK_VOID(expression) if( FAILED(expression) )	{ return; }
+#define FAIL_CHECK_VOID_WITH_MSG(expression, msg) if( FAILED(expression) )		\
+{																				\
+	MessageBox(NULL, msg, "Error", MB_OK);										\
+	return;																		\
+}
 #define FAIL_CHECK_BOOLEAN(expression) if( FAILED(expression) )	{ return false; }
 #define FAIL_CHECK_WITH_MSG(expression, msg) if( FAILED(expression) )	\
 {																		\
@@ -35,9 +87,9 @@
 	return expression;													\
 }
 #define FAIL_CHECK_BOOLEAN_WITH_MSG(expression, msg) if( FAILED(expression) )	\
-{																		\
-	MessageBox(NULL, msg, "Error", MB_OK);								\
-	return false;													\
+{																				\
+	MessageBox(NULL, msg, "Error", MB_OK);										\
+	return false;																\
 }
 
 #define SAFE_RELEASE(pt) if( nullptr != pt )\
@@ -49,25 +101,52 @@
 #define SAFE_DELETE_ARRAY(pt) if( nullptr != pt )	\
 { delete [] pt; pt = nullptr; }				\
 
+void SamplerInitialize(D3D11_SAMPLER_DESC &sampler,
+	D3D11_FILTER Filter,
+	D3D11_TEXTURE_ADDRESS_MODE AddressU,
+	D3D11_TEXTURE_ADDRESS_MODE AddressV,
+	D3D11_TEXTURE_ADDRESS_MODE AddressW,
+	D3D11_COMPARISON_FUNC ComparisonFunc,
+	FLOAT MinLOD,
+	FLOAT MaxLOD);
+
+void BufferInitialize(D3D11_BUFFER_DESC& buffer,
+	UINT byteWidth = 0,
+	D3D11_USAGE usage = D3D11_USAGE_DEFAULT,
+	UINT bindFlags = 0,
+	UINT cpuAccFlags = 0,
+	UINT miscFlags = 0,
+	UINT stride = 0);
+
 // shader type
 enum eShaderType
 {
 	NONE_SHADER = -1,
 	VERTEX_SHADER,
 	PIXEL_SHADER,
+	GEOMETRY_SHADER,
 	COMPUTE_SHADER,
 	HULL_SHADER
 };
 
-// render type(render target type)
+// render type(geo model or light model)
 enum eRenderType
 {
-	BASIC = -1,
-	POSITION,	// world position
-	NORMAL,		// world normal
-	DIFFUSE,	// diffuse
-	SPECULAR,	// specular with shineness
-	DEPTH,		// depth
+	RENDER_NONE = -1,
+	RENDER_GEO,
+	RENDER_LIGHT,
+	RENDER_SKYDOME,
+	RENDER_COUNT
+};
+
+// render target type
+enum eRenderTargetType
+{
+	RT_BASIC = -1,
+	RT_POSITION,	// world position
+	RT_NORMAL,		// world normal
+	RT_DIFFUSE,		// diffuse
+	RT_SPECULAR,	// specular with shineness
 	RT_COUNT
 };
 
@@ -75,118 +154,25 @@ enum eRenderType
 enum eLayout
 {
 	NONE_LAYOUT = -1,
-	LAYOUT0,	// POS NOR
-	LAYOUT1, 	// POS NOR TEX
-	LAYOUT2, 	// POS NOR BIN TAN
-	LAYOUT3, 	// POS NOR BIN TAN TEX
-	LAYOUT4, 	// POS NOR BW BI
-	LAYOUT5, 	// POS NOR TEX BW BI
-	LAYOUT6, 	// POS NOR BIN TAN BW BI
-	LAYOUT7//,	// POS NOR BIN TAN TEX BW BI
-		   //LAYOUTT		// POS TEX
+	LAYOUT0,		// POS NOR
+	LAYOUT1, 		// POS NOR TEX
+	LAYOUT2, 		// POS NOR BIN TAN
+	LAYOUT3, 		// POS NOR BIN TAN TEX
+	LAYOUT4, 		// POS NOR BW BI
+	LAYOUT5, 		// POS NOR TEX BW BI
+	LAYOUT6, 		// POS NOR BIN TAN BW BI
+	LAYOUT7			// POS NOR BIN TAN TEX BW BI
 };
 
-// 노말 맵 만들려면 binormal이랑 tangent를 써야 하는데,
-// 이걸 갖고 있는 놈도 있고 안갖고 나오는 놈도 있어.
-// 동적으로 이걸 만들어내면 수맣은 레이아웃과 VERTEX_DATA~를 만들어내야하는데
-// 이건 상당히 멍청한 짓이야. 맷이 한 거처럼 .Add()를 써서 여럿 붙일 수 있으면 좋을텐데.
-// 나중에 이거 벡터로 바꾸든가 해. 진짜 못해먹겠네
-struct LAYOUT
-{
-	D3D11_INPUT_ELEMENT_DESC LAYOUT0[2];
-	D3D11_INPUT_ELEMENT_DESC LAYOUT1[3];
-	D3D11_INPUT_ELEMENT_DESC LAYOUT2[4];
-	D3D11_INPUT_ELEMENT_DESC LAYOUT3[5];
-	D3D11_INPUT_ELEMENT_DESC LAYOUT4[4];
-	D3D11_INPUT_ELEMENT_DESC LAYOUT5[5];
-	D3D11_INPUT_ELEMENT_DESC LAYOUT6[6];
-	D3D11_INPUT_ELEMENT_DESC LAYOUT7[7];
-	D3D11_INPUT_ELEMENT_DESC LAYOUT_TEX[2];
-	D3D11_INPUT_ELEMENT_DESC LAYOUT_PT[2];
-
-	// TRY OPTIMIZE THESE FORMATS 
-	LAYOUT()
-	{
-		// pos, material, nbt, tex, bw, bi	
-		LAYOUT0[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT0[1] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-
-		LAYOUT1[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT1[1] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT1[2] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-
-		LAYOUT2[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT2[1] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT2[2] = { "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT2[3] = { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-
-		LAYOUT3[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT3[1] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT3[2] = { "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT3[3] = { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT3[4] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-
-		LAYOUT4[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT4[1] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT4[2] = { "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT4[3] = { "BLENDINDICES", 0, DXGI_FORMAT_R8G8B8A8_UINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-
-		LAYOUT5[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT5[1] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT5[2] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT5[3] = { "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT5[4] = { "BLENDINDICES", 0, DXGI_FORMAT_R8G8B8A8_UINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-
-		LAYOUT6[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT6[1] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT6[2] = { "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT6[3] = { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT6[4] = { "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT6[5] = { "BLENDINDICES", 0, DXGI_FORMAT_R8G8B8A8_UINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-
-		LAYOUT7[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT7[1] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT7[2] = { "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT7[3] = { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT7[4] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT7[5] = { "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT7[6] = { "BLENDINDICES", 0, DXGI_FORMAT_R8G8B8A8_UINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-
-		LAYOUT_TEX[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT_TEX[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-
-		LAYOUT_PT[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-		LAYOUT_PT[1] = { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-	}
-};
-
-
-// POS NOR
-struct VERTEX_DATA_L0
-{
-	DirectX::XMFLOAT3	vPos;
-	DirectX::XMFLOAT3	vNor;
-};
-
-// POS NOR TEX
-struct VERTEX_DATA_L1
+// This will be used for both geometry and light
+struct VERTEX_DATA_COMPATIBLE
 {
 	DirectX::XMFLOAT3	vPos;
 	DirectX::XMFLOAT3	vNor;
 	DirectX::XMFLOAT2	vTexcoord;
 };
 
-// POS NOR BIN TAN
-struct VERTEX_DATA_L2
-{
-	DirectX::XMFLOAT3	vPos;
-	DirectX::XMFLOAT3	vNor;
-	DirectX::XMFLOAT3	vBin;
-	DirectX::XMFLOAT3	vTan;
-};
-
-// POS NOR BIN TAN TEX
-struct VERTEX_DATA_L3
+struct VERTEX_DATA_GEO
 {
 	DirectX::XMFLOAT3	vPos;
 	DirectX::XMFLOAT3	vNor;
@@ -195,38 +181,7 @@ struct VERTEX_DATA_L3
 	DirectX::XMFLOAT2	vTexcoord;
 };
 
-// POS NOR BW BI
-struct VERTEX_DATA_L4
-{
-	DirectX::XMFLOAT3	vPos;
-	DirectX::XMFLOAT3	vNor;
-	DirectX::XMFLOAT4	vBWeight;
-	BYTE		vBIdx[4];
-};
-
-// POS NOR TEX BW BI
-struct VERTEX_DATA_L5
-{
-	DirectX::XMFLOAT3	vPos;
-	DirectX::XMFLOAT3	vNor;
-	DirectX::XMFLOAT2	vTexcoord;
-	DirectX::XMFLOAT4	vBWeight;
-	BYTE		vBIdx[4];
-};
-
-// POS NOR BIN TAN BW BI
-struct VERTEX_DATA_L6
-{
-	DirectX::XMFLOAT3	vPos;
-	DirectX::XMFLOAT3	vNor;
-	DirectX::XMFLOAT3	vBin;
-	DirectX::XMFLOAT3	vTan;
-	DirectX::XMFLOAT4	vBWeight;
-	BYTE		vBIdx[4];
-};
-
-// POS NOR BIN TAN TEX BW BI
-struct VERTEX_DATA_L7
+struct VERTEX_DATA_SKIN
 {
 	DirectX::XMFLOAT3	vPos;
 	DirectX::XMFLOAT3	vNor;
@@ -234,7 +189,7 @@ struct VERTEX_DATA_L7
 	DirectX::XMFLOAT3	vTan;
 	DirectX::XMFLOAT2	vTexcoord;
 	DirectX::XMFLOAT4	vBWeight;
-	BYTE		vBIdx[4];
+	BYTE				vBIdx[4];
 };
 
 // POS TEX
@@ -242,13 +197,6 @@ struct VERTEX_DATA_LT
 {
 	DirectX::XMFLOAT3	vPos;
 	DirectX::XMFLOAT2	vTexcoord;
-};
-
-// POS NOR
-struct VERTEX_DATA_LP
-{
-	DirectX::XMFLOAT3	vPos;
-	DirectX::XMFLOAT4	vColor;
 };
 
 //--------------------------------------------------------------------------------------
@@ -262,6 +210,15 @@ HRESULT CompileShaderFromFile(eShaderType shaderType,
 	ID3DBlob** ppBlobOut = nullptr,
 	ID3D11VertexShader** ppVSLayout = nullptr,
 	ID3D11PixelShader** ppPSLayout = nullptr);
+
+HRESULT CompileShaderFromFile(eShaderType shaderType,
+	LPCTSTR szFileName,
+	LPCSTR szEntryPoint,
+	LPCSTR szShaderModel,
+	ID3D11Device** ppD3Ddevice = nullptr,
+	ID3DBlob** ppBlobOut = nullptr,
+	const D3D_SHADER_MACRO* macro = nullptr,
+	ID3D11ComputeShader** ppComputeShader = nullptr);
 
 namespace pseudodx
 {
@@ -300,6 +257,7 @@ namespace pseudodx
 		XMFLOAT3() {}
 		XMFLOAT3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
 		XMFLOAT3& operator+ (const XMFLOAT3& Float3) { x += Float3.x; y += Float3.y; z += Float3.z; return *this; }
+		XMFLOAT3& operator- (const XMFLOAT3& Float3) { x -= Float3.x; y -= Float3.y; z -= Float3.z; return *this; }
 		XMFLOAT3& operator/ (const float& floatval) { x /= floatval; y /= floatval; z /= floatval; return *this; }
 		XMFLOAT3& operator= (const XMFLOAT3& Float3) { x = Float3.x; y = Float3.y; z = Float3.z; return *this; }
 		bool operator== (const XMFLOAT3& Float3) { return ((x == Float3.x) && (y == Float3.y) && (z == Float3.z)) ? true : false; }

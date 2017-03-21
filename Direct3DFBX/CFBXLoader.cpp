@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------------------
 ** Team Bear King
-** ?2015 DigiPen Institute of Technology, All Rights Reserved.
+** 2017 DigiPen Institute of Technology, All Rights Reserved.
 **
 ** CFBXLoader.cpp
 **
@@ -219,30 +219,14 @@ namespace ursine
 				// name & counter initialization
 				iter.name = currMD.name.c_str();
 				iter.mLayout = currMD.mLayout;
+				iter.mStride = currMD.mStride;
+				iter.mStrideCompatible = currMD.mStrideCompatible;
 				memcpy(&iter.meshTM, &currMD.meshTM, sizeof(XMMATRIX));
 				
 				// Reconstruct Vertices and Indices for data compression
-				std::vector<ursine::MeshVertex> rmvVec;
-				std::vector<UINT> rIVec;
-				Reconstruct(i, rmvVec, rIVec, currMD);
-
-				j = 0;
-				iter.meshVtxInfoCount = rmvVec.size();
-				iter.meshVtxInfos.resize(iter.meshVtxInfoCount);
-				for (auto &iter2 : iter.meshVtxInfos)
-				{
-					iter2 = rmvVec[j];
-					++j;
-				}
-
-				j = 0;
-				iter.meshVtxIdxCount = rIVec.size();
-				iter.meshVtxIndices.resize(iter.meshVtxIdxCount);
-				for (auto &iter2 : iter.meshVtxIndices)
-				{
-					iter2 = rIVec[j];
-					++j;
-				}
+				Reconstruct(i, iter.meshVtxInfos, iter.meshVtxIndices, currMD);
+				iter.meshVtxInfoCount = iter.meshVtxInfos.size();
+				iter.meshVtxIdxCount = iter.meshVtxIndices.size();
 
 				++i;
 			}
@@ -572,6 +556,9 @@ namespace ursine
 				newMesh.mLayout = eLayout::LAYOUT2;
 			else if (newMesh.m_LayoutFlag == (POS | NOR | BITAN | TEX))
 				newMesh.mLayout = eLayout::LAYOUT3;
+
+			newMesh.mStride = sizeof(VERTEX_DATA_GEO);
+			newMesh.mStrideCompatible = sizeof(VERTEX_DATA_COMPATIBLE);
 
 			//go through all the control points(verticies) and multiply by the transformation
 			for (auto &iter : newMesh.vertices)
@@ -1595,7 +1582,7 @@ namespace ursine
 			ProcessMaterials(pNode, &newMesh);
 
 			// set layout flag
-			if ( newMesh.m_LayoutFlag == (POS | NOR) )
+			if (newMesh.m_LayoutFlag == (POS | NOR))
 				newMesh.mLayout = eLayout::LAYOUT4;
 			else if ( newMesh.m_LayoutFlag == (POS | NOR | TEX) )
 				newMesh.mLayout = eLayout::LAYOUT5;
@@ -1603,6 +1590,8 @@ namespace ursine
 				newMesh.mLayout = eLayout::LAYOUT6;
 			else if ( newMesh.m_LayoutFlag == (POS | NOR | BITAN | TEX ) )
 				newMesh.mLayout = eLayout::LAYOUT7;
+
+			newMesh.mStride = sizeof(VERTEX_DATA_SKIN);
 
 			//go through all the control points(verticies) and multiply by the transformation
 			for (auto &iter : newMesh.vertices)
@@ -1773,36 +1762,20 @@ namespace ursine
 	//reconstruct vertices and indices
 	void CFBXLoader::Reconstruct(UINT meshIdx, std::vector<ursine::MeshVertex>& target_mvs, std::vector<UINT>& target_mis, const FBX_DATA::MeshData& md)
 	{
+		bool normalMode = (md.normalMode == FbxGeometryElement::eByPolygonVertex) ? true : false;
+		bool binormalMode = (md.binormalMode == FbxGeometryElement::eByPolygonVertex) ? true : false;
+		bool tangentMode = (md.tangentMode == FbxGeometryElement::eByPolygonVertex) ? true : false;
+
 		UINT i = 0;
-		for (auto &iter : md.indices)
+		for (auto &target_index : md.indices)
 		{
 			ursine::MeshVertex newMV;
 
-			newMV.pos = md.vertices[iter];
+			newMV.pos = md.vertices[target_index];
 
-			if (!md.normals.empty())
-			{
-				if (md.normalMode == FbxGeometryElement::eByPolygonVertex)
-					newMV.normal = md.normals[i];
-				else if (md.normalMode == FbxGeometryElement::eByControlPoint)
-					newMV.normal = md.normals[iter];
-			}
-
-			if (!md.binormals.empty())
-			{
-			    if (md.binormalMode == FbxGeometryElement::eByPolygonVertex)
-			        newMV.binormal = md.binormals[i];
-			    else if (md.binormalMode == FbxGeometryElement::eByControlPoint)
-			        newMV.binormal = md.binormals[iter];
-			}
-
-			if (!md.tangents.empty())
-			{
-				if (md.tangentMode == FbxGeometryElement::eByPolygonVertex)
-					newMV.tangent = md.tangents[i];
-				else if (md.tangentMode == FbxGeometryElement::eByControlPoint)
-					newMV.tangent = md.tangents[iter];
-			}
+			if (!md.normals.empty())	newMV.normal	= (normalMode) ?	md.normals[i]	: md.normals[target_index];
+			if (!md.binormals.empty())	newMV.binormal	= (binormalMode) ?	md.binormals[i]	: md.binormals[target_index];
+			if (!md.tangents.empty())	newMV.tangent	= (tangentMode) ?	md.tangents[i]	: md.tangents[target_index];
 
 			if (!md.uvs.empty())
 			{
@@ -1816,37 +1789,46 @@ namespace ursine
 				if (!m_Model->mCtrlPoints[meshIdx].empty())
 				{
 					// currently, just for using 1st control point vec
-					newMV.ctrlBlendWeights.x = m_Model->mCtrlPoints[meshIdx].at(iter).mBlendingInfo[0].mBlendingWeight;
-					newMV.ctrlBlendWeights.y = m_Model->mCtrlPoints[meshIdx].at(iter).mBlendingInfo[1].mBlendingWeight;
-					newMV.ctrlBlendWeights.z = m_Model->mCtrlPoints[meshIdx].at(iter).mBlendingInfo[2].mBlendingWeight;
-					newMV.ctrlBlendWeights.w = m_Model->mCtrlPoints[meshIdx].at(iter).mBlendingInfo[3].mBlendingWeight;
+					auto& targetCP = m_Model->mCtrlPoints[meshIdx][target_index];
+					newMV.ctrlBlendWeights = pseudodx::XMFLOAT4(
+						targetCP.mBlendingInfo[0].mBlendingWeight,
+						targetCP.mBlendingInfo[1].mBlendingWeight,
+						targetCP.mBlendingInfo[2].mBlendingWeight,
+						targetCP.mBlendingInfo[3].mBlendingWeight);
 
-					newMV.ctrlIndices.x = m_Model->mCtrlPoints[meshIdx].at(iter).mBlendingInfo[0].mBlendingIndex;
-					newMV.ctrlIndices.y = m_Model->mCtrlPoints[meshIdx].at(iter).mBlendingInfo[1].mBlendingIndex;
-					newMV.ctrlIndices.z = m_Model->mCtrlPoints[meshIdx].at(iter).mBlendingInfo[2].mBlendingIndex;
-					newMV.ctrlIndices.w = m_Model->mCtrlPoints[meshIdx].at(iter).mBlendingInfo[3].mBlendingIndex;
+					newMV.ctrlIndices = pseudodx::XMUINT4(
+						targetCP.mBlendingInfo[0].mBlendingIndex,
+						targetCP.mBlendingInfo[1].mBlendingIndex,
+						targetCP.mBlendingInfo[2].mBlendingIndex,
+						targetCP.mBlendingInfo[3].mBlendingIndex);
 				}
 			}
 
-			bool bFound = false;
-			UINT index = 0;
-			for (index = 0; index < target_mvs.size(); ++index)
-			{
-				if (newMV == target_mvs[index])
-				{
-					bFound = true;
-					// if there is same MeshVertex, just add the index of it.
-					target_mis.push_back(index);
-					break;
-				}
-			}
+			//// 리컨스트럭트는 데이터는 줄여주지만 초반 파싱에 오래 걸려. 익스포팅 할 거 아니라면 그냥 쓰자 일단은
+			//// 더 빠르게 최적화시킬 방법을 찾아보던가
+			//UINT index = 0;
+			//bool bFound = false;
+			//for (auto& iter : target_mvs)
+			//{
+			//	if (newMV == iter)
+			//	{
+			//		// if there is same MeshVertex, just add the index of it.
+			//		target_mis.push_back(index);
+			//		bFound = true;
+			//		break;
+			//	}
+			//	++index;
+			//}
+			//
+			//// if there is no existing MeshVertex, store the vertex and set a index as the last one
+			//if (!bFound)
+			//{
+			//	target_mvs.push_back(newMV);
+			//	target_mis.push_back(index);
+			//}
 
-			// if there is no MeshVertex, store the vertex and set a index as the last one
-			if (!bFound)
-			{
-				target_mvs.push_back(newMV);
-				target_mis.push_back(index);
-			}
+			target_mvs.push_back(newMV);
+			target_mis.push_back(i);
 
 			++i;
 		}

@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------------------
 ** Team Bear King
-** ?2015 DigiPen Institute of Technology, All Rights Reserved.
+** 2017 DigiPen Institute of Technology, All Rights Reserved.
 **
 ** AnimationDef.h
 **
@@ -101,13 +101,14 @@ namespace ursine
 		// this will replace MATERIAL_DATA
 		struct Material_Data
 		{
-			MaterialBufferType			mtrlConst;
+			MaterialBuffer			mtrlConst;
 			ID3D11ShaderResourceView*	pSRV [2]; // for diffuse and normalmap. do I need multiple of this?
 			ID3D11SamplerState*         pSampler;// [2];
 			ID3D11Buffer*				pMaterialCb;
 
 			Material_Data()
-				:pSampler(nullptr), pMaterialCb(nullptr)
+				:pSampler(nullptr), 
+				pMaterialCb(nullptr)
 			{
 				pSRV[0] = nullptr;
 				pSRV[1] = nullptr;
@@ -116,17 +117,7 @@ namespace ursine
 				//pSampler[1] = nullptr;
 			}
 
-			void Release()
-			{
-				SAFE_RELEASE(pMaterialCb);
-				for (UINT i = 0; i < 2; ++i)
-				{
-					SAFE_RELEASE(pSRV[i]);
-					//SAFE_RELEASE(pSampler[i]);
-					//SAFE_RELEASE(pSRV);
-				}
-				SAFE_RELEASE(pSampler);
-			}
+			void Release();
 		};
 
 		struct FbxMaterial
@@ -153,33 +144,15 @@ namespace ursine
 			float TransparencyFactor;
 
 			FbxMaterial()
-				:name(""), type(Type_None),
-				shineness(0), TransparencyFactor(0)
+				:name(""),
+				type(Type_None),
+				shineness(0), 
+				TransparencyFactor(0)
 			{}
 
-			void Release()
-			{
-				ambient.Release();
-				diffuse.Release();
-				emissive.Release();
-				specular.Release();
-			}
+			void Release();
 
-			FbxMaterial& operator=(const FbxMaterial& rhs)
-			{
-				if (this == &rhs)
-					return *this;
-
-				name = rhs.name;
-				type = rhs.type;
-				ambient = rhs.ambient;
-				diffuse = rhs.diffuse;
-				emissive = rhs.emissive;
-				specular = rhs.specular;
-				shineness = rhs.shineness;
-				TransparencyFactor = rhs.TransparencyFactor;
-				return *this;
-			}
+			FbxMaterial& operator=(const FbxMaterial& rhs);
 		};
 
 		struct KeyFrame
@@ -192,8 +165,7 @@ namespace ursine
 			KeyFrame() :
 			time(0.f), 
 			trans(0.f, 0.f, 0.f), rot(0.f, 0.f, 0.f, 1.f), scl(1.f, 1.f, 1.f)
-			{
-			}
+			{}
 		};
 
 		struct BoneAnimation
@@ -308,6 +280,8 @@ namespace ursine
 		{
 			eLayout mLayout;
 			unsigned int m_LayoutFlag;
+			unsigned int mStride;
+			unsigned int mStrideCompatible;
 			
 			std::string name;
 			int parentIndex;
@@ -368,18 +342,6 @@ namespace ursine
 		// for rendering
 		struct	MESH_NODE
 		{
-			std::string				m_meshName;
-			ID3D11Buffer*			m_pVB;
-			ID3D11Buffer*			m_pIB;
-			ID3D11InputLayout*		m_pInputLayout;
-			XMMATRIX				m_meshTM;
-			std::vector<XMMATRIX>	m_meshMtxPal;
-			DWORD					vertexCount;
-			DWORD					indexCount;
-			eLayout					m_Layout;
-
-			std::vector<FBX_DATA::Material_Data> fbxmtrlData;
-
 			// INDEX BUFFER BIT
 			enum INDEX_BIT
 			{
@@ -388,25 +350,35 @@ namespace ursine
 				INDEX_32BIT,		// 32bit
 			};
 
+			std::string				m_meshName;
+			ID3D11Buffer*			m_pVB;
+			ID3D11Buffer*			m_pVBC;
+			ID3D11Buffer*			m_pIB;
+			ID3D11InputLayout*		m_pInputLayout;
+			XMMATRIX				m_meshTM;
+			std::vector<XMMATRIX>	m_meshMtxPal;
+			DWORD					vertexCount;
+			DWORD					indexCount;
+			eLayout					m_Layout;
+			UINT					m_Stride;
+			UINT					m_StrideCompatible;
+
+			std::vector<FBX_DATA::Material_Data> fbxmtrlData;
 			INDEX_BIT	m_indexBit;
 
 			MESH_NODE()
 				: 
-				m_pVB(nullptr), m_pIB(nullptr), m_pInputLayout(nullptr),
-				m_indexBit(INDEX_NOINDEX), vertexCount(0), indexCount(0),
+				m_pVB(nullptr), m_pIB(nullptr), 
+				m_pInputLayout(nullptr),
+				m_indexBit(INDEX_NOINDEX), 
+				vertexCount(0), 
+				indexCount(0),
 				m_meshTM( DirectX::XMMatrixIdentity() )
-			{}
-
-			void Release()
 			{
-				for (UINT i = 0; i < fbxmtrlData.size(); ++i)
-					fbxmtrlData[i].Release();
-				fbxmtrlData.clear();
-
-				SAFE_RELEASE(m_pInputLayout);
-				SAFE_RELEASE(m_pIB);
-				SAFE_RELEASE(m_pVB);
 			}
+
+			void Release();
+			FBX_DATA::Material_Data& GetNodeFbxMaterial(const int& mtrl_id = 0) { return fbxmtrlData[mtrl_id]; };
 
 			void SetIndexBit(const size_t indexCount)
 			{
@@ -423,6 +395,8 @@ namespace ursine
 					m_indexBit = INDEX_32BIT;
 #endif
 			};
+			void Bind();
+			void BindCompatible();
 		};
 	}
 }

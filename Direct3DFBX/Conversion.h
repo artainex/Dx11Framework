@@ -8,7 +8,8 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 #pragma once
-#include "Utilities\WholeInformation.h"
+
+#include <fbxsdk.h>
 
 class Converter
 {

@@ -1,139 +1,130 @@
 #pragma once
 
-#include "UrsinePrecompiled.h"
-#include <Color.h>
-#include <Utilities.h>
+#include <DirectXMath.h>
+#include <SVec3.h>
+#include <SVec4.h>
 
 using namespace DirectX;
 
-const int MAX_LIGHT = 8;
-
-namespace ursine
+///////////////////////////////////////////////////////////////
+//// LIGHT ////////////////////////////////////////////////////
+class Light
 {
-	//enum for the different types of lights
-	enum LightType
+public:
+	Light();
+	Light(ursine::SVec4 color, ursine::SVec3 pos);
+	~Light();
+
+	void Initialize(ursine::SVec4 color, ursine::SVec3 pos);
+	void Reset();
+
+	ursine::SVec3 GetPosition() const { return mPos; }
+	void SetPosition(ursine::SVec3 pos) { mPos = pos; }
+	void SetPosition(float x, float y, float z) { mPos = ursine::SVec3(x, y, z); }
+
+	void SetColor(float red, float green, float blue, float alpha) { mColor = ursine::SVec4(red, green, blue, alpha); }
+	void SetColor(ursine::SVec4 rgba) { mColor = rgba; }
+
+	const ursine::SVec4& GetColor() const { return mColor; }
+	const XMMATRIX& GetShadowView() const { return mView; }
+	const XMMATRIX& GetShadowProjection() const { return mProj; }
+
+	void Update();
+	void GenerateShadowView(const ursine::SVec3 & target, const ursine::SVec3 & up);
+	void GenerateShadowProjection(float fov, float aspect, float lightnear, float lightfar);
+
+private:
+	ursine::SVec3 mPos;
+	ursine::SVec4 mColor;
+	XMMATRIX mView;
+	XMMATRIX mProj;
+};
+
+// 잘 작동되면 상속으로 바꿀것
+class LocalLight
+{
+public:
+	// Constructor
+	LocalLight()
+		: mPos(0.f, 0.f, 0.f), mColor(0.f, 0.f, 0.f, 0.f), mRadius(0.f) {}
+	LocalLight(const ursine::SVec3 & position, const ursine::SVec4 & color, float radius)
+		: mPos(position), mColor(color), mRadius(radius) {}
+
+	// Destructor
+	~LocalLight() {};
+
+	ursine::SVec3 GetPosition() const { return mPos; }
+	void SetPosition(ursine::SVec3 pos) { mPos = pos; }
+	void SetPosition(float x, float y, float z) { mPos = ursine::SVec3(x, y, z); }
+
+	float GetRadius() const { return mRadius; }
+	void SetRadius(float rad) { mRadius = rad; }
+
+	void SetColor(float red, float green, float blue, float alpha) { mColor = ursine::SVec4(red, green, blue, alpha); }
+	void SetColor(ursine::SVec4 rgba) { mColor = rgba; }
+
+	const ursine::SVec4& GetColor() const { return mColor; }
+	const XMMATRIX& GetShadowView() const { return mView; }
+	const XMMATRIX& GetShadowProjection() const { return mProj; }
+
+	void Update();
+	void GenerateShadowView(const ursine::SVec3 & target, const ursine::SVec3 & up);
+	void GenerateShadowProjection(float fov, float aspect, float lightnear, float lightfar);
+
+private:
+	ursine::SVec3 mPos;
+	ursine::SVec4 mColor;
+	float mRadius;
+	XMMATRIX mView;
+	XMMATRIX mProj;
+};
+
+class DirectionalLight
+{
+public:
+	DirectionalLight()
+		: mPos(0.f, 0.f, 0.f), mColor(0.f, 0.f, 0.f, 0.f), 
+		mDirection(0.f, 0.f, 1.f), mDimension(0.f, 0.f, 0.f)
+	{}
+
+	// Constructor
+	DirectionalLight(const ursine::SVec3 & position, const ursine::SVec4 & color,
+					const ursine::SVec3 & direction, const ursine::SVec3 & dimension)
+		: mPos(position), mColor(color), mDirection(direction) , mDimension(dimension)
 	{
-		LIGHT_NONE = -1,
-		LIGHT_DIRECTIONAL = 0,
-		LIGHT_POINT,
-		LIGHT_SPOTLIGHT,
-		LIGHT_COUNT
-	};
+		mDirection.Normalize();
+	}
 
-	///////////////////////////////////////////////////////////////
-	//// LIGHT ////////////////////////////////////////////////////
-	class Light
-	{
-	public:
-		Light();
-		Light(const Light&);
-		~Light();
+	// Destructor
+	~DirectionalLight() {};
 
-		LightType GetType(void) const { return m_type; }
-		void SetType(const LightType type) { m_type = type; }
+	ursine::SVec3 GetPosition() const { return mPos; }
+	void SetPosition(ursine::SVec3 pos) { mPos = pos; }
+	void SetPosition(float x, float y, float z) { mPos = ursine::SVec3(x, y, z); }
 
-		XMFLOAT3 GetPosition() const { return m_position; }
-		void SetPosition(XMFLOAT3 pos) { m_position = pos; m_transfrom = XMMatrixTranslation(m_position.x, m_position.y, m_position.z); }
-		void SetPosition(float x, float y, float z) { m_position = XMFLOAT3(x, y, z); m_transfrom = XMMatrixTranslation(m_position.x, m_position.y, m_position.z); }
+	ursine::SVec3 GetDirection() const { return mDirection; }
+	void SetDirection(ursine::SVec3 dir) { mDirection = dir; }
+	void SetDirection(float x, float y, float z) { mDirection = ursine::SVec3(x, y, z); }
 
-		void SetDiffuseColor(float red, float green, float blue, float alpha) { m_diffuseColor = XMFLOAT4(red, green, blue, alpha); }
-		void SetAmbientColor(float red, float green, float blue, float alpha) { m_ambientColor = XMFLOAT4(red, green, blue, alpha); }
-		void SetSpecularColor(float red, float green, float blue, float alpha) { m_specularColor = XMFLOAT4(red, green, blue, alpha); }
-		void SetDiffuseColor(XMFLOAT4 rgba) { m_diffuseColor = rgba; }
-		void SetAmbientColor(XMFLOAT4 rgba) { m_ambientColor = rgba; }
-		void SetSpecularColor(XMFLOAT4 rgba) { m_specularColor = rgba; }
-		void SetDirection(float x, float y, float z) { m_direction = XMFLOAT3(x, y, z); }
+	ursine::SVec3 GetDimension() const { return mDimension; }
+	void SetDimension(ursine::SVec3 dim) { mDimension = dim; }
+	void SetDimension(float x, float y, float z) { mDimension = ursine::SVec3(x, y, z); }
 
-		XMFLOAT4 GetDiffuseColor() const { return m_diffuseColor; }
-		XMFLOAT4 GetAmbientColor() const { return m_ambientColor; }
-		XMFLOAT4 GetSpecularColor() const { return m_specularColor; }
-		XMFLOAT3 GetDirection() const { return m_direction; }
+	void SetColor(float red, float green, float blue, float alpha) { mColor = ursine::SVec4(red, green, blue, alpha); }
+	void SetColor(ursine::SVec4 rgba) { mColor = rgba; }
+	const ursine::SVec4& GetColor() const { return mColor; }
 
-		XMMATRIX GetTransformation() const { return m_transfrom; }
+	const XMMATRIX& GetShadowView() const { return mView; }
+	const XMMATRIX& GetShadowProjection() const { return mProj; }
 
-	private:
-		LightType m_type;
-		XMFLOAT3 m_position;
-		XMFLOAT4 m_diffuseColor;
-		XMFLOAT4 m_ambientColor;
-		XMFLOAT4 m_specularColor;
-		XMFLOAT3 m_direction;
-		XMMATRIX m_transfrom;
-	};
+	void GenerateShadowView(const ursine::SVec3 & target, const ursine::SVec3 & up);
+	void GenerateShadowProjection(float fov, float aspect, float lightnear, float lightfar);
 
-	//class Light
-	//{
-	//public:
-	//	//enum for the different types of lights
-	//	enum LightType
-	//	{
-	//		LIGHT_DIRECTIONAL = 0,
-	//		LIGHT_POINT,
-	//		LIGHT_SPOTLIGHT,
-	//		LIGHT_COUNT
-	//	};
-	//
-	//public:
-	//	void Initialize(void);
-	//
-	//	LightType GetType(void);
-	//	void SetType(const LightType type);
-	//
-	//	const SVec3 &GetDirection(void);
-	//	void SetDirection(const SVec3 &dir);
-	//	void SetDirection(const float x, const float y, const float z);
-	//
-	//	const SVec3 &GetPosition(void);
-	//	void SetPosition(const SVec3 &position);
-	//	void SetPosition(const float x, const  float y, const float z);
-	//
-	//	const Color &GetColor(void);
-	//	void SetColor(const Color &color);
-	//	void SetColor(const float r, const float g, const float b);
-	//
-	//	float GetRadius(void);
-	//	void SetRadius(const float radius);
-	//
-	//	float GetIntensity(void);
-	//	void SetIntensity(const float intensity);
-	//
-	//	const Vec2 &GetSpotlightAngles(void);
-	//	void SetSpotlightAngles(const Vec2 &angles);
-	//	void SetSpotlightAngles(const float inner, const float outer);
-	//
-	//	void SetSpotlightTransform(const SMat4 &transf);
-	//	const SMat4 &GetSpotlightTransform(void) const;
-	//
-	//	//SMat4 GenerateViewSpaceShadowTransform(void) const;
-	//	//SMat4 GenerateViewSpaceShadowProjection(void) const;
-	//	//
-	//	//SMat4 GenerateShadowView(void) const;
-	//	//SMat4 GenerateShadowProjection(void) const;
-	//	//
-	//	//unsigned GetShadowmapWidth(void) const;
-	//	//void SetShadowmapWidth(unsigned width);
-	//	//
-	//	//GfxHND GetShadowmapHandle(void) const;
-	//	//void SetShadowmapHandle(GfxHND handle);
-	//	//
-	//	//bool GetRenderShadows(void) const;
-	//	//void SetRenderShadows(bool renderShadows);
-	//
-	//	Light &operator=(Light &rhs);
-	//
-	//private:
-	//	LightType m_type;
-	//	SVec3 m_position;
-	//	Color m_color;
-	//	float m_radius;
-	//	SVec3 m_direction;
-	//	float m_intensity;
-	//
-	//	Vec2 m_spotlightAngles;
-	//	SMat4 m_spotlightTransform;
-	//
-	//	//unsigned m_shadowmapWidth;
-	//	//GfxHND m_shadowmap;
-	//	//bool m_renderShadows;
-	//};
-}
+private:
+	ursine::SVec3 mPos;
+	ursine::SVec3 mDirection;
+	ursine::SVec3 mDimension;	// width, height, depth
+	ursine::SVec4 mColor;
+	XMMATRIX mView;
+	XMMATRIX mProj;
+};

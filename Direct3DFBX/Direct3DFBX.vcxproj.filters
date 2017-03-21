@@ -60,26 +60,20 @@
     <Filter Include="Shaders\VertexShader">
       <UniqueIdentifier>{78786274-6c1e-4aec-be0d-7c85e1331d99}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Graphics\Debug Window">
+    <Filter Include="Graphics\RenderTarget">
       <UniqueIdentifier>{e6ba4776-4ec2-4ce0-831a-cee6d26aa494}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\TextureShader">
-      <UniqueIdentifier>{0090f61d-1e3e-4ac2-b311-c62e8e73099b}</UniqueIdentifier>
+    <Filter Include="Graphics\Shaders">
+      <UniqueIdentifier>{0546c901-31e0-4081-b239-895037512dca}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\LightShader">
-      <UniqueIdentifier>{1ab08ad2-8e58-43c3-902a-f177afed4f9a}</UniqueIdentifier>
+    <Filter Include="Time">
+      <UniqueIdentifier>{82c8167c-ff54-4bdf-8d9b-61b4e8c1c8aa}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PointShader">
-      <UniqueIdentifier>{0ae4ef30-e8f2-4123-8aff-c786c0fbb4be}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\LineShader">
-      <UniqueIdentifier>{2a2c317e-7b68-471a-b214-964602717a83}</UniqueIdentifier>
+    <Filter Include="Core">
+      <UniqueIdentifier>{3912d543-965d-49d8-bca8-9abb6ffb9541}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CFBXRendererDX11.cpp">
-      <Filter>FBXLoader</Filter>
-    </ClCompile>
     <ClCompile Include="CFBXLoader.cpp">
       <Filter>FBXLoader</Filter>
     </ClCompile>
@@ -143,36 +137,122 @@
     <ClCompile Include="src\Utilities\File System\FileSystem.cpp">
       <Filter>Utilities\src\File System</Filter>
     </ClCompile>
-    <ClCompile Include="DX11Framework.cpp" />
     <ClCompile Include="src\Color.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\Camera\Camera.cpp">
       <Filter>Graphics\Camera</Filter>
     </ClCompile>
-    <ClCompile Include="src\Graphics\RenderTexture.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Graphics\Debug Window\DebugWindow.cpp">
-      <Filter>Graphics\Debug Window</Filter>
-    </ClCompile>
     <ClCompile Include="src\Graphics\Light\Light.cpp">
       <Filter>Graphics\Light</Filter>
     </ClCompile>
-    <ClCompile Include="src\Graphics\TextureShader.cpp">
+    <ClCompile Include="FBXModel.cpp">
+      <Filter>FBXLoader</Filter>
+    </ClCompile>
+    <ClCompile Include="include\Utilities\AnimationDef.cpp">
+      <Filter>Utilities\Include</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Skydome.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="src\Graphics\Light\LightShader.cpp">
-      <Filter>Graphics\Light</Filter>
+    <ClCompile Include="src\Graphics\Shaders\Shader.cpp">
+      <Filter>Graphics\Shaders</Filter>
     </ClCompile>
-    <ClCompile Include="src\Graphics\PointShader.cpp">
+    <ClCompile Include="src\Graphics\RenderTarget\RenderTarget.cpp">
+      <Filter>Graphics\RenderTarget</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\RenderTarget\UAVTexture.cpp">
+      <Filter>Graphics\RenderTarget</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\RenderTarget\MultiRenderTarget.cpp">
+      <Filter>Graphics\RenderTarget</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rgbe.cpp">
       <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\HDRTexture.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Texture.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\RenderTarget\DepthRenderTarget.cpp">
+      <Filter>Graphics\RenderTarget</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>FBXLoader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Graphics.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\GraphicsPipeline.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="PlatformWindow.cpp" />
+    <ClCompile Include="KeyBind.cpp" />
+    <ClCompile Include="Duration.cpp" />
+    <ClCompile Include="src\Time\TimePoint.cpp">
+      <Filter>Time</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Time\Time.cpp">
+      <Filter>Time</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Time\Stopwatch.cpp">
+      <Filter>Time</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Time\ClockCycle.cpp">
+      <Filter>Time</Filter>
+    </ClCompile>
+    <ClCompile Include="MessageBox.cpp" />
+    <ClCompile Include="Game.cpp" />
+    <ClCompile Include="Application.cpp" />
+    <ClCompile Include="src\Core\System.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\SystemManager.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\Thread.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\Hash.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\IDrawable.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\IUpdatable.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\GameComponent.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\ObjectComponent.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\JobQueue.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\Assert.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\Mutex.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\CommonFunctions.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Mesh.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\MeshLoader.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\InputManager.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CFBXRendererDX11.h">
-      <Filter>FBXLoader</Filter>
-    </ClInclude>
     <ClInclude Include="CFBXLoader.h">
       <Filter>FBXLoader</Filter>
     </ClInclude>
@@ -305,106 +385,284 @@
     <ClInclude Include="include\Color.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="include\Utilities\WholeInformation.h">
-      <Filter>Utilities</Filter>
-    </ClInclude>
     <ClInclude Include="include\Graphics\ConstantBuffers.h">
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="include\Graphics\Camera\Camera.h">
       <Filter>Graphics\Camera</Filter>
     </ClInclude>
-    <ClInclude Include="include\Graphics\RenderTexture.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Graphics\Debug Window\DebugWindow.h">
-      <Filter>Graphics\Debug Window</Filter>
-    </ClInclude>
     <ClInclude Include="include\Graphics\Light\Light.h">
       <Filter>Graphics\Light</Filter>
     </ClInclude>
-    <ClInclude Include="include\Graphics\TextureShader.h">
+    <ClInclude Include="FBXModel.h">
+      <Filter>FBXLoader</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\Skydome.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="include\Graphics\Light\LightShader.h">
-      <Filter>Graphics\Light</Filter>
+    <ClInclude Include="include\Graphics\Shaders\Shader.h">
+      <Filter>Graphics\Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="include\Graphics\PointShader.h">
+    <ClInclude Include="include\Graphics\RenderTarget\RenderTarget.h">
+      <Filter>Graphics\RenderTarget</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\RenderTarget\UAVTexture.h">
+      <Filter>Graphics\RenderTarget</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\RenderTarget\MultiRenderTarget.h">
+      <Filter>Graphics\RenderTarget</Filter>
+    </ClInclude>
+    <ClInclude Include="include\rgbe.h">
       <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\HDRTexture.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\Texture.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\RenderTarget\DepthRenderTarget.h">
+      <Filter>Graphics\RenderTarget</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>FBXLoader</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\Graphics.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\GraphicsPipeline.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="PlatformWindow.h" />
+    <ClInclude Include="KeyBind.h" />
+    <ClInclude Include="MessageBox.h" />
+    <ClInclude Include="Singleton.h" />
+    <ClInclude Include="Uncopyable.h" />
+    <ClInclude Include="Duration.h" />
+    <ClInclude Include="include\Time\TimePoint.h">
+      <Filter>Time</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Time\Time.h">
+      <Filter>Time</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Time\Stopwatch.h">
+      <Filter>Time</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Time\ClockCycle.h">
+      <Filter>Time</Filter>
+    </ClInclude>
+    <ClInclude Include="Game.h" />
+    <ClInclude Include="include\Core\SystemManager.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\SystemMessaging.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\System.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\Thread.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\Delegate.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\CName.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\Hash.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\FunctionsFramework.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\IDrawable.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\IUpdatable.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\GameComponent.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\ObjectComponent.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\JobQueue.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\Message.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\Assert.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\Mutex.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\CommonFunctions.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Typing.h" />
+    <ClInclude Include="include\Graphics\Mesh.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics\MeshLoader.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\InputManager.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\Event.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Core\ObjectAllocator.h">
+      <Filter>Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shader\PixelShader\PixelShaderLayout0.hlsl">
-      <Filter>Shaders\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PixelShader\PixelShaderLayout1.hlsl">
-      <Filter>Shaders\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PixelShader\PixelShaderLayout2.hlsl">
-      <Filter>Shaders\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PixelShader\PixelShaderLayout3.hlsl">
-      <Filter>Shaders\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PixelShader\PixelShaderLayout4.hlsl">
-      <Filter>Shaders\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PixelShader\PixelShaderLayout6.hlsl">
-      <Filter>Shaders\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PixelShader\PixelShaderLayout7.hlsl">
-      <Filter>Shaders\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PixelShader\PixelShaderLayout5.hlsl">
-      <Filter>Shaders\PixelShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\VertexShader\VertexShaderLayout0.hlsl">
-      <Filter>Shaders\VertexShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\VertexShader\VertexShaderLayout1.hlsl">
-      <Filter>Shaders\VertexShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\VertexShader\VertexShaderLayout2.hlsl">
-      <Filter>Shaders\VertexShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\VertexShader\VertexShaderLayout3.hlsl">
-      <Filter>Shaders\VertexShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\VertexShader\VertexShaderLayout4.hlsl">
-      <Filter>Shaders\VertexShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\VertexShader\VertexShaderLayout5.hlsl">
-      <Filter>Shaders\VertexShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\VertexShader\VertexShaderLayout6.hlsl">
-      <Filter>Shaders\VertexShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\VertexShader\VertexShaderLayout7.hlsl">
-      <Filter>Shaders\VertexShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\TextureShader\TexturePixelShader.hlsl">
-      <Filter>Shaders\TextureShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\TextureShader\TextureVertexShader.hlsl">
-      <Filter>Shaders\TextureShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\LightShader\LightPixelShader.hlsl">
-      <Filter>Shaders\LightShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\LightShader\LightVertexShader.hlsl">
-      <Filter>Shaders\LightShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PointShader\PointShader_GS.hlsl">
-      <Filter>Shaders\PointShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PointShader\PointVertexShader.hlsl">
-      <Filter>Shaders\PointShader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PointShader\PointPixelShader.hlsl">
-      <Filter>Shaders\PointShader</Filter>
-    </FxCompile>
     <FxCompile Include="Shader\InstancingVS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="Shader\PixelShaderLayout0.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShaderLayout1.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShaderLayout2.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShaderLayout3.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShaderLayout4.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShaderLayout5.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShaderLayout6.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PixelShaderLayout7.hlsl">
+      <Filter>Shaders\PixelShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VertexShaderLayout0.hlsl">
+      <Filter>Shaders\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VertexShaderLayout1.hlsl">
+      <Filter>Shaders\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VertexShaderLayout2.hlsl">
+      <Filter>Shaders\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VertexShaderLayout3.hlsl">
+      <Filter>Shaders\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VertexShaderLayout4.hlsl">
+      <Filter>Shaders\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VertexShaderLayout5.hlsl">
+      <Filter>Shaders\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VertexShaderLayout6.hlsl">
+      <Filter>Shaders\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VertexShaderLayout7.hlsl">
+      <Filter>Shaders\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\DepthPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\DepthVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\DirectionalLightPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\ExponentialDepthVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\HDRPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\HDRVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\HorizontalBlur.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VerticalBlur.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\SkydomeVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\SkydomePS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\QuadVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\QuadPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\LightVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\LightPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\ExponentialDepthPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\AmbientVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\AmbientPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="include\Graphics\Shaders\Shader.inl">
+      <Filter>Graphics\Shaders</Filter>
+    </None>
+    <None Include="include\Time\Time.inl">
+      <Filter>Time</Filter>
+    </None>
+    <None Include="include\Time\Stopwatch.inl">
+      <Filter>Time</Filter>
+    </None>
+    <None Include="include\Core\SystemManager.inl">
+      <Filter>Core</Filter>
+    </None>
+    <None Include="include\Core\System.inl">
+      <Filter>Core</Filter>
+    </None>
+    <None Include="include\Core\Thread.inl">
+      <Filter>Core</Filter>
+    </None>
+    <None Include="include\Core\CName.inl">
+      <Filter>Core</Filter>
+    </None>
+    <None Include="include\Core\Hash.inl">
+      <Filter>Core</Filter>
+    </None>
+    <None Include="include\Core\JobQueue.inl">
+      <Filter>Core</Filter>
+    </None>
+    <None Include="include\Core\Message.inl">
+      <Filter>Core</Filter>
+    </None>
+    <None Include="include\Core\Mutex.inl">
+      <Filter>Core</Filter>
+    </None>
+    <None Include="include\Graphics\Mesh.inl">
+      <Filter>Graphics</Filter>
+    </None>
+    <None Include="include\Core\ObjectAllocator.inl">
+      <Filter>Core</Filter>
+    </None>
   </ItemGroup>
 </Project>
